@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
     Alert,
+    KeyboardAvoidingView,
+    ScrollView,
+    TouchableWithoutFeedback,
+    Keyboard,
+    Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MainText, SubText } from '../../components/CustomText';
@@ -15,16 +20,24 @@ import { Colors } from '../../constants/Colors';
 import StepIndicator from '../../components/StepIndicator';
 import { callAuthApi } from '../../scripts/api';
 
-const PersonalInfoScreen: React.FC = ({ navigation, route }: any) => {
+interface PersonalInfoScreenProps {
+    navigation: any;
+    route: any;
+}
+
+const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, route }) => {
     const [name, setName] = useState('');
     const [nic, setNic] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    const scrollViewRef = useRef<ScrollView>(null);
 
     // Get the phone number from the previous screen
-    const { phoneNumber } = route.params || {};
+    const { phoneNumber } = route?.params || {};
 
     const [errors, setErrors] = useState({
         name: '',
@@ -34,9 +47,39 @@ const PersonalInfoScreen: React.FC = ({ navigation, route }: any) => {
         confirmPassword: '',
     });
 
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+                // Auto scroll when keyboard appears
+                setTimeout(() => {
+                    if (scrollViewRef.current) {
+                        scrollViewRef.current.scrollTo({
+                            y: 100,
+                            animated: true,
+                        });
+                    }
+                }, 100);
+            }
+        );
+
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                setKeyboardHeight(0);
+            }
+        );
+
+        return () => {
+            keyboardDidShowListener?.remove();
+            keyboardDidHideListener?.remove();
+        };
+    }, []);
+
     const validateFields = () => {
         let valid = true;
-        let newErrors = { name: '', nic: '', email: '', password: '', confirmPassword: '' };
+        const newErrors = { name: '', nic: '', email: '', password: '', confirmPassword: '' };
 
         if (!name.trim()) {
             newErrors.name = 'Please enter your name';
@@ -125,87 +168,157 @@ const PersonalInfoScreen: React.FC = ({ navigation, route }: any) => {
             }
         } catch (error: any) {
             console.error('Registration error:', error);
-            const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+            const errorMessage = error?.response?.data?.message || 'Registration failed. Please try again.';
             Alert.alert('Error', errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+    // Clear errors when user starts typing
+    const handleNameChange = (text: string) => {
+        setName(text);
+        if (errors.name) {
+            setErrors(prev => ({ ...prev, name: '' }));
+        }
+    };
+
+    const handleNicChange = (text: string) => {
+        setNic(text);
+        if (errors.nic) {
+            setErrors(prev => ({ ...prev, nic: '' }));
+        }
+    };
+
+    const handleEmailChange = (text: string) => {
+        setEmail(text);
+        if (errors.email) {
+            setErrors(prev => ({ ...prev, email: '' }));
+        }
+    };
+
+    const handlePasswordChange = (text: string) => {
+        setPassword(text);
+        if (errors.password) {
+            setErrors(prev => ({ ...prev, password: '' }));
+        }
+    };
+
+    const handleConfirmPasswordChange = (text: string) => {
+        setConfirmPassword(text);
+        if (errors.confirmPassword) {
+            setErrors(prev => ({ ...prev, confirmPassword: '' }));
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.contentWrapper}>
-                {/* Back Button */}
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <MaterialCommunityIcons name="arrow-left" size={20} color="#374151" />
-                </TouchableOpacity>
+            <KeyboardAvoidingView 
+                style={styles.keyboardContainer}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView 
+                        ref={scrollViewRef}
+                        style={styles.scrollView}
+                        contentContainerStyle={[
+                            styles.scrollContainer,
+                            { paddingBottom: Math.max(80, keyboardHeight / 3) }
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >
+                        <View style={styles.contentWrapper}>
+                            {/* Back Button */}
+                            <TouchableOpacity 
+                                style={styles.backButton} 
+                                onPress={() => navigation.goBack()}
+                            >
+                                <MaterialCommunityIcons 
+                                    name="arrow-left" 
+                                    size={20} 
+                                    color="#374151" 
+                                />
+                            </TouchableOpacity>
 
-                {/* Header */}
-                <View style={styles.header}>
-                    <MainText size="xlarge" weight="bold" align="left">
-                        Start with the basics
-                    </MainText>
-                    <SubText size="medium" align="left" style={styles.subtitle}>
-                        Let’s get the essentials out of the way
-                    </SubText>
-                </View>
+                            {/* Header */}
+                            <View style={styles.header}>
+                                <MainText size="xlarge" weight="bold" align="left">
+                                    Start with the basics
+                                </MainText>
+                                <SubText size="medium" align="left" style={styles.subtitle}>
+                                    Let's get the essentials out of the way
+                                </SubText>
+                            </View>
 
-                {/* Step Indicator */}
-                <View style={styles.stepIndicatorWrapper}>
-                    <StepIndicator currentStep={3} />
-                </View>
+                            {/* Step Indicator */}
+                            <View style={styles.stepIndicatorWrapper}>
+                                <StepIndicator currentStep={3} />
+                            </View>
 
-                {/* Form */}
-                <View style={styles.centeredBox}>
-                    <View style={styles.form}>
-                        <CustomInputField
-                            placeholder="Full Name"
-                            value={name}
-                            onChangeText={text => setName(text)}
-                            iconName="account-outline"
-                            error={errors.name}
-                        />
-                         <CustomInputField
-                            placeholder="NIC Number"
-                            value={nic}
-                            onChangeText={text => setNic(text)}
-                            iconName="account-outline"
-                            error={errors.nic}
-                        />
-                        <CustomInputField
-                            placeholder="Email Address"
-                            value={email}
-                            onChangeText={text => setEmail(text)}
-                            iconName="email-outline"
-                            keyboardType="email-address"
-                            error={errors.email}
-                        />
-                        <CustomInputField
-                            placeholder="Password"
-                            value={password}
-                            onChangeText={text => setPassword(text)}
-                            iconName="lock-outline"
-                            secureTextEntry
-                            error={errors.password}
-                        />
-                        <CustomInputField
-                            placeholder="Re-enter Password"
-                            value={confirmPassword}
-                            onChangeText={text => setConfirmPassword(text)}
-                            iconName="lock-check-outline"
-                            secureTextEntry
-                            error={errors.confirmPassword}
-                        />
+                            {/* Form */}
+                            <View style={styles.centeredBox}>
+                                <View style={styles.form}>
+                                    <CustomInputField
+                                        placeholder="Full Name"
+                                        value={name}
+                                        onChangeText={handleNameChange}
+                                        iconName="account-outline"
+                                        error={errors.name}
+                                        autoCapitalize="words"
+                                    />
 
-                        <CustomButton
-                            title="Next"
-                            onPress={handleNext}
-                            loading={loading}
-                            style={styles.sendButton}
-                        />
-                    </View>
-                </View>
-            </View>
+                                    <CustomInputField
+                                        placeholder="NIC Number"
+                                        value={nic}
+                                        onChangeText={handleNicChange}
+                                        iconName="card-account-details-outline"
+                                        error={errors.nic}
+                                        autoCapitalize="characters"
+                                    />
+
+                                    <CustomInputField
+                                        placeholder="Email Address"
+                                        value={email}
+                                        onChangeText={handleEmailChange}
+                                        iconName="email-outline"
+                                        keyboardType="email-address"
+                                        error={errors.email}
+                                        autoCapitalize="none"
+                                    />
+
+                                    <CustomInputField
+                                        placeholder="Password"
+                                        value={password}
+                                        onChangeText={handlePasswordChange}
+                                        iconName="lock-outline"
+                                        secureTextEntry={true}
+                                        error={errors.password}
+                                    />
+
+                                    <CustomInputField
+                                        placeholder="Re-enter Password"
+                                        value={confirmPassword}
+                                        onChangeText={handleConfirmPasswordChange}
+                                        iconName="lock-check-outline"
+                                        secureTextEntry={true}
+                                        error={errors.confirmPassword}
+                                    />
+
+                                    <CustomButton
+                                        title="Next"
+                                        onPress={handleNext}
+                                        loading={loading}
+                                        style={styles.sendButton}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
@@ -214,6 +327,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.light.background,
+    },
+    keyboardContainer: {
+        flex: 1,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    scrollContainer: {
+        flexGrow: 1,
     },
     contentWrapper: {
         flex: 1,
@@ -235,18 +357,17 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     header: {
-        marginTop: 50,
-        marginBottom: 40,
+        marginTop: 30,
+        marginBottom: 20,
     },
     subtitle: {
         color: Colors.light.mutedText,
-        marginTop: 8,
     },
     form: {
         width: '100%',
     },
     sendButton: {
-        marginTop: 16,
+        marginTop: 24,
     },
     stepIndicatorWrapper: {
         width: '90%',

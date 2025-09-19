@@ -6,33 +6,54 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../constants/Colors';
 
 interface TermsModalProps {
   visible: boolean;
   onClose: () => void;
+  content?: string; // Make content optional with default fallback
 }
 
-const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => {
+const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose, content }) => {
+  // Default content if none is provided
+  const defaultContent = `lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.`;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent={true}
+      statusBarTranslucent={true}
+    >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <ScrollView style={styles.scrollView}>
-            <Text style={styles.title}>Terms and Conditions</Text>
-            <Text style={styles.content}>
-              {/* Replace with your actual terms content */}
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla
-              convallis egestas rhoncus. Donec facilisis fermentum sem, ac
-              viverra ante luctus vel. Donec vel mauris quam. Lorem ipsum dolor
-              sit amet, consectetur adipiscing elit.
-            </Text>
-          </ScrollView>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.modalContainer}>
+            {/* Header with close button */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Terms and Conditions</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={Colors.light.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <ScrollView
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.content}>
+                {content || defaultContent}
+              </Text>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -41,42 +62,57 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  safeArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
   },
   modalContainer: {
-    width: '85%',
-    maxHeight: '70%',
     backgroundColor: Colors.light.background,
-    borderRadius: 10,
-    padding: 20,
+    borderRadius: 20,
+    maxHeight: '85%',
+    minHeight: '50%',
+    width: '100%',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
   },
-  scrollView: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 15,
     color: Colors.light.text,
+    flex: 1,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     fontSize: 14,
     color: Colors.light.text,
-    lineHeight: 20,
-  },
-  closeButton: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    backgroundColor: Colors.light.tint,
-    borderRadius: 6,
-  },
-  closeButtonText: {
-    color: Colors.light.background,
-    fontWeight: '600',
-    fontSize: 16,
+    lineHeight: 22,
   },
 });
 

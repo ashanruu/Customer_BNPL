@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         color: Colors.light.mutedText,
-        marginTop: 8,
     },
     form: {
         width: '100%',
