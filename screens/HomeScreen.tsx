@@ -1,0 +1,578 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { callMobileApi, callMerchantApi } from '../scripts/api';
+
+function NavButton({ label, icon, active, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[styles.navButton, active && styles.navButtonActive]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Ionicons name={icon} size={24} color={active ? '#090B1A' : '#999'} />
+      <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const HomeScreen: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('home');
+  const [promotions, setPromotions] = useState<any[]>([]);
+  const [creditLimits, setCreditLimits] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [promotionsLoading, setPromotionsLoading] = useState(false);
+  const [creditLimitsLoading, setCreditLimitsLoading] = useState(false);
+  const navigation = useNavigation();
+
+  // Animation values for collapsible header
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const HEADER_MAX_HEIGHT = 200;
+  const HEADER_MIN_HEIGHT = 100;
+  const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
+
+  // Interpolated values for header animation
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: 'clamp',
+  });
+
+  const creditSectionOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const circleScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.6],
+    extrapolate: 'clamp',
+  });
+
+  const logoScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.8],
+    extrapolate: 'clamp',
+  });
+
+  // Dynamic gradient colors that become more radiant as header shrinks
+  const gradientProgress = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  // Animated gradient colors
+  const firstGradientColor = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: ['rgba(32, 34, 46, 1)', 'rgba(45, 212, 191, 0.8)'], // Dark blue to teal
+    extrapolate: 'clamp',
+  });
+
+  const secondGradientColor = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: ['rgba(9, 11, 26, 1)', 'rgba(147, 51, 234, 0.9)'], // Very dark to purple
+    extrapolate: 'clamp',
+  });
+
+  const borderRadiusValue = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [30, 20],
+    extrapolate: 'clamp',
+  });
+
+  // Fetch promotions data separately
+  const fetchPromotions = async () => {
+    try {
+      setPromotionsLoading(true);
+      const payload = {};
+
+      const promotionResponse = await callMerchantApi(
+        'GetPromotions',
+        payload,
+        'mobile-app-promotions',
+        ''
+      );
+
+      console.log('GetPromotions response:', promotionResponse);
+
+      if (promotionResponse.statusCode === 200) {
+        const promotionsData = promotionResponse.data || promotionResponse.payload || promotionResponse;
+        
+        if (Array.isArray(promotionsData)) {
+          setPromotions(promotionsData);
+          console.log('Promotions set successfully:', promotionsData.length, 'items');
+        } else if (Array.isArray(promotionResponse)) {
+          setPromotions(promotionResponse);
+          console.log('Promotions set from direct array:', promotionResponse.length, 'items');
+        } else {
+          console.error('Promotions data is not an array:', typeof promotionsData);
+          setPromotions([]);
+        }
+      } else {
+        console.error('Failed to fetch promotions - Status:', promotionResponse.statusCode, 'Message:', promotionResponse.message);
+        setPromotions([]);
+      }
+    } catch (error: any) {
+      console.error('GetPromotions error:', error);
+      setPromotions([]);
+    } finally {
+      setPromotionsLoading(false);
+    }
+  };
+
+  // Fetch credit limits from payment API
+  const fetchCreditLimits = async () => {
+    try {
+      setCreditLimitsLoading(true);
+      console.log("Fetching credit limits...");
+      
+      const response = await callMobileApi(
+        'GetCrediLimits',
+        {},
+        'mobile-app-credit-limits',
+        '',
+        'payment'
+      );
+
+      console.log("GetCrediLimits response:", response);
+
+      if (response.statusCode === 200) {
+        setCreditLimits(response.data || response.payload);
+        console.log("Credit limits loaded successfully");
+      } else {
+        console.error('Failed to fetch credit limits:', response.message);
+      }
+    } catch (error: any) {
+      console.error('GetCrediLimits error:', error);
+    } finally {
+      setCreditLimitsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPromotions();
+    fetchCreditLimits();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPromotions();
+      fetchCreditLimits();
+    }, [])
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Animated Top Section */}
+      <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
+        <Animated.View
+          style={[
+            styles.topSection,
+            {
+              borderBottomRightRadius: borderRadiusValue,
+              backgroundColor: 'transparent', // Make background transparent for gradient
+            }
+          ]}
+        >
+          {/* Dynamic Gradient Background */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderBottomRightRadius: borderRadiusValue,
+                backgroundColor: firstGradientColor,
+              }
+            ]}
+          />
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderBottomRightRadius: borderRadiusValue,
+                backgroundColor: secondGradientColor,
+                opacity: gradientProgress,
+              }
+            ]}
+          />
+          
+          {/* Radiant overlay effect */}
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderBottomRightRadius: borderRadiusValue,
+                backgroundColor: 'transparent',
+                shadowColor: '#2DD4BF',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: scrollY.interpolate({
+                  inputRange: [0, HEADER_SCROLL_DISTANCE],
+                  outputRange: [0, 0.8],
+                  extrapolate: 'clamp',
+                }),
+                shadowRadius: scrollY.interpolate({
+                  inputRange: [0, HEADER_SCROLL_DISTANCE],
+                  outputRange: [0, 20],
+                  extrapolate: 'clamp',
+                }),
+                elevation: scrollY.interpolate({
+                  inputRange: [0, HEADER_SCROLL_DISTANCE],
+                  outputRange: [0, 15],
+                  extrapolate: 'clamp',
+                }),
+              }
+            ]}
+          />
+          <View style={styles.topRow}>
+            <Animated.Text style={[styles.logo, { 
+              transform: [{ scale: logoScale }],
+              textShadowColor: scrollY.interpolate({
+                inputRange: [0, HEADER_SCROLL_DISTANCE],
+                outputRange: ['transparent', '#2DD4BF'],
+                extrapolate: 'clamp',
+              }),
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: scrollY.interpolate({
+                inputRange: [0, HEADER_SCROLL_DISTANCE],
+                outputRange: [0, 10],
+                extrapolate: 'clamp',
+              }),
+            }]}>
+              BNPL
+            </Animated.Text>
+            <Text style={styles.timeText}></Text>
+            <View style={styles.iconRow}>
+              <TouchableOpacity style={styles.planButton}>
+                <Text style={styles.planText}>Plan</Text>
+              </TouchableOpacity>
+              <Ionicons name="language" size={22} color="#fff" style={styles.icon} />
+              <Ionicons name="notifications" size={22} color="#fff" style={styles.icon} />
+            </View>
+          </View>
+
+          <Animated.View style={[styles.creditSection, { opacity: creditSectionOpacity }]}>
+            <View>
+              <Text style={styles.label}>Your Credit Limit</Text>
+              <Text style={styles.value}>
+                Rs. {creditLimits?.fullCredit 
+                  ? creditLimits.fullCredit.toLocaleString() 
+                  : '0'}
+              </Text>
+              <View style={styles.progressBarBackground}>
+                <View style={[styles.progressBar, { 
+                  width: (creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined)
+                    ? `${Math.round(((creditLimits.fullCredit - creditLimits.totalConsumed) / creditLimits.fullCredit) * 100)}%` 
+                    : '0%' 
+                }]} />
+              </View>
+              <Text style={styles.label}>You Can Spend</Text>
+              <Text style={styles.value}>
+                Rs. {creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined
+                  ? (creditLimits.fullCredit - creditLimits.totalConsumed).toLocaleString() 
+                  : '10,000.00'}
+              </Text>
+            </View>
+            
+            <Animated.View style={[styles.circleContainer, { transform: [{ scale: circleScale }] }]}>
+              <Animated.View
+                style={[
+                  styles.circleOuter,
+                  {
+                    borderColor: (() => {
+                      const percent = (creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined)
+                        ? Math.round(((creditLimits.fullCredit - creditLimits.totalConsumed) / creditLimits.fullCredit) * 100)
+                        : 100;
+
+                      if (percent >= 0 && percent <= 25) return '#FF4D4D';
+                      if (percent >= 26 && percent <= 50) return '#FFA500';
+                      if (percent >= 51 && percent <= 75) return '#FFFF00';
+                      if (percent >= 76 && percent <= 100) return '#0eeeb6ff';
+                    })(),
+                    shadowColor: scrollY.interpolate({
+                      inputRange: [0, HEADER_SCROLL_DISTANCE],
+                      outputRange: ['transparent', '#0eeeb6ff'],
+                      extrapolate: 'clamp',
+                    }),
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: scrollY.interpolate({
+                      inputRange: [0, HEADER_SCROLL_DISTANCE],
+                      outputRange: [0, 0.9],
+                      extrapolate: 'clamp',
+                    }),
+                    shadowRadius: scrollY.interpolate({
+                      inputRange: [0, HEADER_SCROLL_DISTANCE],
+                      outputRange: [0, 15],
+                      extrapolate: 'clamp',
+                    }),
+                    elevation: scrollY.interpolate({
+                      inputRange: [0, HEADER_SCROLL_DISTANCE],
+                      outputRange: [0, 10],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ]}
+              >
+                {creditLimitsLoading ? (
+                  <ActivityIndicator size="small" color="#15e0cbff" />
+                ) : (
+                  <>
+                    <Text style={styles.circleText}>
+                      {(creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined)
+                        ? Math.round(((creditLimits.fullCredit - creditLimits.totalConsumed) / creditLimits.fullCredit) * 100)
+                        : "100"}
+                      %
+                    </Text>
+                    <Text style={styles.circleSubText}>Available</Text>
+                  </>
+                )}
+              </Animated.View>
+            </Animated.View>
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
+
+      {/* Scrollable Content */}
+      <Animated.ScrollView
+        style={[styles.scrollContent, { marginTop: headerHeight }]}
+        contentContainerStyle={{ paddingBottom: 120, paddingTop: 20 }}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Promo Banner */}
+        <Image
+          source={require('../assets/images/banner.png')}
+          style={styles.bannerImage}
+          resizeMode="cover"
+        />
+
+        {/* Payment Notification */}
+        <View style={styles.cardsContainer1}>
+          <View style={styles.cardBox}>
+            <Text style={styles.sectionTitle}>Payment Notification</Text>
+            <View style={styles.paymentBox}>
+              <View>
+                <Text style={styles.paymentText}>Next Payment</Text>
+                <Text style={styles.paymentText}>Fashion Bug (2/3)</Text>
+              </View>
+              <View style={styles.rightBox}>
+                <Text style={styles.dueDate}>2025.08.02</Text>
+                <Text style={styles.daysLeft}>05 Days</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Promotions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Offers & Promotions</Text>
+          <View style={styles.promoRow}>
+            {(promotions.length > 0 ? promotions : [
+              {
+                promotionId: 1,
+                promotionImageLink: require('../assets/images/fashionbug.png'),
+                promotionName: "Get 10% off",
+                description: "on first purchase",
+                discount: 10,
+              },
+              {
+                promotionId: 2,
+                promotionImageLink: require('../assets/images/fashionbug4.png'),
+                promotionName: "Save $20",
+                description: "on orders over $100",
+                discount: 20,
+              },
+              {
+                promotionId: 3,
+                promotionImageLink: require('../assets/images/fashionbug2.png'),
+                promotionName: "Buy 1 Get 1 Free",
+                description: "Limited time offer",
+                discount: 100,
+              },
+            ]).slice(0, 3).map((promo) => (
+              <View key={promo.promotionId} style={styles.promoCard}>
+                {promo.promotionImageLink && typeof promo.promotionImageLink === 'string' && promo.promotionImageLink.startsWith('data:image') ? (
+                  <Image 
+                    source={{ uri: promo.promotionImageLink }} 
+                    style={styles.promoImage} 
+                    resizeMode="cover" 
+                  />
+                ) : (
+                  <Image 
+                    source={typeof promo.promotionImageLink === 'string' ? { uri: promo.promotionImageLink } : promo.promotionImageLink} 
+                    style={styles.promoImage} 
+                    resizeMode="cover" 
+                  />
+                )}
+                <View style={styles.promoOverlay}>
+                  <Text style={styles.promoText}>{promo.promotionName}</Text>
+                  <Text style={styles.promoBold}>{promo.discount}% OFF</Text>
+                  <Text style={styles.promoText}>{promo.description}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </Animated.ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default HomeScreen;
+
+const styles = StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F5F5F5' 
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    overflow: 'hidden',
+  },
+  scrollContent: { 
+    flex: 1,
+    marginTop: 200, // Initial margin to account for header
+  },
+  topSection: {
+    flex: 1,
+    paddingTop: 20,
+    paddingHorizontal: 25,
+    paddingBottom: 30,
+    borderBottomRightRadius: 20,
+    justifyContent: 'space-between',
+  },
+  bannerImage: {
+    width: '92%',
+    height: 100,
+    alignSelf: 'center',
+    borderRadius: 12,
+    marginVertical: 10,
+  },
+  topRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timeText: { color: '#fff', fontSize: 16 },
+  iconRow: { flexDirection: 'row', alignItems: 'center' },
+  icon: { marginLeft: 15 },
+  planButton: { 
+    backgroundColor: '#444', 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 8 
+  },
+  planText: { color: '#fff' },
+  logo: { 
+    fontSize: 25, 
+    fontWeight: 'bold', 
+    color: '#fff',
+  },
+  creditSection: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    flex: 1,
+  },
+  label: { color: '#ccc', fontSize: 14 },
+  value: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  progressBarBackground: { 
+    width: 150, 
+    height: 6, 
+    backgroundColor: '#333', 
+    borderRadius: 4, 
+    marginVertical: 10 
+  },
+  progressBar: { 
+    height: 6, 
+    backgroundColor: '#fff', 
+    borderRadius: 4 
+  },
+  circleContainer: { alignItems: 'center' },
+  circleOuter: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 50, 
+    borderWidth: 4, 
+    borderColor: '#0eeeb6ff', 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  circleText: { fontSize: 18, color: 'white', fontWeight: 'bold' },
+  circleSubText: { fontSize: 10, color: 'white' },
+  cardsContainer1: { marginTop: 15, paddingHorizontal: 20 },
+  cardBox: { 
+    backgroundColor: 'white', 
+    borderRadius: 10, 
+    padding: 15, 
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  section: { padding: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginBottom: 10 },
+  paymentBox: { 
+    backgroundColor: '#f1f1f1', 
+    borderRadius: 12, 
+    padding: 16, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
+  paymentText: { fontSize: 14 },
+  rightBox: { alignItems: 'flex-end' },
+  dueDate: { fontSize: 16, fontWeight: 'bold', marginTop: 1 },
+  daysLeft: { fontSize: 12, color: 'red' },
+  promoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  promoCard: {
+    width: 120,
+    height: 150,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#eee",
+    marginRight: 10,
+  },
+  promoImage: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+  },
+  promoOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.47)",
+    padding: 6,
+  },
+  promoText: {
+    fontSize: 12,
+    color: "#fff",
+  },
+  promoBold: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+    marginVertical: 2,
+  },
+  navButton: { alignItems: 'center', justifyContent: 'center' },
+  navButtonActive: { padding: 8, borderRadius: 10 },
+  navLabel: { fontSize: 12, color: '#999', marginTop: 4 },
+  navLabelActive: { color: '#090B1A', fontWeight: 'bold' },
+});
