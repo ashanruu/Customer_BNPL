@@ -116,7 +116,7 @@ const AddressDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       const fullName = personalInfo?.fullName || '';
       const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || '';
-      const lastName = "testing";      //testing
+      const lastName = nameParts.slice(1).join(' ') || '';
   
       // Prepare customer data for API
       const customerPayload = {

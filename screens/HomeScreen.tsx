@@ -22,9 +22,11 @@ const HomeScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [promotions, setPromotions] = useState<any[]>([]);
   const [creditLimits, setCreditLimits] = useState<any>(null);
+  const [loanList, setLoanList] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [promotionsLoading, setPromotionsLoading] = useState(false);
   const [creditLimitsLoading, setCreditLimitsLoading] = useState(false);
+  const [loanListLoading, setLoanListLoading] = useState(false);
   const navigation = useNavigation();
 
   // Animation values for collapsible header
@@ -153,17 +155,95 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  // Fetch loan list from payment API
+  const fetchLoanList = async () => {
+    try {
+      setLoanListLoading(true);
+      console.log("Fetching loan list...");
+      
+      const response = await callMobileApi(
+        'GetLoanList',
+        {},
+        'mobile-app-loan-list',
+        '',
+        'payment'
+      );
+
+      console.log("=== FULL GetLoanList RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      console.log("=== END RESPONSE ===");
+
+      if (response.statusCode === 200) {
+        setLoanList(response.data);
+        console.log("Loan list loaded successfully");
+      } else {
+        console.error('Failed to fetch loan list:', response.message);
+      }
+    } catch (error: any) {
+      console.error('GetLoanList error:', error);
+    } finally {
+      setLoanListLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPromotions();
     fetchCreditLimits();
+    fetchLoanList();
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       fetchPromotions();
       fetchCreditLimits();
+      fetchLoanList();
     }, [])
   );
+
+  // Helper function to get latest active loan
+  const getLatestActiveLoan = () => {
+    if (!loanList?.activeLoans || loanList.activeLoans.length === 0) {
+      return null;
+    }
+    
+    // Sort by createdOn date and get the latest
+    const sortedLoans = loanList.activeLoans.sort((a, b) => 
+      new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
+    );
+    
+    return sortedLoans[0];
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    return `Rs. ${amount?.toLocaleString() || '0'}`;
+  };
+
+  // Helper function to calculate next payment date (dummy calculation)
+  const getNextPaymentDate = (loan) => {
+    if (!loan) return '2025.08.02';
+    
+    const createdDate = new Date(loan.createdOn);
+    const nextPayment = new Date(createdDate);
+    nextPayment.setMonth(nextPayment.getMonth() + 1);
+    
+    return nextPayment.toISOString().split('T')[0].replace(/-/g, '.');
+  };
+
+  // Helper function to calculate days left
+  const getDaysLeft = (loan) => {
+    if (!loan) return '05 Days';
+    
+    const nextPaymentDate = getNextPaymentDate(loan);
+    const targetDate = new Date(nextPaymentDate.replace(/\./g, '-'));
+    const today = new Date();
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? `${diffDays.toString().padStart(2, '0')} Days` : 'Overdue';
+  };
+
+  const latestLoan = getLatestActiveLoan();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -272,7 +352,7 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.value}>
                 Rs. {creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined
                   ? (creditLimits.fullCredit - creditLimits.totalConsumed).toLocaleString() 
-                  : '10,000.00'}
+                  : '0'}
               </Text>
             </View>
             
@@ -345,12 +425,27 @@ const HomeScreen: React.FC = () => {
         )}
         scrollEventThrottle={16}
       >
-        {/* Promo Banner */}
-        <Image
-          source={require('../assets/images/banner.png')}
-          style={styles.bannerImage}
-          resizeMode="cover"
-        />
+        {/* Promo Banner - Show latest promotion with text overlay */}
+        {promotions.length > 0 && promotions[0].promotionImageLink && (
+          <View style={styles.bannerContainer}>
+            <Image
+              source={
+                typeof promotions[0].promotionImageLink === 'string' && promotions[0].promotionImageLink.startsWith('data:image')
+                  ? { uri: promotions[0].promotionImageLink }
+                  : typeof promotions[0].promotionImageLink === 'string'
+                  ? { uri: promotions[0].promotionImageLink }
+                  : promotions[0].promotionImageLink
+              }
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+            <View style={styles.bannerOverlay}>
+              <Text style={styles.bannerTitle}>{promotions[0].promotionName || 'Special Offer'}</Text>
+              <Text style={styles.bannerDiscount}>{promotions[0].discount || 0}% OFF</Text>
+              <Text style={styles.bannerDescription}>{promotions[0].description || 'Limited time offer'}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Payment Notification */}
         <View style={styles.cardsContainer1}>
@@ -359,44 +454,55 @@ const HomeScreen: React.FC = () => {
             <View style={styles.paymentBox}>
               <View>
                 <Text style={styles.paymentText}>Next Payment</Text>
-                <Text style={styles.paymentText}>Fashion Bug (2/3)</Text>
+                <Text style={styles.paymentText}>
+                  {latestLoan 
+                    ? `Loan #${latestLoan.loanId} (${latestLoan.noOfInstallments} installments)` 
+                    : 'No active loans'
+                  }
+                </Text>
+                {latestLoan && (
+                  <Text style={styles.paymentAmount}>
+                    {formatCurrency(latestLoan.totLoanValue / latestLoan.noOfInstallments)}
+                  </Text>
+                )}
               </View>
               <View style={styles.rightBox}>
-                <Text style={styles.dueDate}>2025.08.02</Text>
-                <Text style={styles.daysLeft}>05 Days</Text>
+                <Text style={styles.dueDate}>
+                  {latestLoan ? getNextPaymentDate(latestLoan) : '2025.08.02'}
+                </Text>
+                <Text style={[
+                  styles.daysLeft,
+                  { color: latestLoan && getDaysLeft(latestLoan) === 'Overdue' ? '#FF0000' : '#FF6B35' }
+                ]}>
+                  {latestLoan ? getDaysLeft(latestLoan) : '05 Days'}
+                </Text>
+                {latestLoan && (
+                  <Text style={styles.loanStatus}>
+                    {latestLoan.loanStatus}
+                  </Text>
+                )}
               </View>
             </View>
+            {loanListLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#20222e" />
+                <Text style={styles.loadingText}>Loading loan data...</Text>
+              </View>
+            )}
           </View>
         </View>
 
         {/* Promotions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Offers & Promotions</Text>
-          <View style={styles.promoRow}>
-            {(promotions.length > 0 ? promotions : [
-              {
-                promotionId: 1,
-                promotionImageLink: require('../assets/images/fashionbug.png'),
-                promotionName: "Get 10% off",
-                description: "on first purchase",
-                discount: 10,
-              },
-              {
-                promotionId: 2,
-                promotionImageLink: require('../assets/images/fashionbug4.png'),
-                promotionName: "Save $20",
-                description: "on orders over $100",
-                discount: 20,
-              },
-              {
-                promotionId: 3,
-                promotionImageLink: require('../assets/images/fashionbug2.png'),
-                promotionName: "Buy 1 Get 1 Free",
-                description: "Limited time offer",
-                discount: 100,
-              },
-            ]).slice(0, 3).map((promo) => (
-              <View key={promo.promotionId} style={styles.promoCard}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={styles.promoScrollView}
+            contentContainerStyle={styles.promoScrollContent}
+          >
+            {promotions.length > 0 ? promotions.map((promo) => (
+              <TouchableOpacity key={promo.promotionId} style={styles.promoCard}>
                 {promo.promotionImageLink && typeof promo.promotionImageLink === 'string' && promo.promotionImageLink.startsWith('data:image') ? (
                   <Image 
                     source={{ uri: promo.promotionImageLink }} 
@@ -415,9 +521,13 @@ const HomeScreen: React.FC = () => {
                   <Text style={styles.promoBold}>{promo.discount}% OFF</Text>
                   <Text style={styles.promoText}>{promo.description}</Text>
                 </View>
+              </TouchableOpacity>
+            )) : (
+              <View style={styles.noPromotionsContainer}>
+                <Text style={styles.noPromotionsText}>No promotions available</Text>
               </View>
-            ))}
-          </View>
+            )}
+          </ScrollView>
         </View>
       </Animated.ScrollView>
     </SafeAreaView>
@@ -451,12 +561,50 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     justifyContent: 'space-between',
   },
-  bannerImage: {
+  bannerContainer: {
     width: '92%',
     height: 100,
     alignSelf: 'center',
     borderRadius: 12,
     marginVertical: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  bannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+  },
+  bannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  bannerDiscount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  bannerDescription: {
+    fontSize: 12,
+    color: '#fff',
+    textAlign: 'center',
   },
   topRow: { 
     flexDirection: 'row', 
@@ -522,8 +670,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  section: { padding: 20 },
-  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginBottom: 10 },
+  section: { 
+    padding: 20,
+    paddingBottom: 10,
+  },
+  sectionTitle: { 
+    fontSize: 17, 
+    fontWeight: 'bold', 
+    marginBottom: 15 
+  },
   paymentBox: { 
     backgroundColor: '#f1f1f1', 
     borderRadius: 12, 
@@ -536,18 +691,25 @@ const styles = StyleSheet.create({
   rightBox: { alignItems: 'flex-end' },
   dueDate: { fontSize: 16, fontWeight: 'bold', marginTop: 1 },
   daysLeft: { fontSize: 12, color: 'red' },
-  promoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
+  promoScrollView: {
+    marginHorizontal: -20, // Negative margin to allow full-width scrolling
+  },
+  promoScrollContent: {
+    paddingHorizontal: 20,
+    paddingRight: 40, // Extra padding on the right
   },
   promoCard: {
-    width: 120,
-    height: 150,
+    width: 140,
+    height: 160,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#eee",
-    marginRight: 10,
+    marginRight: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   promoImage: {
     width: "100%",
@@ -575,4 +737,38 @@ const styles = StyleSheet.create({
   navButtonActive: { padding: 8, borderRadius: 10 },
   navLabel: { fontSize: 12, color: '#999', marginTop: 4 },
   navLabelActive: { color: '#090B1A', fontWeight: 'bold' },
+  noPromotionsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  noPromotionsText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  paymentAmount: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  loanStatus: {
+    fontSize: 10,
+    color: '#4CAF50',
+    marginTop: 2,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 12,
+    color: '#666',
+  },
 });

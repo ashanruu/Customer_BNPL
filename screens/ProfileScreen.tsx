@@ -41,7 +41,9 @@ type RootStackParamList = {
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
+  const [customerPlan, setCustomerPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
 
   const documents = [
@@ -53,6 +55,7 @@ const ProfileScreen: React.FC = () => {
   // Fetch customer details when component mounts
   useEffect(() => {
     fetchCustomerDetails();
+    fetchCustomerPlan();
   }, []);
 
   const fetchCustomerDetails = async () => {
@@ -81,6 +84,37 @@ const ProfileScreen: React.FC = () => {
       console.error("Error fetching customer details:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch customer plan details
+  const fetchCustomerPlan = async () => {
+    try {
+      setPlanLoading(true);
+      console.log("Fetching customer plan...");
+      
+      const response = await callMobileApi(
+        'GetCustomerPlanByCustomerId',
+        {},
+        'mobile-app-customer-plan',
+        '',
+        'customer'
+      );
+
+      console.log("=== FULL GetCustomerPlanByCustomerId RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      console.log("=== END RESPONSE ===");
+
+      if (response.statusCode === 200) {
+        setCustomerPlan(response.data);
+        console.log("Customer plan loaded successfully");
+      } else {
+        console.warn("Failed to fetch customer plan:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching customer plan:", error);
+    } finally {
+      setPlanLoading(false);
     }
   };
 
@@ -147,12 +181,52 @@ const ProfileScreen: React.FC = () => {
 
   // Helper function to get plan details
   const getPlanPrice = () => {
-    return customerDetails?.planPrice || customerDetails?.creditLimit || "$300000"; // fallback
+    if (customerPlan) {
+      return `Rs. ${customerPlan.creditLimit?.toLocaleString() || customerPlan.planPrice?.toLocaleString() || '0'}`;
+    }
+    return customerDetails?.planPrice || customerDetails?.creditLimit || "Rs. 300,000";
   };
 
   // Helper function to get plan name
   const getPlanName = () => {
-    return customerDetails?.planName || "Plan"; // fallback
+    if (customerPlan) {
+      return customerPlan.planName || customerPlan.planTitle || customerPlan.name || "Premium Plan";
+    }
+    return customerDetails?.planName || "Plan";
+  };
+
+  // Helper function to get plan details
+  const getPlanDetails = () => {
+    if (customerPlan) {
+      const details = [];
+      
+      if (customerPlan.creditLimit) {
+        details.push(`Credit Limit: Rs. ${customerPlan.creditLimit.toLocaleString()}`);
+      }
+      
+      if (customerPlan.interestRate) {
+        details.push(`Interest Rate: ${customerPlan.interestRate}%`);
+      }
+      
+      if (customerPlan.maxInstallments) {
+        details.push(`Max Installments: ${customerPlan.maxInstallments}`);
+      }
+      
+      if (customerPlan.planFeatures) {
+        details.push(customerPlan.planFeatures);
+      }
+      
+      return details.length > 0 ? details.join(' • ') : "Premium features included";
+    }
+    return customerDetails?.planDetails || "Premium features included";
+  };
+
+  // Helper function to get plan status
+  const getPlanStatus = () => {
+    if (customerPlan) {
+      return customerPlan.status || customerPlan.planStatus || "Active";
+    }
+    return "Active";
   };
 
   // Helper function to get avatar URL
@@ -181,7 +255,7 @@ const ProfileScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Loading indicator */}
-      {loading && (
+      {(loading || planLoading) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#20222E" />
         </View>
@@ -207,17 +281,31 @@ const ProfileScreen: React.FC = () => {
 
       {/* Plan Section */}
       <LinearGradient colors={["#20222E", "#090B1A"]} style={styles.planCard}>
-        <Text style={styles.planTitle}>{getPlanName()}</Text>
+        <View style={styles.planHeader}>
+          <View style={styles.planTitleContainer}>
+            <Text style={styles.planTitle}>{getPlanName()}</Text>
+            <View style={[styles.statusBadge, styles.planStatusBadge]}>
+              <Text style={styles.planStatusText}>{getPlanStatus()}</Text>
+            </View>
+          </View>
+          {planLoading && (
+            <ActivityIndicator size="small" color="#fff" />
+          )}
+        </View>
+        
         <Text style={styles.planPrice}>{getPlanPrice()}</Text>
+        
         <Text style={styles.planDetails}>
-          {customerDetails?.planDetails || "xxxxxxxxxxxxx Other Details"}
+          {getPlanDetails()}
         </Text>
-        <TouchableOpacity
-          style={styles.upgradeBtn}
-          onPress={() => navigation.navigate("PlansScreen")} 
-        >
-          <Text style={styles.upgradeText}>Upgrade</Text>
-        </TouchableOpacity>
+        
+        {customerPlan?.validUntil && (
+          <Text style={styles.planExpiry}>
+            Valid until: {new Date(customerPlan.validUntil).toLocaleDateString()}
+          </Text>
+        )}
+        
+        
       </LinearGradient>
 
       {/* Scrollable Area for Payment + Documents */}
@@ -390,6 +478,35 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 15,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  planTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  planStatusBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginLeft: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  planStatusText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  planExpiry: {
+    color: '#ccc',
+    fontSize: 12,
+    marginTop: 5,
+    marginBottom: 10,
   },
   planTitle: {
     color: "#fff",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,30 +6,92 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { callMobileApi } from '../scripts/api';
 
 const DetailsScreen = ({ route }: any) => {
   const navigation = useNavigation();
   const { order } = route.params;
 
-  const installments = [
-    { title: "First Instalment", price: order.price, status: "Paid", date: order.date },
-    { title: "Second Instalment", price: order.price, status: "Pay Early", date: order.date },
-    { title: "Third Instalment", price: order.price, status: "Pay Early", date: order.date },
-  ];
+  const [loanData, setLoanData] = useState<any>(null);
+  const [installments, setInstallments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
 
-  const [paymentMethods, setPaymentMethods] = useState(
-    installments.map(() => "Credit Card")
-  );
+  // Fetch loan details from API
+  const fetchLoanDetails = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching loan details for loan ID:", order.loanId);
+      
+      const response = await callMobileApi(
+        'GetLoanDetail',
+        { loanId: order.loanId },
+        'mobile-app-loan-detail',
+        '',
+        'payment'
+      );
+
+      console.log("=== FULL GetLoanDetail RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      console.log("=== END RESPONSE ===");
+
+      if (response.statusCode === 200) {
+        const responseData = response.data;
+        setLoanData(responseData.loan);
+        setInstallments(responseData.installments || []);
+        setPaymentMethods(responseData.installments?.map(() => "Credit Card") || []);
+        console.log("Loan details fetched successfully");
+      } else {
+        console.error('Failed to fetch loan details:', response.message);
+      }
+    } catch (error: any) {
+      console.error('GetLoanDetail error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (order.loanId) {
+      fetchLoanDetails();
+    }
+  }, [order.loanId]);
 
   const handlePaymentChange = (index: number, value: string) => {
     const updated = [...paymentMethods];
     updated[index] = value;
     setPaymentMethods(updated);
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatAmount = (amount: number) => {
+    return `Rs. ${amount.toLocaleString()}`;
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialIcons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Loading...</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#20222e" />
+          <Text style={styles.loadingText}>Loading loan details...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -42,20 +104,41 @@ const DetailsScreen = ({ route }: any) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.orderPrice}>{order.price}</Text>
-        <Text style={styles.orderId}>Order ID: {order.id}</Text>
-        <Text style={styles.orderDate}>Date: {order.date}</Text>
+        <Text style={styles.orderPrice}>
+          {loanData ? formatAmount(loanData.totLoanValue) : order.price}
+        </Text>
+        <Text style={styles.orderId}>Loan ID: {order.loanId}</Text>
+        <Text style={styles.orderDate}>
+          Date: {loanData ? formatDate(loanData.createdOn) : order.date}
+        </Text>
+        
+        {loanData && (
+          <>
+            <Text style={styles.orderDetail}>
+              Status: {loanData.loanStatus}
+            </Text>
+            <Text style={styles.orderDetail}>
+              Total Installments: {loanData.noOfInstallments}
+            </Text>
+            <Text style={styles.orderDetail}>
+              Credit Value: {formatAmount(loanData.totCreditValue)}
+            </Text>
+            <Text style={styles.orderDetail}>
+              Down Payment: {formatAmount(loanData.downPaymentet)}
+            </Text>
+          </>
+        )}
 
         {/* Vertical timeline */}
         <View style={styles.timeline}>
-          {installments.map((item, index) => (
-            <View key={index} style={styles.installmentContainer}>
+          {installments.length > 0 ? installments.map((item, index) => (
+            <View key={item.installId} style={styles.installmentContainer}>
               {/* Circle & Line */}
               <View style={styles.timelineLeft}>
                 <View
                   style={[
                     styles.circle,
-                    index === 0 ? styles.circleFilled : styles.circleEmpty,
+                    item.instStatus === "Paid" ? styles.circleFilled : styles.circleEmpty,
                   ]}
                 />
                 {index < installments.length - 1 && <View style={styles.line} />}
@@ -64,24 +147,39 @@ const DetailsScreen = ({ route }: any) => {
               {/* Card */}
               <View style={styles.card}>
                 {/* Status at top-right */}
-                <View style={styles.cardTopRight}>
-                  <Text style={styles.statusTextTop}>{item.status}</Text>
+                <View style={[
+                  styles.cardTopRight,
+                  { backgroundColor: item.instStatus === "Paid" ? "#4CAF50" : "#ddd" }
+                ]}>
+                  <Text style={[
+                    styles.statusTextTop,
+                    { color: item.instStatus === "Paid" ? "#fff" : "#000" }
+                  ]}>
+                    {item.instStatus}
+                  </Text>
                 </View>
 
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardPrice}>${item.price}</Text>
-                <Text style={styles.cardDate}>{item.date}</Text>
-
-                
-
-                {/* {item.status === "Pay Early" && (
-                  <TouchableOpacity style={styles.rescheduleButton}>
-                    <Text style={styles.rescheduleText}>Reschedule</Text>
-                  </TouchableOpacity>
-                )} */}
+                <Text style={styles.cardTitle}>
+                  Installment {index + 1} ({item.instType})
+                </Text>
+                <Text style={styles.cardPrice}>
+                  {formatAmount(item.instAmount)}
+                </Text>
+                <Text style={styles.cardDate}>
+                  Due: {formatDate(item.dueDate)}
+                </Text>
+                {item.settleDate && (
+                  <Text style={styles.cardSettleDate}>
+                    Settled: {formatDate(item.settleDate)}
+                  </Text>
+                )}
               </View>
             </View>
-          ))}
+          )) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No installment data available</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -153,4 +251,35 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   rescheduleText: { fontSize: 12, fontWeight: "600", color: "white" },
+
+  orderDetail: { 
+    fontSize: 14, 
+    color: "#666", 
+    marginBottom: 5 
+  },
+  cardSettleDate: { 
+    fontSize: 12, 
+    color: "#4CAF50", 
+    marginTop: 2,
+    fontWeight: "500"
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  noDataContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+  },
 });
