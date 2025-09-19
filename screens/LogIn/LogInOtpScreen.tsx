@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react';
 import {
     View,
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
     Alert,
+    TouchableWithoutFeedback,
+    Keyboard,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    ImageBackground,
 } from 'react-native';
 import { MainText, SubText, LinkText } from '../../components/CustomText';
 import CustomButton from '../../components/CustomButton';
 import VerificationCodeInput from '../../components/VerificationCodeInput';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors } from '../../constants/Colors'; 
+import { Colors } from '../../constants/Colors';
 import { useColorScheme } from 'react-native';
 
 const LogInOtpScreen: React.FC = ({ navigation }: any) => {
@@ -19,7 +25,14 @@ const LogInOtpScreen: React.FC = ({ navigation }: any) => {
     const [resendTimer, setResendTimer] = useState(60);
     const [canResend, setCanResend] = useState(false);
     const colorScheme = useColorScheme();
-    const themeColors = Colors[colorScheme ?? 'light']; // fallback to 'light' if undefined
+    const themeColors = Colors[colorScheme ?? 'light'];
+
+    // Disable swipe gesture
+    useEffect(() => {
+        navigation.setOptions({
+            gestureEnabled: false,
+        });
+    }, [navigation]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -74,55 +87,73 @@ const LogInOtpScreen: React.FC = ({ navigation }: any) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.content}>
-                {/* Back Button */}
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <MaterialCommunityIcons name="arrow-left" size={20} color="#374151" />
-                </TouchableOpacity>
+            {/* Fixed Header Section - Always Visible */}
 
-                {/* Centered content */}
-                <View style={styles.centeredContent}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <MainText size="xlarge" color="#374151">
-                            Enter Verification Code
-                        </MainText>
-                        <SubText style={styles.subtitle}>
-                            A 4 digit code has been sent to{'\n'}+94 xx xxx xx99
-                        </SubText>
-                    </View>
+            {/* Back Button */}
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                <MaterialCommunityIcons name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
 
-                    {/* Verification Code Input */}
-                    <VerificationCodeInput
-                        length={4}
-                        onCodeComplete={handleCodeComplete}
-                        onCodeChange={setCode}
-                        autoFocus
-                    />
 
-                    {/* Verify Button */}
-                    <CustomButton
-                        title="Verify"
-                        onPress={() => handleVerification()}
-                        loading={loading}
-                        disabled={code.length !== 4}
-                        style={styles.verifyButton}
-                    />
+            {/* Scrollable Form Section */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.keyboardView}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView
+                        style={styles.scrollView}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled={true}
+                    >
+                        <View style={styles.formContainer}>
+                            {/* Header */}
+                            <View style={styles.header}>
+                                <MainText size="xlarge" weight="bold" >
+                                    Enter Verification Code
+                                </MainText>
+                                <SubText size="medium" style={styles.subtitle}>
+                                    A 4 digit code has been sent to{'\n'}+94 xx xxx xx99
+                                </SubText>
+                            </View>
 
-                    {/* Resend Code */}
-                    <View style={styles.resendContainer}>
-                        {canResend ? (
-                            <LinkText onPress={handleResendCode}>
-                                Resend OTP
-                            </LinkText>
-                        ) : (
-                            <SubText size="small">
-                                Resend OTP in {resendTimer}s
-                            </SubText>
-                        )}
-                    </View>
-                </View>
-            </View>
+                            {/* Verification Code Input */}
+                            <VerificationCodeInput
+                                length={4}
+                                onCodeComplete={handleCodeComplete}
+                                onCodeChange={setCode}
+                                autoFocus
+                            />
+
+                            {/* Verify Button */}
+                            <CustomButton
+                                title={loading ? "Verifying..." : "Verify"}
+                                style={{ marginTop: 30 }}
+                                onPress={() => handleVerification()}
+                                loading={loading}
+                                disabled={code.length !== 4 || loading}
+                            />
+
+                            {/* Resend Code */}
+                            <View style={styles.resendContainer}>
+                                {canResend ? (
+                                    <LinkText
+                                        style={{ fontSize: 14 }}
+                                        onPress={handleResendCode}
+                                    >
+                                        Resend OTP
+                                    </LinkText>
+                                ) : (
+                                    <SubText size="small" style={styles.mutedText}>
+                                        Resend OTP in {resendTimer}s
+                                    </SubText>
+                                )}
+                            </View>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 };
@@ -130,44 +161,53 @@ const LogInOtpScreen: React.FC = ({ navigation }: any) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 24,
+        backgroundColor: Colors.light.background,
     },
     backButton: {
+        position: 'absolute',
+        top: 50,
+        left: 24,
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#E5E7EB',
+        backgroundColor: 'hsla(0, 8%, 22%, 0.20)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 16,
-        marginBottom: 20,
+        zIndex: 1,
     },
     header: {
         alignItems: 'center',
-        marginBottom: 40,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        paddingVertical: 16,
+        elevation: 2,
     },
     subtitle: {
         marginTop: 12,
         lineHeight: 20,
         textAlign: 'center',
+        color: Colors.light.mutedText,
     },
-    centeredContent: {
+    keyboardView: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'stretch', 
     },
-    verifyButton: {
-        marginTop: 40,
-        marginBottom: 24,
-        width: '100%',  // add this line
+    scrollView: {
+        marginTop: 20,
+        backgroundColor: Colors.light.background,
+    },
+    formContainer: {
+        paddingHorizontal: 24,
+        paddingTop: 120,
+        paddingBottom: 100,
+        minHeight: 400,
     },
     resendContainer: {
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 24,
+    },
+    mutedText: {
+        color: Colors.light.mutedText,
+        fontSize: 14,
     },
 });
 
