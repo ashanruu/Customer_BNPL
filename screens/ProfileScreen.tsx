@@ -11,9 +11,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { callMobileApi, callMerchantApi } from '../scripts/api';
+import CustomButton from "../components/CustomButton";
 
 type CustomerDetails = {
   firstName?: string;
@@ -58,11 +59,19 @@ const ProfileScreen: React.FC = () => {
     fetchCustomerPlan();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+    }, [navigation])
+  );
+
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
       console.log("Fetching customer details...");
-      
+
       const response = await callMobileApi(
         'GetCustomerDetails',
         {},
@@ -92,7 +101,7 @@ const ProfileScreen: React.FC = () => {
     try {
       setPlanLoading(true);
       console.log("Fetching customer plan...");
-      
+
       const response = await callMobileApi(
         'GetCustomerPlanByCustomerId',
         {},
@@ -123,7 +132,7 @@ const ProfileScreen: React.FC = () => {
     try {
       setOnboardingLoading(true);
       console.log("Creating onboard job...");
-      
+
       const response = await callMobileApi(
         'CreateOnBoardJob',
         {},
@@ -137,17 +146,17 @@ const ProfileScreen: React.FC = () => {
       if (response.statusCode === 200) {
         const jobId = response.data; // Extract job ID from response
         console.log("Onboard job created successfully with ID:", jobId);
-        
+
         // Construct the URL with job ID
         const paymentUrl = `https://hexdive.com/dpay.php?jobid=${jobId}`;
         console.log("Payment URL:", paymentUrl);
-        
+
         Alert.alert("Success", "Payment method onboarding initiated successfully", [
           {
             text: "OK",
-            onPress: () => navigation.navigate("WebViewScreen", { 
+            onPress: () => navigation.navigate("WebViewScreen", {
               url: paymentUrl,
-              jobId: jobId 
+              jobId: jobId
             })
           }
         ]);
@@ -167,7 +176,7 @@ const ProfileScreen: React.FC = () => {
   // Helper function to get customer name
   const getCustomerName = () => {
     if (customerDetails) {
-      return customerDetails.firstName && customerDetails.lastName 
+      return customerDetails.firstName && customerDetails.lastName
         ? `${customerDetails.firstName} ${customerDetails.lastName}`
         : customerDetails.name || customerDetails.firstName || customerDetails.lastName || "Customer";
     }
@@ -199,23 +208,23 @@ const ProfileScreen: React.FC = () => {
   const getPlanDetails = () => {
     if (customerPlan) {
       const details = [];
-      
+
       if (customerPlan.creditLimit) {
         details.push(`Credit Limit: Rs. ${customerPlan.creditLimit.toLocaleString()}`);
       }
-      
+
       if (customerPlan.interestRate) {
         details.push(`Interest Rate: ${customerPlan.interestRate}%`);
       }
-      
+
       if (customerPlan.maxInstallments) {
         details.push(`Max Installments: ${customerPlan.maxInstallments}`);
       }
-      
+
       if (customerPlan.planFeatures) {
         details.push(customerPlan.planFeatures);
       }
-      
+
       return details.length > 0 ? details.join(' • ') : "Premium features included";
     }
     return customerDetails?.planDetails || "Premium features included";
@@ -238,7 +247,7 @@ const ProfileScreen: React.FC = () => {
   const getPaymentMethodData = () => {
     // Check if customer has payment method (you can get this from API)
     const hasCard = customerDetails?.hasPaymentMethod || false; // Set to true to test card display
-    
+
     if (hasCard) {
       return {
         cardNumber: customerDetails?.cardNumber || "**** **** **** 1234",
@@ -261,30 +270,42 @@ const ProfileScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Name Section */}
-      <View style={styles.profileCard}>
-        <Image
-          source={{ uri: getAvatarUrl() }}
-          style={styles.avatar}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{getCustomerName()}</Text>
-          <Text style={styles.email}>{getCustomerEmail()}</Text>
+      {/* Top Profile Section */}
+      <View style={styles.topSection}>
+        <View style={styles.headerBackground} />
+
+        {/* Profile Card Content */}
+        <View style={styles.profileContent}>
+          <Image
+            source={{ uri: getAvatarUrl() }}
+            style={styles.profileAvatar}
+          />
+          <View style={styles.profileText}>
+            <Text style={styles.profileName}>{getCustomerName()}</Text>
+            <Text style={styles.profileSubtitle}>Joined since 2023</Text>
+          </View>
+          <CustomButton
+            title="Edit Profile"
+            size="small"
+            variant="outline"
+            onPress={() => navigation.navigate("UserProfileScreen")}
+          />
+          {/* <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => navigation.navigate("UserProfileScreen")}
+          >
+            <Text style={styles.editProfileText}>Edit Profile</Text>
+          </TouchableOpacity> */}
         </View>
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => navigation.navigate("UserProfileScreen")}
-        >
-          <Text style={styles.editText}>View Profile</Text>
-        </TouchableOpacity>
       </View>
 
+
       {/* Plan Section */}
-      <LinearGradient colors={["#20222E", "#090B1A"]} style={styles.planCard}>
+      <View style={styles.planCard}>
         <View style={styles.planHeader}>
           <View style={styles.planTitleContainer}>
             <Text style={styles.planTitle}>{getPlanName()}</Text>
-            <View style={[styles.statusBadge, styles.planStatusBadge]}>
+            <View style={[styles.planStatusBadge]}>
               <Text style={styles.planStatusText}>{getPlanStatus()}</Text>
             </View>
           </View>
@@ -292,21 +313,21 @@ const ProfileScreen: React.FC = () => {
             <ActivityIndicator size="small" color="#fff" />
           )}
         </View>
-        
+
         <Text style={styles.planPrice}>{getPlanPrice()}</Text>
-        
+
         <Text style={styles.planDetails}>
           {getPlanDetails()}
         </Text>
-        
+
         {customerPlan?.validUntil && (
           <Text style={styles.planExpiry}>
             Valid until: {new Date(customerPlan.validUntil).toLocaleDateString()}
           </Text>
         )}
-        
-        
-      </LinearGradient>
+
+
+      </View>
 
       {/* Scrollable Area for Payment + Documents */}
       <ScrollView
@@ -317,12 +338,12 @@ const ProfileScreen: React.FC = () => {
         {/* Payment Method */}
         <View style={styles.paymentCard}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
-          
+
           {paymentData ? (
             // Show existing card
             <View style={styles.cardContainer}>
-              <LinearGradient 
-                colors={["#1e3c72", "#2a5298"]} 
+              <LinearGradient
+                colors={["#1e3c72", "#2a5298"]}
                 style={styles.debitCard}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -332,10 +353,10 @@ const ProfileScreen: React.FC = () => {
                   <Text style={styles.cardType}>{paymentData.cardType}</Text>
                   <View style={styles.cardChip} />
                 </View>
-                
+
                 {/* Card Number */}
                 <Text style={styles.cardNumber}>{paymentData.cardNumber}</Text>
-                
+
                 {/* Card Footer */}
                 <View style={styles.cardFooter}>
                   <View style={styles.cardInfo}>
@@ -348,13 +369,13 @@ const ProfileScreen: React.FC = () => {
                   </View>
                 </View>
               </LinearGradient>
-              
+
               {/* Edit Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.editCardBtn}
-                onPress={() => navigation.navigate("WebViewScreen", { 
-                  url: undefined, 
-                  jobId: undefined 
+                onPress={() => navigation.navigate("WebViewScreen", {
+                  url: "undefined",
+                  jobId: undefined
                 })}
               >
                 <Text style={styles.editCardText}>Edit</Text>
@@ -364,16 +385,13 @@ const ProfileScreen: React.FC = () => {
             // Show add payment method
             <View style={styles.noCardContainer}>
               <View style={styles.noCardContent}>
-                <View style={styles.cardIcon}>
-                  <Text style={styles.cardIconText}>💳</Text>
-                </View>
                 <Text style={styles.noCardTitle}>No Payment Method Added</Text>
                 <Text style={styles.noCardSubtitle}>
                   Add a payment method to make purchases easier
                 </Text>
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.addPaymentBtn, onboardingLoading && styles.disabledBtn]}
                 onPress={handleAddPaymentMethod}
                 disabled={onboardingLoading}
@@ -417,10 +435,12 @@ const ProfileScreen: React.FC = () => {
               </View>
             </View>
           ))}
-
-          <TouchableOpacity style={styles.uploadBtn}>
-            <Text style={styles.uploadText}>Other Document Upload</Text>
-          </TouchableOpacity>
+          <CustomButton
+            title="Other Document Upload"
+            size="small"
+            variant="primary"
+            onPress={() => { }}
+          ></CustomButton>
         </View>
       </ScrollView>
     </View>
@@ -432,7 +452,6 @@ export default ProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
     backgroundColor: "#fff",
   },
   loadingContainer: {
@@ -441,40 +460,53 @@ const styles = StyleSheet.create({
     right: 15,
     zIndex: 1,
   },
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f2f2f2",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 3,
+  topSection: {
+    marginBottom: 30,
+    position: 'relative',
   },
-  avatar: {
-    width: 55,
-    height: 55,
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 100,
+    borderBottomRightRadius: 15,
+  },
+  profileContent: {
+    position: 'absolute',
+    top: 30,
+    left: 15,
+    right: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  profileAvatar: {
+    width: 60,
+    height: 60,
     borderRadius: 30,
     marginRight: 12,
   },
-  name: {
+  profileText: {
+    flex: 1,
+  },
+  profileName: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '500',
+    color: '#000',
   },
-  email: {
+  profileSubtitle: {
     fontSize: 14,
-    color: "#666",
-  },
-  editButton: {
-    backgroundColor: "#20222E",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  editText: {
-    fontSize: 12,
-    color: "#ffffffff",
+    color: '#888',
+    marginTop: 2,
   },
   planCard: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    margin: 15,
     borderRadius: 12,
     padding: 20,
     marginBottom: 15,
@@ -491,16 +523,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   planStatusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#444',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
     marginLeft: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: 8
   },
   planStatusText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
+    color: '#fff'
   },
   planExpiry: {
     color: '#ccc',
@@ -523,25 +553,17 @@ const styles = StyleSheet.create({
     color: "#eee",
     marginBottom: 10,
   },
-  upgradeBtn: {
-    backgroundColor: "#ffb347",
-    alignSelf: "flex-end",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  upgradeText: {
-    color: "#242424ff",
-    fontWeight: "600",
-  },
   scrollArea: {
     flex: 1,
+    paddingHorizontal: 15,
   },
   paymentCard: {
-    backgroundColor: "#f2f2f2",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
     padding: 15,
     marginBottom: 15,
+    backgroundColor: '#fff',
   },
   cardContainer: {
     position: 'relative',
@@ -624,21 +646,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  cardIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E8F4FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  cardIconText: {
-    fontSize: 24,
-  },
   noCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     color: '#333',
     marginBottom: 8,
   },
@@ -649,12 +659,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   addPaymentBtn: {
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#FF4444",
+    borderWidth: 1,
+    borderColor: '#666',
     borderStyle: 'dashed',
-    padding: 20,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 8,
     width: '100%',
   },
   addPaymentBtnContent: {
@@ -663,27 +672,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addPaymentIcon: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: "#FF4444",
+    fontSize: 18,
+    fontWeight: '500',
+    color: "#6c757d",
     marginRight: 8,
   },
   addPaymentText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6c757d",
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FF4444",
+    color: "#333",
+    marginBottom: 15,
   },
-  docCard: {  },    fontSize: 16,    fontWeight: "600",    textAlign: "center",    color: "#fff",  uploadBtn: {
-    marginTop: 15,
+  docCard: {
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#aaa",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  uploadText: {
-    color: "#555",
-    fontWeight: "600",
+    borderColor: '#E5E5E5',
+    padding: 15,
+    marginBottom: 15,
+    backgroundColor: '#fff',
   },
   docRow: {
     flexDirection: "row",
@@ -702,22 +713,22 @@ const styles = StyleSheet.create({
     color: "#777",
   },
   statusBadge: {
-    fontSize: 12,
-    width: 90,
-    fontWeight: "600",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    fontSize: 11,
+    fontWeight: "500",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
     overflow: "hidden",
     textAlign: "center",
+    alignSelf: "flex-start",
   },
   submitted: {
-    backgroundColor: "#c7c7c7ff",
-    color: "#fff",
+    backgroundColor: "#E8F5E8",
+    color: "#2D5016",
   },
   toUpload: {
-    backgroundColor: "#f5f5f5ff",
-    color: "#585858ff",
+    backgroundColor: "#FFF4E6",
+    color: "#8B4513",
   },
   disabledBtn: {
     opacity: 0.6,

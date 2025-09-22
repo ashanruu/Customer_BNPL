@@ -31,8 +31,8 @@ const HomeScreen: React.FC = () => {
 
   // Animation values for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
-  const HEADER_MAX_HEIGHT = 200;
-  const HEADER_MIN_HEIGHT = 100;
+  const HEADER_MAX_HEIGHT = 140;
+  const HEADER_MIN_HEIGHT = 0;
   const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
   // Interpolated values for header animation
@@ -60,25 +60,6 @@ const HomeScreen: React.FC = () => {
     extrapolate: 'clamp',
   });
 
-  // Dynamic gradient colors that become more radiant as header shrinks
-  const gradientProgress = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
-  // Animated gradient colors
-  const firstGradientColor = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: ['rgba(32, 34, 46, 1)', 'rgba(45, 212, 191, 0.8)'], // Dark blue to teal
-    extrapolate: 'clamp',
-  });
-
-  const secondGradientColor = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: ['rgba(9, 11, 26, 1)', 'rgba(147, 51, 234, 0.9)'], // Very dark to purple
-    extrapolate: 'clamp',
-  });
 
   const borderRadiusValue = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
@@ -254,32 +235,12 @@ const HomeScreen: React.FC = () => {
             styles.topSection,
             {
               borderBottomRightRadius: borderRadiusValue,
-              backgroundColor: 'transparent', // Make background transparent for gradient
+              backgroundColor: 'rgba(32, 34, 46, 1)', // Plain color instead of transparent
             }
           ]}
         >
-          {/* Dynamic Gradient Background */}
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFillObject,
-              {
-                borderBottomRightRadius: borderRadiusValue,
-                backgroundColor: firstGradientColor,
-              }
-            ]}
-          />
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFillObject,
-              {
-                borderBottomRightRadius: borderRadiusValue,
-                backgroundColor: secondGradientColor,
-                opacity: gradientProgress,
-              }
-            ]}
-          />
           
-          {/* Radiant overlay effect */}
+          {/* Keep only the radiant overlay effect for the circle */}
           <Animated.View
             style={[
               StyleSheet.absoluteFillObject,
@@ -290,48 +251,22 @@ const HomeScreen: React.FC = () => {
                 shadowOffset: { width: 0, height: 0 },
                 shadowOpacity: scrollY.interpolate({
                   inputRange: [0, HEADER_SCROLL_DISTANCE],
-                  outputRange: [0, 0.8],
+                  outputRange: [0, 0.3], // Reduced opacity for subtle effect
                   extrapolate: 'clamp',
                 }),
                 shadowRadius: scrollY.interpolate({
                   inputRange: [0, HEADER_SCROLL_DISTANCE],
-                  outputRange: [0, 20],
+                  outputRange: [0, 10], // Reduced radius
                   extrapolate: 'clamp',
                 }),
                 elevation: scrollY.interpolate({
                   inputRange: [0, HEADER_SCROLL_DISTANCE],
-                  outputRange: [0, 15],
+                  outputRange: [0, 5], // Reduced elevation
                   extrapolate: 'clamp',
                 }),
               }
             ]}
           />
-          <View style={styles.topRow}>
-            <Animated.Text style={[styles.logo, { 
-              transform: [{ scale: logoScale }],
-              textShadowColor: scrollY.interpolate({
-                inputRange: [0, HEADER_SCROLL_DISTANCE],
-                outputRange: ['transparent', '#2DD4BF'],
-                extrapolate: 'clamp',
-              }),
-              textShadowOffset: { width: 0, height: 0 },
-              textShadowRadius: scrollY.interpolate({
-                inputRange: [0, HEADER_SCROLL_DISTANCE],
-                outputRange: [0, 10],
-                extrapolate: 'clamp',
-              }),
-            }]}>
-              BNPL
-            </Animated.Text>
-            <Text style={styles.timeText}></Text>
-            <View style={styles.iconRow}>
-              <TouchableOpacity style={styles.planButton}>
-                <Text style={styles.planText}>Plan</Text>
-              </TouchableOpacity>
-              <Ionicons name="language" size={22} color="#fff" style={styles.icon} />
-              <Ionicons name="notifications" size={22} color="#fff" style={styles.icon} />
-            </View>
-          </View>
 
           <Animated.View style={[styles.creditSection, { opacity: creditSectionOpacity }]}>
             <View>
@@ -417,7 +352,7 @@ const HomeScreen: React.FC = () => {
       {/* Scrollable Content */}
       <Animated.ScrollView
         style={[styles.scrollContent, { marginTop: headerHeight }]}
-        contentContainerStyle={{ paddingBottom: 120, paddingTop: 20 }}
+        contentContainerStyle={[{ paddingTop: HEADER_MAX_HEIGHT, paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -555,21 +490,28 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: 1,
-    paddingTop: 20,
+    paddingTop: 10, // Reduced from 20
     paddingHorizontal: 25,
-    paddingBottom: 30,
+    paddingBottom: 15, // Reduced from 30
     borderBottomRightRadius: 20,
+    justifyContent: 'flex-start', // Changed from 'space-between' to pack content at top
+  },
+  creditSection: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start', // Changed from 'center' to align at top
+    flex: 1,
+    marginTop: 10, // Add small margin from top
   },
-  bannerContainer: {
-    width: '92%',
-    height: 100,
-    alignSelf: 'center',
-    borderRadius: 12,
-    marginVertical: 10,
-    position: 'relative',
-    overflow: 'hidden',
-  },
+bannerContainer: {
+  width: '92%',
+  height: 100,
+  alignSelf: 'center',
+  borderRadius: 12,
+  marginVertical: 5, // Reduced from 10
+  position: 'relative',
+  overflow: 'hidden',
+},
   bannerImage: {
     width: '100%',
     height: '100%',
@@ -627,35 +569,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     color: '#fff',
   },
-  creditSection: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    flex: 1,
-  },
-  label: { color: '#ccc', fontSize: 14 },
+  label: { color: '#ccc', fontSize: 10 },
   value: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  progressBarBackground: { 
-    width: 150, 
-    height: 6, 
-    backgroundColor: '#333', 
-    borderRadius: 4, 
-    marginVertical: 10 
+  progressBarBackground: {
+    width: 150,
+    height: 3,
+    backgroundColor: '#333',
+    borderRadius: 4,
+    marginVertical: 10
   },
-  progressBar: { 
-    height: 6, 
-    backgroundColor: '#fff', 
-    borderRadius: 4 
+  progressBar: {
+    height: 3,
+    backgroundColor: '#fff',
+    borderRadius: 4
   },
   circleContainer: { alignItems: 'center' },
-  circleOuter: { 
-    width: 100, 
-    height: 100, 
-    borderRadius: 50, 
-    borderWidth: 4, 
-    borderColor: '#0eeeb6ff', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  circleOuter: {
+    width: 90,
+    height: 90,
+    borderRadius: 50,
+    borderWidth: 6,
+    borderColor: '#0eeeb6ff',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   circleText: { fontSize: 18, color: 'white', fontWeight: 'bold' },
   circleSubText: { fontSize: 10, color: 'white' },
@@ -756,6 +692,7 @@ const styles = StyleSheet.create({
   },
   loanStatus: {
     fontSize: 10,
+    color: '#4CAF50',
     color: '#4CAF50',
     marginTop: 2,
     fontWeight: 'bold',

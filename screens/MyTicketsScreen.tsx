@@ -15,7 +15,6 @@ import { Ionicons } from "@expo/vector-icons";
 import HamburgerMenu from "../components/HamburgerMenu";
 import { callMobileApi } from "../scripts/api";
 
-
 const MyTicketsScreen = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("active");
@@ -65,6 +64,15 @@ const MyTicketsScreen = () => {
     fetchTickets();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+    }, [navigation])
+  );
+
+
   // Refresh tickets when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
@@ -93,50 +101,65 @@ const MyTicketsScreen = () => {
       onPress={() =>
         (navigation as any).navigate("TicketsDetails", { ticket: item })
       }
+      activeOpacity={0.7}
     >
-      {/* ✅ Date outside card */}
       <Text style={styles.date}>{item.createdAt || item.date || 'N/A'}</Text>
-
       <View style={styles.ticketCard}>
-        <View>
-          <Text style={styles.ticketTitle}>Ticket #{item.ticketId || 'N/A'}</Text>
-          <Text style={styles.ticketSubtitle}>{item.mainReason || 'No Description'}</Text>
-          <Text style={styles.ticketStatus}>
-            Status: {item.isActive ? 'Active' : 'Closed'}
+        <View style={styles.ticketContent}>
+          <Text style={styles.ticketTitle}>#{item.ticketId || 'N/A'}</Text>
+          <Text style={styles.ticketSubtitle} numberOfLines={2}>
+            {item.mainReason || 'No Description'}
           </Text>
+          <View style={[
+            styles.statusBadge,
+            item.isActive ? styles.activeBadge : styles.closedBadge
+          ]}>
+            <Text style={[
+              styles.statusText,
+              item.isActive ? styles.activeStatusText : styles.closedStatusText
+            ]}>
+              {item.isActive ? 'Active' : 'Closed'}
+            </Text>
+          </View>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#999" />
+        <View style={styles.chevronContainer}>
+          <Ionicons name="chevron-forward" size={20} color="#C1C1C1" />
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* ✅ Hamburger Menu at top */}
-      <HamburgerMenu
+    <View style={styles.screenContainer}>
+      {/* <HamburgerMenu
         onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-      />
+      /> */}
 
-      {/* ✅ Screen Content */}
       <View style={styles.container}>
-        {/* Title row */}
-        <View style={styles.titleRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
+        {/* Header Section */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#666" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Tickets</Text>
-        </View>
 
-        {/* Subtitle */}
-        <Text style={styles.subText}>View and track your support requests</Text>
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>My Tickets</Text>
+            <Text style={styles.subText}>View and track your support requests</Text>
+          </View>
+        </View>
 
         {/* Raise Ticket Card */}
         <TouchableOpacity
           style={styles.raiseCard}
           onPress={() => (navigation as any).navigate("RaiseTickets")}
+          activeOpacity={0.7}
         >
-          <Text style={styles.raiseText}>Raise A Help Desk Ticket</Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
+          <Text style={styles.raiseText}>Raise New Ticket</Text>
+          <Ionicons name="arrow-forward" size={18} color="#fff" />
         </TouchableOpacity>
 
         {/* Tabs */}
@@ -144,26 +167,24 @@ const MyTicketsScreen = () => {
           <TouchableOpacity
             style={[styles.tab, activeTab === "active" && styles.activeTab]}
             onPress={() => setActiveTab("active")}
+            activeOpacity={0.8}
           >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "active" && styles.activeTabText,
-              ]}
-            >
+            <Text style={[
+              styles.tabText,
+              activeTab === "active" && styles.activeTabText,
+            ]}>
               Active
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "history" && styles.activeTab]}
             onPress={() => setActiveTab("history")}
+            activeOpacity={0.8}
           >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "history" && styles.activeTabText,
-              ]}
-            >
+            <Text style={[
+              styles.tabText,
+              activeTab === "history" && styles.activeTabText,
+            ]}>
               History
             </Text>
           </TouchableOpacity>
@@ -172,7 +193,7 @@ const MyTicketsScreen = () => {
         {/* Tickets List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1a1a2e" />
+            <ActivityIndicator size="large" color="#2C2C2E" />
             <Text style={styles.loadingText}>Loading tickets...</Text>
           </View>
         ) : (
@@ -180,19 +201,21 @@ const MyTicketsScreen = () => {
             data={getFilteredTickets()}
             renderItem={renderTicket}
             keyExtractor={(item: any, index) => item.ticketId?.toString() || index.toString()}
-            contentContainerStyle={{ paddingVertical: 10 }}
+            contentContainerStyle={styles.listContainer}
             refreshing={refreshing}
             onRefresh={onRefresh}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
-                <Ionicons name="ticket-outline" size={48} color="#ccc" />
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="ticket-outline" size={64} color="#E5E5E7" />
+                </View>
                 <Text style={styles.emptyText}>
                   {activeTab === "active" ? "No active tickets" : "No ticket history"}
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  {activeTab === "active" 
-                    ? "Your active support requests will appear here" 
+                  {activeTab === "active"
+                    ? "Your active support requests will appear here"
                     : "Your resolved tickets will appear here"
                   }
                 </Text>
@@ -208,103 +231,207 @@ const MyTicketsScreen = () => {
 export default MyTicketsScreen;
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingTop: 40,
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 8,
+  header: {
+    paddingTop: 12,
+    paddingBottom: 22,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleSection: {
+    alignItems: 'center',
+    paddingTop: 8,
   },
   headerTitle: {
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: "600",
-    left: 10,
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
   subText: {
-    fontSize: 14,
+    fontSize: 15,
     color: "#666",
-    marginBottom: 30,
-    marginLeft: 4,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   raiseCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#1a1a2e",
-    padding: 16,
-    borderRadius: 25,
-    marginBottom: 20,
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E5E5E7",
   },
-  raiseText: { color: "#fff", fontSize: 16, fontWeight: "600", left: 10 },
+  raiseText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+    letterSpacing: -0.1,
+  },
   tabContainer: {
     flexDirection: "row",
-    backgroundColor: "#e6e6e6",
-    borderRadius: 25,
-    padding: 4,
-    marginBottom: 16,
+    backgroundColor: "#F2F2F7",
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 24,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: "center",
-    borderRadius: 20,
+    borderRadius: 9,
   },
-  activeTab: { backgroundColor: "#1a1a2e" },
-  tabText: { fontSize: 14, fontWeight: "500", color: "#555" },
-  activeTabText: { color: "#fff" },
-
+  activeTab: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#8E8E93",
+    letterSpacing: -0.2,
+  },
+  activeTabText: {
+    color: "#2C2C2E",
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
   ticketWrapper: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   date: {
     fontSize: 13,
-    color: "#999",
-    marginBottom: 6,
-    marginLeft: 6,
+    color: "#8E8E93",
+    marginBottom: 8,
+    marginLeft: 4,
+    fontWeight: "500",
+    letterSpacing: -0.1,
   },
   ticketCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 16,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F2F2F7",
+  },
+  ticketContent: {
+    flex: 1,
+  },
+  ticketTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#2C2C2E",
+    letterSpacing: -0.2,
+  },
+  ticketSubtitle: {
+    fontSize: 15,
+    color: "#6D6D70",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
   },
-  ticketTitle: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  ticketSubtitle: { fontSize: 14, color: "#666", marginBottom: 2 },
-  ticketStatus: { fontSize: 12, color: "#999", fontStyle: 'italic' },
+  activeBadge: {
+    backgroundColor: '#E8F5E8',
+  },
+  closedBadge: {
+    backgroundColor: '#F5F5F5',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+  },
+  activeStatusText: {
+    color: '#34C759',
+  },
+  closedStatusText: {
+    color: '#8E8E93',
+  },
+  chevronContainer: {
+    justifyContent: 'center',
+    paddingLeft: 12,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: 80,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: '#8E8E93',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 15,
-    marginBottom: 5,
+    color: '#6D6D70',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: 15,
+    color: '#8E8E93',
     textAlign: 'center',
-    paddingHorizontal: 40,
+    lineHeight: 22,
   },
 });

@@ -5,14 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   Alert,
 } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import HamburgerMenu from "../components/HamburgerMenu";
 import { callMobileApi } from "../scripts/api";
+import CustomButton from "../components/CustomButton";
 
 const RaiseTicketsScreen = () => {
   const navigation = useNavigation();
@@ -86,71 +84,90 @@ const RaiseTicketsScreen = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* ✅ HamburgerMenu remains */}
-      <HamburgerMenu onPress={() => navigation.dispatch(DrawerActions.openDrawer())} />
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back" size={22} color="#666" />
+        </TouchableOpacity>
 
-      {/* ✅ Main form scrollable */}
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="black"
-            onPress={() => navigation.goBack()}
-          />
-          <Text style={styles.header}>Raise a Ticket</Text>
+        <View style={styles.titleSection}>
+          <Text style={styles.headerTitle}>Raise a Ticket</Text>
+          <Text style={styles.subText}>Fill out the form below to submit a support request</Text>
+        </View>
+      </View>
+
+      {/* Content Area */}
+      <View style={styles.content}>
+        {/* Input Fields */}
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Subject</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Subject"
+              value={subject}
+              onChangeText={setSubject}
+            />
+          </View>
+
+          <Text style={styles.label}>Title</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Title"
+              value={title}
+              onChangeText={setTitle}
+            />
+          </View>
+
+          <Text style={styles.label}>Transaction ID (If Relevant)</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Transaction ID (If Relevant)"
+              value={transactionId}
+              onChangeText={setTransactionId}
+            />
+          </View>
+
+          <Text style={styles.label}>Message</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.messageInput]}
+              placeholder="Message"
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              textAlignVertical="top"
+            />
+          </View>
+
+          <Text style={styles.label}>Upload Screenshots (If Any)</Text>
+          <TouchableOpacity style={styles.uploadWrapper}>
+            <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
+            <View style={styles.uploadTextContainer}>
+              <Text style={styles.uploadTitle}>Upload Screenshots</Text>
+              <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.subText}>
-          Fill out the form below to submit a support request
-        </Text>
-
-        {/* Input Fields */}
-        <TextInput
-          style={styles.input}
-          placeholder="Subject"
-          value={subject}
-          onChangeText={setSubject}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Title"
-          value={title}
-          onChangeText={setTitle}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Transaction ID (If Relevant)"
-          value={transactionId}
-          onChangeText={setTransactionId}
-        />
-        <TextInput
-          style={[styles.input, { height: 100, textAlignVertical: "top" }]}
-          placeholder="Message"
-          value={message}
-          onChangeText={setMessage}
-          multiline
-        />
-
-        {/* Upload Banner */}
-        <TouchableOpacity style={styles.uploadBox}>
-          <Ionicons name="cloud-upload-outline" size={28} color="#666" />
-          <Text style={styles.uploadText}>Upload the Screenshots</Text>
-        </TouchableOpacity>
-
         {/* Submit Button */}
-        <TouchableOpacity 
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]} 
-          onPress={handleSubmitTicket}
-          disabled={loading}
-        >
-          <Text style={styles.submitText}>
-            {loading ? "Submitting..." : "Submit"}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+        <View style={styles.submitButtonContainer}>
+          <CustomButton
+            title="Submit"
+            size="medium"
+            variant="primary"
+            onPress={handleSubmitTicket}
+            disabled={loading}
+          />
+        </View>
+      </View>
     </View>
   );
 };
@@ -159,62 +176,113 @@ export default RaiseTicketsScreen;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 25,
-    paddingTop: 30, // offset for hamburger
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  header: {
-    fontSize: 25,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  subText: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 40,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 14,
+    flex: 1,
     backgroundColor: "#fff",
   },
-  uploadBox: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    backgroundColor: "#fafafa",
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 52,
+    paddingBottom: 20,
   },
-  uploadText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#666",
+  backButton: {
+    position: 'absolute',
+    top: 52,
+    left: 20,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  submitButton: {
-    backgroundColor: "#1a1a2e",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 40,
-
+  titleSection: {
+    alignItems: 'center',
+    paddingTop: 8,
+    marginBottom: 10,
   },
-  submitText: {
-    color: "#fff",
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
-  submitButtonDisabled: {
-    backgroundColor: "#999",
+  subText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+  },
+  inputSection: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 4,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    elevation: 2,
+    marginBottom: 8,
+    minHeight: 48,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+    color: '#000',
+    fontWeight: '500',
+  },
+  messageInput: {
+    minHeight: 80,
+    maxHeight: 120,
+  },
+  uploadWrapper: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    elevation: 2,
+    marginBottom: 16,
+  },
+  uploadIcon: {
+    marginBottom: 8,
+  },
+  uploadTextContainer: {
+    alignItems: 'center',
+  },
+  uploadTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#bdbdbd',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  uploadSubtitle: {
+    fontSize: 13,
+    color: '#cccccc',
+    textAlign: 'center',
+  },
+  submitButtonContainer: {
+    alignSelf: 'center',
+    width: '75%',
+    paddingBottom: 50,
   },
 });
