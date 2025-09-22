@@ -231,11 +231,9 @@ Last updated: ${new Date().toLocaleDateString()}`;
       };
 
       // Split full name into first and last name
-      const fullName = personalInfo?.fullName || '';
-      const nameParts = fullName.trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-  
+      const firstName = personalInfo?.fullName || '';
+      const lastName = personalInfo?.lastName || '.';
+
       // Prepare customer data for API
       const customerPayload = {
         firstName: firstName,
@@ -270,7 +268,6 @@ Last updated: ${new Date().toLocaleDateString()}`;
           navigation.navigate('KycScreen');
         } catch (navError) {
           console.error('Navigation error:', navError);
-          Alert.alert('Navigation Error', 'Unable to navigate to KYC screen. Please check your navigation configuration.');
         }
       } else {
         Alert.alert('Error', response.message || 'Failed to create customer profile');

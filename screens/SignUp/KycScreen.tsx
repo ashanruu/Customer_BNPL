@@ -15,6 +15,8 @@ import { callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
   Main: undefined;
+  KycScreen: undefined;
+  AddressDetailsScreen: undefined;
 };
 
 const KycScreen: React.FC = () => {
@@ -72,7 +74,13 @@ const KycScreen: React.FC = () => {
     setHasSkipped(true);
     // Navigate to main after 1 second
     setTimeout(() => {
-      navigation.navigate('Main');
+      try {
+        navigation.navigate('Main');
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback navigation
+        navigation.goBack();
+      }
     }, 1000);
   };
 
