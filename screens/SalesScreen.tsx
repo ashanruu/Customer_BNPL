@@ -14,6 +14,7 @@ import { CameraView, Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import CustomButton from '../components/CustomButton';
 
 type RootStackParamList = {
   OrderPageScreen: { qrData: string };
@@ -50,7 +51,7 @@ const SalesScreen: React.FC = () => {
     }
 
     console.log('Processing code:', code);
-    
+
     // Navigate to OrderPageScreen with the scanned/entered data
     navigation.navigate('OrderPageScreen', { qrData: code });
   };
@@ -60,9 +61,9 @@ const SalesScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter a code or URL');
       return;
     }
-    
+
     setLoading(true);
-    
+
     // Simulate processing time
     setTimeout(() => {
       setLoading(false);
@@ -72,7 +73,7 @@ const SalesScreen: React.FC = () => {
 
   if (hasPermission === null) {
     return (
-      <View style={styles.container}>
+      <View style={styles.permissionContainer}>
         <Text style={styles.permissionText}>Requesting camera permission...</Text>
       </View>
     );
@@ -80,7 +81,10 @@ const SalesScreen: React.FC = () => {
 
   if (hasPermission === false) {
     return (
-      <View style={styles.container}>
+      <View style={styles.permissionContainer}>
+        <View style={styles.emptyIconContainer}>
+          <Ionicons name="camera-outline" size={64} color="#E5E5E7" />
+        </View>
         <Text style={styles.permissionText}>No access to camera</Text>
         <Text style={styles.permissionSubtext}>Please enable camera permissions to use QR scanner</Text>
       </View>
@@ -88,100 +92,102 @@ const SalesScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header similar to ShopScreen */}
-      <View style={styles.header}>
-        <View style={styles.placeholder} />
-        <Text style={styles.headerTitle}>Sales Scanner</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      {/* Search Bar similar to ShopScreen */}
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchBar}>
-          <TextInput
-            placeholder="Enter QR code URL or scan below"
-            placeholderTextColor="#999"
-            style={styles.searchInput}
-            value={manualCode}
-            onChangeText={setManualCode}
-          />
-          <Ionicons name="link-outline" size={20} color="#999" />
-        </View>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* QR Scanner Section - Half Page */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>QR Code Scanner</Text>
-          <View style={styles.scannerContainer}>
-            <CameraView
-              style={styles.scanner}
-              facing="back"
-              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-              barcodeScannerSettings={{
-                barcodeTypes: ["qr", "pdf417", "aztec", "ean13", "ean8", "upc_e", "code128", "code39", "code93", "codabar", "itf14", "datamatrix"],
-              }}
-            />
-            
-            {/* Scanner Overlay */}
-            <View style={styles.overlay}>
-              <View style={styles.scannerFrame} />
-            </View>
-
-            {/* Scanner Status */}
-            <View style={styles.scannerStatus}>
-              <Text style={styles.scannerStatusText}>
-                {scanned ? 'QR Code Detected!' : 'Point camera at QR code'}
-              </Text>
-              {scanned && (
-                <TouchableOpacity
-                  style={styles.rescanButton}
-                  onPress={() => setScanned(false)}
-                >
-                  <Text style={styles.rescanButtonText}>Scan Again</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+    <View style={styles.screenContainer}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>Sales</Text>
+            <Text style={styles.subText}>Scan QR codes or enter manually</Text>
           </View>
         </View>
 
-        {/* Manual Input Section - Half Page */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Manual Entry</Text>
-          <View style={styles.manualInputContainer}>
-            <Text style={styles.inputLabel}>Enter URL or Code Manually</Text>
+        {/* Search Bar */}
+        {/* <View style={styles.searchBarContainer}>
+          <View style={styles.searchBar}>
             <TextInput
-              style={styles.textInput}
-              placeholder="Paste or type the URL/code here..."
-              placeholderTextColor="#999"
+              placeholder="Enter QR code URL or scan below"
+              placeholderTextColor="#8E8E93"
+              style={styles.searchInput}
               value={manualCode}
               onChangeText={setManualCode}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
             />
-            
-            <Text style={styles.helperText}>
-              {manualCode.length > 0 ? `${manualCode.length} characters entered` : 'Enter the code manually if scanning fails'}
-            </Text>
+            <Ionicons name="link-outline" size={20} color="#8E8E93" />
           </View>
-        </View>
+        </View> */}
 
-        {/* Action Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.proceedButton, (!manualCode.trim() || loading) && styles.proceedButtonDisabled]}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* QR Scanner Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>QR Code Scanner</Text>
+            <View style={styles.scannerContainer}>
+              <CameraView
+                style={styles.scanner}
+                facing="back"
+                onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                barcodeScannerSettings={{
+                  barcodeTypes: ["qr", "pdf417", "aztec", "ean13", "ean8", "upc_e", "code128", "code39", "code93", "codabar", "itf14", "datamatrix"],
+                }}
+              />
+
+              {/* Scanner Overlay */}
+              <View style={styles.overlay}>
+                <View style={styles.scannerFrame} />
+              </View>
+
+              {/* Scanner Status */}
+              <View style={styles.scannerStatus}>
+                <Text style={styles.scannerStatusText}>
+                  {scanned ? 'QR Code Detected!' : 'Point camera at QR code'}
+                </Text>
+                {scanned && (
+                  <TouchableOpacity
+                    style={styles.rescanButton}
+                    onPress={() => setScanned(false)}
+                  >
+                    <Text style={styles.rescanButtonText}>Scan Again</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Manual Input Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Manual Entry</Text>
+            <View style={styles.manualInputContainer}>
+              <Text style={styles.inputLabel}>Enter URL or Code Manually</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Paste or type the URL/code here..."
+                  placeholderTextColor="#8E8E93"
+                  value={manualCode}
+                  onChangeText={setManualCode}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <Text style={styles.helperText}>
+                {manualCode.length > 0 ? `${manualCode.length} characters entered` : 'Enter the code manually if scanning fails'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Button */}
+
+          <CustomButton
+            title="Other Document Upload"
+            size="medium"
+            variant="primary"
             onPress={handleManualSubmit}
             disabled={!manualCode.trim() || loading}
-          >
-            <Text style={styles.proceedButtonText}>
-              {loading ? 'Processing...' : 'Continue to Order'}
-            </Text>
-            {!loading && <Ionicons name="arrow-forward" size={20} color="#fff" style={styles.buttonIcon} />}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          ></CustomButton>
+
+        </ScrollView>
+      </View>
     </View>
   );
 };
@@ -189,78 +195,93 @@ const SalesScreen: React.FC = () => {
 export default SalesScreen;
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingTop: 10,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingBottom: 22,
   },
-  backButton: {
-    padding: 5,
+  titleSection: {
+    alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
-  placeholder: {
-    width: 34,
+  subText: {
+    fontSize: 15,
+    color: "#666",
+    lineHeight: 20,
   },
-  searchBarContainer: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    paddingBottom: 10,
-  },
-  searchBar: {
-    backgroundColor: '#eee',
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#000',
-  },
+  // searchBarContainer: {
+  //   marginBottom: 24,
+  // },
+  // searchBar: {
+  //   backgroundColor: '#fff',
+  //   borderRadius: 12,
+  //   borderColor: '#E5E5E5',
+  //   borderWidth: 1,
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   paddingHorizontal: 16,
+  //   height: 48,
+  //   elevation: 2,
+  // },
+  // searchInput: {
+  //   flex: 1,
+  //   fontSize: 15,
+  //   color: "#000",
+  //   fontWeight: '500',
+  //   letterSpacing: -0.2,
+  // },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#F2F2F7",
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#000',
+    color: "#2C2C2E",
     marginBottom: 16,
+    letterSpacing: -0.2,
   },
   scannerContainer: {
-    height: height * 0.3, // Half page height
-    borderRadius: 8,
+    height: height * 0.3,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
   scanner: {
     flex: 1,
+    borderRadius: 12,
   },
   overlay: {
     position: 'absolute',
@@ -272,99 +293,120 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scannerFrame: {
-    width: 200,
-    height: 200,
-    borderWidth: 2,
-    borderColor: '#00FF00',
+    width: 180,
+    height: 180,
+    borderWidth: 3,
+    borderColor: '#999',
     backgroundColor: 'transparent',
-    borderRadius: 8,
+    borderRadius: 16,
+    borderStyle: 'dashed',
   },
   scannerStatus: {
     position: 'absolute',
-    bottom: 10,
-    left: 10,
-    right: 10,
+    bottom: 16,
+    left: 16,
+    right: 16,
     alignItems: 'center',
   },
   scannerStatusText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#2C2E2E',
+    fontSize: 15,
     fontWeight: '500',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  rescanButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 16,
-    marginTop: 8,
+    borderRadius: 20,
+    letterSpacing: -0.2,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButton: {
+    backgroundColor: '#2C2C2E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   rescanButtonText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   manualInputContainer: {
-    minHeight: height * 0.15, // Decreased from 0.25
+    minHeight: height * 0.15,
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 4,
+    marginBottom: 10,
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    elevation: 2,
     marginBottom: 12,
+    minHeight: 80,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    minHeight: 60, // Decreased from 100
-    marginBottom: 8,
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+    color: '#000',
+    fontWeight: '500',
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   helperText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: "#8E8E93",
+    letterSpacing: -0.1,
   },
-  buttonContainer: {
-    paddingVertical: 20,
-  },
-  proceedButton: {
-    backgroundColor: '#090B1A',
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  proceedButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  proceedButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  buttonIcon: {
-    marginLeft: 4,
+  emptyIconContainer: {
+    marginBottom: 24,
   },
   permissionText: {
-    color: '#333',
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6D6D70',
+    marginBottom: 8,
     textAlign: 'center',
-    marginTop: height * 0.4,
+    letterSpacing: -0.3,
   },
   permissionSubtext: {
-    color: '#666',
-    fontSize: 14,
+    fontSize: 15,
+    color: '#8E8E93',
     textAlign: 'center',
-    marginTop: 10,
-    paddingHorizontal: 40,
+    lineHeight: 22,
   },
 });

@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { callMobileApi } from "../scripts/api";
 
 const OrdersScreen: React.FC = () => {
@@ -117,12 +118,12 @@ const OrdersScreen: React.FC = () => {
   };
 
   const renderCard = ({ item }: any) => (
-    <View style={{ marginBottom: 16 }}>
+    <View style={styles.orderWrapper}>
       <Text style={styles.date}>
         {item.createdOn ? new Date(item.createdOn).toLocaleDateString() : 'N/A'}
       </Text>
-      <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
-        <View>
+      <TouchableOpacity style={styles.card} onPress={() => handlePress(item)} activeOpacity={0.7}>
+        <View style={styles.cardContent}>
           <Text style={styles.orderName}>
             Loan #{item.loanId || 'Unknown'}
           </Text>
@@ -140,6 +141,9 @@ const OrdersScreen: React.FC = () => {
           <Text style={styles.creditValue}>
             Credit: Rs. {item.totCreditValue?.toLocaleString() || '0'}
           </Text>
+          <View style={styles.chevronContainer}>
+            <Ionicons name="chevron-forward" size={20} color="#C1C1C1" />
+          </View>
         </View>
       </TouchableOpacity>
     </View>
@@ -175,57 +179,92 @@ const OrdersScreen: React.FC = () => {
   const data = getFilteredData();
 
   return (
-    <View style={styles.container}>
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "ongoing" && styles.activeTab]}
-          onPress={() => setActiveTab("ongoing")}
-        >
-          <Text style={[styles.tabText, activeTab === "ongoing" && styles.activeTabText]}>
-            Ongoing
-          </Text>
-        </TouchableOpacity>
+    <View style={styles.screenContainer}>
+      <View style={styles.container}>
+        {/* Header Section */}
+        <View style={styles.header}>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "history" && styles.activeTab]}
-          onPress={() => setActiveTab("history")}
-        >
-          <Text style={[styles.tabText, activeTab === "history" && styles.activeTabText]}>
-            History
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "cancelled" && styles.activeTab]}
-          onPress={() => setActiveTab("cancelled")}
-        >
-          <Text style={[styles.tabText, activeTab === "cancelled" && styles.activeTabText]}>
-            Cancelled
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Loading indicator */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>My Orders</Text>
+            <Text style={styles.subText}>Track your loans and payment history</Text>
+          </View>
         </View>
-      ) : (
-        /* List */
-        <FlatList
-          data={data}
-          renderItem={renderCard}
-          keyExtractor={(item, index) => item.id?.toString() || item.loanId?.toString() || index.toString()}
-          contentContainerStyle={{ paddingVertical: 10 }}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No orders found</Text>
-            </View>
-          }
-        />
-      )}
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "ongoing" && styles.activeTab]}
+            onPress={() => setActiveTab("ongoing")}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === "ongoing" && styles.activeTabText,
+            ]}>
+              Ongoing
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "history" && styles.activeTab]}
+            onPress={() => setActiveTab("history")}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === "history" && styles.activeTabText,
+            ]}>
+              History
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "cancelled" && styles.activeTab]}
+            onPress={() => setActiveTab("cancelled")}
+            activeOpacity={0.8}
+          >
+            <Text style={[
+              styles.tabText,
+              activeTab === "cancelled" && styles.activeTabText,
+            ]}>
+              Cancelled
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Loading indicator */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2C2C2E" />
+            <Text style={styles.loadingText}>Loading orders...</Text>
+          </View>
+        ) : (
+          /* List */
+          <FlatList
+            data={data}
+            renderItem={renderCard}
+            keyExtractor={(item, index) => item.id?.toString() || item.loanId?.toString() || index.toString()}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="receipt-outline" size={64} color="#E5E5E7" />
+                </View>
+                <Text style={styles.emptyText}>
+                  {activeTab === "ongoing" ? "No ongoing orders" : 
+                   activeTab === "history" ? "No order history" : "No cancelled orders"}
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  {activeTab === "ongoing" ? "Your active loans will appear here" :
+                   activeTab === "history" ? "Your completed orders will appear here" : 
+                   "Your cancelled orders will appear here"}
+                </Text>
+              </View>
+            }
+          />
+        )}
+      </View>
     </View>
   );
 };
@@ -233,45 +272,173 @@ const OrdersScreen: React.FC = () => {
 export default OrdersScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
-  tabContainer: { flexDirection: "row", backgroundColor: "#e6e6e6", borderRadius: 25, padding: 4, marginBottom: 16 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 20 },
-  activeTab: { backgroundColor: "#000" },
-  tabText: { fontSize: 14, fontWeight: "500", color: "#555" },
-  activeTabText: { color: "#fff" },
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingTop: 10,
+  },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    paddingHorizontal: 20,
+  },
+  header: {
+    paddingBottom: 22,
+  },
+  titleSection: {
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 6,
+  },
+  subText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  tabContainer: { 
+    flexDirection: "row", 
+    backgroundColor: "#F2F2F7", 
+    borderRadius: 12, 
+    padding: 3, 
+    marginBottom: 24,
+  },
+  tab: { 
+    flex: 1, 
+    paddingVertical: 12, 
+    alignItems: "center", 
+    borderRadius: 9,
+  },
+  activeTab: { 
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: { 
+    fontSize: 15, 
+    fontWeight: "600", 
+    color: "#8E8E93",
+    letterSpacing: -0.2,
+  },
+  activeTabText: { 
+    color: "#2C2C2E",
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  orderWrapper: {
+    marginBottom: 16,
+  },
   card: { 
     flexDirection: "row", 
     justifyContent: "space-between", 
     alignItems: "flex-start", 
-    backgroundColor: "#f5f5f5ff", 
-    padding: 16, 
-    borderRadius: 12 
+    backgroundColor: "#FFFFFF", 
+    paddingVertical: 20,
+    paddingHorizontal: 16, 
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F2F2F7",
   },
-  orderName: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  details: { fontSize: 14, color: "#666", marginBottom: 2 },
-  subDetails: { fontSize: 12, color: "#888" },
-  date: { fontSize: 13, color: "#999", marginBottom: 6, marginLeft: 4 },
-  priceContainer: { alignItems: 'flex-end' },
-  price: { fontSize: 18, fontWeight: "600", color: "#333" },
-  creditValue: { fontSize: 12, color: "#666", marginTop: 2 },
+  cardContent: {
+    flex: 1,
+  },
+  orderName: { 
+    fontSize: 17, 
+    fontWeight: "600", 
+    marginBottom: 6,
+    color: "#2C2C2E",
+    letterSpacing: -0.2,
+  },
+  details: { 
+    fontSize: 15, 
+    color: "#6D6D70", 
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  subDetails: { 
+    fontSize: 13, 
+    color: "#8E8E93",
+  },
+  date: { 
+    fontSize: 13, 
+    color: "#8E8E93", 
+    marginBottom: 8, 
+    marginLeft: 4,
+    fontWeight: "500",
+    letterSpacing: -0.1,
+  },
+  priceContainer: { 
+    alignItems: 'flex-end',
+  },
+  price: { 
+    fontSize: 18, 
+    fontWeight: "600", 
+    color: "#2C2C2E",
+    marginBottom: 4,
+  },
+  creditValue: { 
+    fontSize: 12, 
+    color: "#8E8E93", 
+    marginBottom: 8,
+  },
+  chevronContainer: {
+    justifyContent: 'center',
+    paddingLeft: 8,
+  },
   loadingContainer: { 
     flex: 1, 
     justifyContent: 'center', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    paddingTop: 80,
   },
   loadingText: { 
-    marginTop: 10, 
+    marginTop: 16, 
     fontSize: 16, 
-    color: '#666' 
+    color: '#8E8E93',
+    fontWeight: '500',
   },
   emptyContainer: { 
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    paddingTop: 50 
+    paddingTop: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
   },
   emptyText: { 
-    fontSize: 16, 
-    color: '#999' 
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6D6D70',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

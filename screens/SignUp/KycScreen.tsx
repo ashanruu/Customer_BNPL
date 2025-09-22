@@ -14,7 +14,7 @@ import { Colors } from '../../constants/Colors';
 import { callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
-  HomeScreen: undefined;
+  Main: undefined;
 };
 
 const KycScreen: React.FC = () => {
@@ -70,9 +70,9 @@ const KycScreen: React.FC = () => {
 
   const handleSkip = () => {
     setHasSkipped(true);
-    // Navigate to home after 1 second
+    // Navigate to main after 1 second
     setTimeout(() => {
-      navigation.navigate('HomeScreen');
+      navigation.navigate('Main');
     }, 1000);
   };
 

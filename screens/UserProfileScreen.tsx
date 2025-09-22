@@ -9,9 +9,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { callMobileApi } from '../scripts/api';
+import { Ionicons } from "@expo/vector-icons";
 
 type CustomerDetails = {
   firstName?: string;
@@ -37,11 +37,19 @@ const UserProfileScreen: React.FC = () => {
     fetchCustomerDetails();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+    }, [navigation])
+  );
+
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
       console.log("Fetching customer details...");
-      
+
       const response = await callMobileApi(
         'GetCustomerDetails',
         {},
@@ -69,7 +77,7 @@ const UserProfileScreen: React.FC = () => {
 
   const getCustomerName = () => {
     if (customerDetails) {
-      return customerDetails.firstName && customerDetails.lastName 
+      return customerDetails.firstName && customerDetails.lastName
         ? `${customerDetails.firstName} ${customerDetails.lastName}`
         : customerDetails.firstName || customerDetails.lastName || "Customer";
     }
@@ -93,13 +101,21 @@ const UserProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile Details</Text>
-      </View>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#666" />
+          </TouchableOpacity>
+
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>Profile Details</Text>
+            {/* <Text style={styles.subText}>View and track your support requests</Text> */}
+          </View>
+        </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -116,7 +132,7 @@ const UserProfileScreen: React.FC = () => {
             />
             <Text style={styles.name}>{getCustomerName()}</Text>
             <Text style={styles.email}>{customerDetails?.email || "N/A"}</Text>
-            
+
             {/* KYC Status */}
             <View style={styles.kycContainer}>
               {customerDetails?.kycStatus ? (
@@ -136,28 +152,28 @@ const UserProfileScreen: React.FC = () => {
 
           {/* Personal Information */}
           <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Personal Information</Text>
-            
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Customer ID:</Text>
               <Text style={styles.infoValue}>{customerDetails?.customerId || "N/A"}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Phone Number:</Text>
               <Text style={styles.infoValue}>{customerDetails?.phoneNumber || "N/A"}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Address:</Text>
               <Text style={styles.infoValue}>{customerDetails?.address || "N/A"}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Salary:</Text>
               <Text style={styles.infoValue}>{formatSalary(customerDetails?.salary)}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Member Since:</Text>
               <Text style={styles.infoValue}>{formatDate(customerDetails?.createdDate)}</Text>
@@ -166,8 +182,7 @@ const UserProfileScreen: React.FC = () => {
 
           {/* Document Status */}
           <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>Document Status</Text>
-            
+            <Text style={styles.sectionTitle}>Document Status</Text>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Bill Proof:</Text>
               <View style={[styles.statusBadge, customerDetails?.billProofStatus ? styles.statusApproved : styles.statusPending]}>
@@ -176,7 +191,7 @@ const UserProfileScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Salary Slip:</Text>
               <View style={[styles.statusBadge, customerDetails?.salarySlipStatus ? styles.statusApproved : styles.statusPending]}>
@@ -185,7 +200,7 @@ const UserProfileScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Account Status:</Text>
               <View style={[styles.statusBadge, customerDetails?.isActive ? styles.statusApproved : styles.statusInactive]}>
@@ -207,26 +222,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "#20222E",
-    paddingTop: 50,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  backText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    paddingTop: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -237,25 +233,53 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#666",
   },
+  
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+    paddingHorizontal: 15,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  titleSection: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+  },
+  subText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   scrollContainer: {
     flex: 1,
     padding: 15,
   },
   profileSection: {
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
     borderRadius: 12,
-    padding: 20,
     marginBottom: 20,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 15,
   },
   name: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#20222E",
     marginBottom: 5,
@@ -302,27 +326,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   infoCard: {
-    backgroundColor: "#fff",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
     padding: 20,
     marginBottom: 15,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: '#fff',
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#20222E",
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 15,
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
@@ -333,7 +354,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
-    color: "#20222E",
+    color: "#333",
     fontWeight: "500",
     flex: 1,
     textAlign: "right",
@@ -342,7 +363,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   statusLabel: {
     fontSize: 14,
@@ -352,13 +375,13 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 15,
+    borderRadius: 12,
   },
   statusApproved: {
     backgroundColor: "#E8F5E8",
   },
   statusPending: {
-    backgroundColor: "#FFF3E0",
+    backgroundColor: "#FFF4E6",
   },
   statusInactive: {
     backgroundColor: "#FFEBEE",
@@ -366,6 +389,5 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#333",
   },
 });
