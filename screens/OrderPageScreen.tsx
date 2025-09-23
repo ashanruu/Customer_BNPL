@@ -9,13 +9,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
+import CustomButton from '../components/CustomButton';
 
 const OrderPageScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   
-
   // Predefined values (not editable)
   const orderDetails = {
     merchantName: '',
@@ -33,70 +33,85 @@ const OrderPageScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back" size={22} color="#666" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Details</Text>
-        <View style={styles.placeholder} />
+
+        <View style={styles.titleSection}>
+          <Text style={styles.headerTitle}>Order Details</Text>
+          <Text style={styles.subText}>Review your order information below</Text>
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Content Area */}
+      <View style={styles.content}>
+        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Order Details Display */}
+          <View style={styles.inputSection}>
 
-        {/* Order Details Display */}
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>Order Information</Text>
+            {/* Merchant Name */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Merchant Name</Text>
+              <View style={styles.displayField}>
+                <Text style={styles.displayText}>{orderDetails.merchantName}</Text>
+              </View>
+            </View>
 
-          {/* Merchant Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Merchant Name</Text>
-            <View style={styles.displayField}>
-              <Text style={styles.displayText}>{orderDetails.merchantName}</Text>
+            {/* Order ID */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Order ID</Text>
+              <View style={styles.displayField}>
+                <Text style={styles.displayText}>{orderDetails.orderId}</Text>
+              </View>
+            </View>
+
+            {/* Amount */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Amount</Text>
+              <View style={styles.displayField}>
+                <Text style={styles.amountText}>LKR {orderDetails.amount}</Text>
+              </View>
+            </View>
+
+            {/* Note */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Note</Text>
+              <View style={[styles.displayField, styles.noteField]}>
+                <Text style={styles.displayText}>{orderDetails.note}</Text>
+              </View>
+            </View>
+
+            {/* Instalments */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Instalments</Text>
+              <View style={styles.displayField}>
+                <View style={styles.instalmentContent}>
+                  <Text style={styles.displayText}>{orderDetails.instalments} Months</Text>
+                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                </View>
+              </View>
             </View>
           </View>
+        </ScrollView>
 
-          {/* Order ID */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Order ID</Text>
-            <View style={styles.displayField}>
-              <Text style={styles.displayText}>{orderDetails.orderId}</Text>
-            </View>
-          </View>
-
-          {/* Amount */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Amount</Text>
-            <View style={styles.displayField}>
-              <Text style={styles.amountText}>LKR {orderDetails.amount}</Text>
-            </View>
-          </View>
-
-          {/* Note */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Note</Text>
-            <View style={[styles.displayField, styles.noteField]}>
-              <Text style={styles.displayText}>{orderDetails.note}</Text>
-            </View>
-          </View>
-
-          {/* Instalments */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Instalments</Text>
-            <View style={styles.instalmentContainer}>
-              <Text style={styles.instalmentText}>{orderDetails.instalments} Months</Text>
-              <MaterialCommunityIcons name="calendar-month" size={20} color="#007AFF" />
-            </View>
-          </View>
-
-          {/* Continue Button */}
-          <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
+        {/* Continue Button */}
+        <View style={styles.submitButtonContainer}>
+          <CustomButton
+            title="Continue"
+            size="medium"
+            variant="primary"
+            onPress={handleContinue}
+          />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
@@ -105,114 +120,104 @@ export default OrderPageScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#fff",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingTop: 52,
+    paddingBottom: 12,
   },
   backButton: {
-    padding: 5,
+    position: 'absolute',
+    top: 52,
+    left: 20,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleSection: {
+    alignItems: 'center',
+    paddingTop: 8,
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 4,
   },
-  placeholder: {
-    width: 34,
+  subText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
   },
-  qrDataContainer: {
-    backgroundColor: '#e3f2fd',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
+  scrollContent: {
+    flex: 1,
   },
-  qrDataLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1976d2',
-    marginBottom: 5,
+  inputSection: {
+    flex: 1,
   },
-  qrDataText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  form: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-  },
-  formTitle: {
+  sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 20,
+    color: '#1a1a1a',
+    marginBottom: 12,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
     marginBottom: 8,
   },
+  label: {
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 4,
+    marginTop: 6,
+    marginBottom: 10,
+  },
   displayField: {
-    backgroundColor: '#f9f9f9',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    elevation: 2,
+    minHeight: 48,
+    justifyContent: 'center',
   },
   displayText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 15,
+    color: '#000',
+    fontWeight: '500',
   },
   amountText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#666',
   },
   noteField: {
-    minHeight: 60,
+    minHeight: 80,
+    alignItems: 'flex-start',
+    paddingTop: 12,
   },
-  instalmentContainer: {
+  instalmentContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f0f8ff',
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
   },
-  instalmentText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  continueButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  continueButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  submitButtonContainer: {
+    alignSelf: 'center',
+    width: '75%',
+    paddingBottom: 50,
   },
 });

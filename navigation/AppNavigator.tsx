@@ -28,6 +28,7 @@ import SalesScreen from "../screens/SalesScreen";
 import OrderPageScreen from "../screens/OrderPageScreen";
 import PaymentProcessScreen from "../screens/PaymentProcessScreen";
 import KycScreen from "../screens/SignUp/KycScreen";
+//import QRProgressScreen from "../screens/QRProgressScreen";
 
 import HomeScreen from "../screens/HomeScreen";
 
@@ -78,6 +79,7 @@ const AppNavigator = () => {
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="KycScreen" component={KycScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
+      {/* <Stack.Screen name="QRProgressScreen" component={QRProgressScreen} options={{ gestureEnabled: false }} /> */}
     </Stack.Navigator>
   );
 };

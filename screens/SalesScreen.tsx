@@ -9,6 +9,9 @@ import {
   Dimensions,
   SafeAreaView,
   ScrollView,
+  Modal,
+  Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -20,7 +23,9 @@ type RootStackParamList = {
   OrderPageScreen: { qrData: string };
 };
 
-type SalesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderPageScreen'>;
+type SalesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+type ResponseStatus = 'processing' | 'success' | 'error';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +35,46 @@ const SalesScreen: React.FC = () => {
   const [scanned, setScanned] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const [responseStatus, setResponseStatus] = useState<ResponseStatus>('processing');
+  const [responseMessage, setResponseMessage] = useState('');
+  const slideAnim = useState(new Animated.Value(height))[0];
+
+  const progressSteps = [
+    { title: 'Validating Code', subtitle: 'Checking QR code authenticity...', duration: 1500 },
+    { title: 'Processing Request', subtitle: 'Connecting to payment gateway...', duration: 2000 },
+    { title: 'Setting up Order', subtitle: 'Preparing your order details...', duration: 1500 },
+    { title: 'Finalizing', subtitle: 'Almost ready...', duration: 1000 },
+  ];
+
+  // Simulate API response
+  const simulateAPIResponse = (): { success: boolean; message: string } => {
+    const responses = [
+      // Success responses
+      { success: true, message: 'QR code verified successfully! Order is ready to proceed.' },
+      { success: true, message: 'Payment gateway connected. Everything looks good!' },
+      { success: true, message: 'Customer verified. Welcome to BNPL service!' },
+      
+      // Error responses
+      { success: false, message: 'Invalid QR code format. Please check and try again.' },
+      { success: false, message: 'This QR code has already been used. Please scan a new one.' },
+      { success: false, message: 'QR code has expired. Please generate a new one.' },
+      { success: false, message: 'Network error. Please check your connection and retry.' },
+      { success: false, message: 'Server temporarily unavailable. Please try again later.' },
+    ];
+    
+    // 70% success rate for demo
+    const isSuccess = Math.random() > 0.3;
+    const successResponses = responses.filter(r => r.success);
+    const errorResponses = responses.filter(r => !r.success);
+    
+    if (isSuccess) {
+      return successResponses[Math.floor(Math.random() * successResponses.length)];
+    } else {
+      return errorResponses[Math.floor(Math.random() * errorResponses.length)];
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -38,22 +83,54 @@ const SalesScreen: React.FC = () => {
     })();
   }, []);
 
+  useEffect(() => {
+    if (showProgressModal && responseStatus === 'processing') {
+      // Animate modal in
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }).start();
+
+      // Progress through steps
+      const timer = setTimeout(() => {
+        if (progressStep < progressSteps.length - 1) {
+          setProgressStep(progressStep + 1);
+        } else {
+          // All steps complete, simulate API response
+          const response = simulateAPIResponse();
+          setResponseMessage(response.message);
+          
+          if (response.success) {
+            setResponseStatus('success');
+            // Navigate after showing success for 2 seconds
+            setTimeout(() => {
+              resetModalState();
+              navigation.navigate('OrderPageScreen', { qrData: manualCode });
+            }, 2500);
+          } else {
+            setResponseStatus('error');
+          }
+        }
+      }, progressSteps[progressStep]?.duration || 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showProgressModal, progressStep, responseStatus]);
+
+  const resetModalState = () => {
+    setShowProgressModal(false);
+    setProgressStep(0);
+    setResponseStatus('processing');
+    setResponseMessage('');
+    slideAnim.setValue(height);
+  };
+
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     console.log('QR Code scanned:', data);
-    setManualCode(data); // Auto-fill the manual input field
-  };
-
-  const processCodeAndNavigate = (code: string) => {
-    if (!code.trim()) {
-      Alert.alert('Error', 'Please enter a valid code or URL');
-      return;
-    }
-
-    console.log('Processing code:', code);
-
-    // Navigate to OrderPageScreen with the scanned/entered data
-    navigation.navigate('OrderPageScreen', { qrData: code });
+    setManualCode(data);
   };
 
   const handleSubmit = () => {
@@ -63,12 +140,72 @@ const SalesScreen: React.FC = () => {
     }
 
     setLoading(true);
-
-    // Simulate processing time
+    
+    // Simulate brief loading then show progress modal
     setTimeout(() => {
       setLoading(false);
-      processCodeAndNavigate(manualCode);
+      setShowProgressModal(true);
+      setProgressStep(0);
+      setResponseStatus('processing');
     }, 500);
+  };
+
+  const handleRetry = () => {
+    // Reset for new QR scanning
+    setScanned(false);
+    setManualCode('');
+    resetModalState();
+  };
+
+  const handleTryAgain = () => {
+    // Retry with the same QR code
+    setProgressStep(0);
+    setResponseStatus('processing');
+    setResponseMessage('');
+  };
+
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: height,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      resetModalState();
+    });
+  };
+
+  const getStatusIcon = () => {
+    switch (responseStatus) {
+      case 'success':
+        return <Ionicons name="checkmark-circle" size={64} color="#2D5016" />;
+      case 'error':
+        return <Ionicons name="close-circle" size={64} color="#8B4513" />;
+      default:
+        return <ActivityIndicator size="large" color="#20222E" />;
+    }
+  };
+
+  const getStatusColors = () => {
+    switch (responseStatus) {
+      case 'success':
+        return {
+          primary: '#2D5016',
+          background: '#E8F5E8',
+          border: '#E8F5E8'
+        };
+      case 'error':
+        return {
+          primary: '#8B4513',
+          background: '#FFF4E6',
+          border: '#FFF4E6'
+        };
+      default:
+        return {
+          primary: '#20222E',
+          background: '#F8F9FA',
+          border: '#E5E5E5'
+        };
+    }
   };
 
   if (hasPermission === null) {
@@ -91,107 +228,255 @@ const SalesScreen: React.FC = () => {
     );
   }
 
+  const statusColors = getStatusColors();
+
   return (
     <View style={styles.screenContainer}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.titleSection}>
-            <Text style={styles.headerTitle}>Sales</Text>
-            <Text style={styles.subText}>Scan QR codes or enter manually</Text>
-          </View>
+      {/* Header Section with Dark Theme */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerBackground} />
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Sales</Text>
+          <Text style={styles.headerSubtitle}>Scan QR codes or enter manually</Text>
         </View>
+      </View>
 
+      <View style={styles.container}>
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Input Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Scan or Enter Link</Text>
             
-            {/* QR Scanner */}
-            <View style={styles.scannerContainer}>
-              <CameraView
-                style={styles.scanner}
-                facing="back"
-                onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-                barcodeScannerSettings={{
-                  barcodeTypes: ["qr", "pdf417", "aztec", "ean13", "ean8", "upc_e", "code128", "code39", "code93", "codabar", "itf14", "datamatrix"],
-                }}
-              />
+            {/* QR Scanner - Hide when modal is shown */}
+            {!showProgressModal && (
+              <View style={styles.scannerContainer}>
+                <CameraView
+                  style={styles.scanner}
+                  facing="back"
+                  onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                  barcodeScannerSettings={{
+                    barcodeTypes: ["qr", "pdf417", "aztec", "ean13", "ean8", "upc_e", "code128", "code39", "code93", "codabar", "itf14", "datamatrix"],
+                  }}
+                />
 
-              {/* Scanner Overlay */}
-              <View style={styles.overlay}>
-                <View style={styles.scannerFrame} />
-              </View>
+                {/* Scanner Overlay */}
+                <View style={styles.overlay}>
+                  <View style={styles.scannerFrame} />
+                </View>
 
-              {/* Scanner Status */}
-              <View style={styles.scannerStatus}>
-                <Text style={styles.scannerStatusText}>
-                  {scanned ? 'QR Code Detected!' : 'Point camera at QR code'}
-                </Text>
-                {scanned && (
-                  <TouchableOpacity
-                    style={styles.rescanButton}
-                    onPress={() => setScanned(false)}
-                  >
-                    <Text style={styles.rescanButtonText}>Scan Again</Text>
-                  </TouchableOpacity>
-                )}
+                {/* Scanner Status */}
+                <View style={styles.scannerStatus}>
+                  <Text style={styles.scannerStatusText}>
+                    {scanned ? 'QR Code Detected!' : 'Point camera at QR code'}
+                  </Text>
+                  {scanned && (
+                    <TouchableOpacity
+                      style={styles.rescanButton}
+                      onPress={() => setScanned(false)}
+                    >
+                      <Text style={styles.rescanButtonText}>Scan Again</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {!showProgressModal && (
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            )}
 
             {/* Manual Input */}
-            <View style={styles.manualInputContainer}>
-              <Text style={styles.inputLabel}>Enter link manually</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="link" size={20} color="#8E8E93" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Paste or type your link here..."
-                  placeholderTextColor="#8E8E93"
-                  value={manualCode}
-                  onChangeText={setManualCode}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </View>
+            {!showProgressModal && (
+              <View style={styles.manualInputContainer}>
+                <Text style={styles.inputLabel}>Enter link manually</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="link" size={20} color="#8E8E93" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Paste or type your link here..."
+                    placeholderTextColor="#8E8E93"
+                    value={manualCode}
+                    onChangeText={setManualCode}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </View>
 
-              <Text style={styles.helperText}>
-                {manualCode.length > 0 
-                  ? `✓ Ready to process (${manualCode.length} characters)` 
-                  : 'No camera? No problem! Just paste your link above'}
-              </Text>
-            </View>
+                <Text style={styles.helperText}>
+                  {manualCode.length > 0 
+                    ? `✓ Ready to process (${manualCode.length} characters)` 
+                    : 'No camera? No problem! Just paste your link above'}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Action Button */}
-          <CustomButton
-            title={loading ? "Processing..." : "Continue"}
-            size="medium"
-            variant="primary"
-            onPress={handleSubmit}
-            disabled={!manualCode.trim() || loading}
-          />
+          {!showProgressModal && (
+            <CustomButton
+              title={loading ? "Processing..." : "Continue"}
+              size="medium"
+              variant="primary"
+              onPress={handleSubmit}
+              disabled={!manualCode.trim() || loading}
+            />
+          )}
 
           {/* Help Text */}
-          <View style={styles.helpSection}>
-            <Text style={styles.helpTitle}>Need help?</Text>
-            <Text style={styles.helpText}>
-              • Point your camera at any QR code to scan automatically{'\n'}
-              • Or paste/type any link in the text box above{'\n'}
-              • Both methods work the same way
-            </Text>
-          </View>
-
+          {!showProgressModal && (
+            <View style={styles.helpSection}>
+              <Text style={styles.helpTitle}>Need help?</Text>
+              <Text style={styles.helpText}>
+                • Point your camera at any QR code to scan automatically{'\n'}
+                • Or paste/type any link in the text box above{'\n'}
+                • Both methods work the same way
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </View>
+
+      {/* Progress Modal */}
+      <Modal
+        visible={showProgressModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View 
+            style={[
+              styles.modalContainer,
+              {
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHandle} />
+              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Progress Content */}
+            <View style={styles.progressContent}>
+              {/* Status Animation */}
+              <View style={styles.progressAnimationContainer}>
+                <View style={[styles.progressCircle, { backgroundColor: statusColors.background, borderColor: statusColors.border }]}>
+                  {getStatusIcon()}
+                </View>
+                
+                {/* Step Indicators - Only show during processing */}
+                {responseStatus === 'processing' && (
+                  <View style={styles.stepIndicators}>
+                    {progressSteps.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.stepDot,
+                          {
+                            backgroundColor: index <= progressStep ? '#20222E' : '#E5E5E5',
+                            transform: [{ scale: index === progressStep ? 1.2 : 1 }],
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Progress Info */}
+              <View style={styles.progressInfo}>
+                {responseStatus === 'processing' ? (
+                  <>
+                    <Text style={styles.progressTitle}>
+                      {progressSteps[progressStep]?.title || 'Processing...'}
+                    </Text>
+                    <Text style={styles.progressSubtitle}>
+                      {progressSteps[progressStep]?.subtitle || 'Please wait...'}
+                    </Text>
+                    
+                    {/* Progress Bar */}
+                    <View style={styles.progressBarContainer}>
+                      <View style={styles.progressBarBackground}>
+                        <Animated.View 
+                          style={[
+                            styles.progressBarFill,
+                            { width: `${((progressStep + 1) / progressSteps.length) * 100}%` }
+                          ]} 
+                        />
+                      </View>
+                      <Text style={styles.progressPercentage}>
+                        {Math.round(((progressStep + 1) / progressSteps.length) * 100)}%
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={[styles.statusTitle, { color: statusColors.primary }]}>
+                      {responseStatus === 'success' ? 'Success!' : 'Error'}
+                    </Text>
+                    
+                    {/* Response Message */}
+                    <Text style={[styles.responseMessage, { color: statusColors.primary }]}>
+                      {responseMessage}
+                    </Text>
+
+                    {/* Action Buttons */}
+                    <View style={styles.actionButtons}>
+                      {responseStatus === 'error' ? (
+                        <>
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.secondaryButton]}
+                            onPress={handleRetry}
+                          >
+                            <Text style={styles.secondaryButtonText}>Scan New QR</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.primaryButton]}
+                            onPress={handleTryAgain}
+                          >
+                            <Text style={styles.primaryButtonText}>Try Again</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <Text style={styles.successNote}>Redirecting to order page...</Text>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+
+              {/* QR Code Info - Only show during processing */}
+              {responseStatus === 'processing' && (
+                <View style={styles.qrInfo}>
+                  <View style={styles.qrInfoItem}>
+                    <Ionicons name="qr-code-outline" size={20} color="#20222E" />
+                    <Text style={styles.qrInfoText}>
+                      Code: {manualCode.length > 30 ? `${manualCode.substring(0, 30)}...` : manualCode}
+                    </Text>
+                  </View>
+                  <View style={styles.qrInfoItem}>
+                    <Ionicons name="time-outline" size={20} color="#666" />
+                    <Text style={styles.qrInfoText}>
+                      Est. time: {Math.ceil((progressSteps.length - progressStep) * 2)} seconds
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -202,65 +487,75 @@ const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 10,
+  },
+  headerSection: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 120,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#E5E5E5",
+    lineHeight: 22,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-  },
-  header: {
-    paddingBottom: 22,
-  },
-  titleSection: {
-    alignItems: 'flex-start',
-  },
- headerTitle: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    letterSpacing: -0.3,
-    marginBottom: 6,
-  },
-  subText: {
-    fontSize: 15,
-    color: "#666",
-    textAlign: 'center',
-    lineHeight: 20,
+    paddingHorizontal: 15,
   },
   content: {
     flex: 1,
   },
   section: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 20,
-    elevation: 3,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     borderWidth: 1,
-    borderColor: "#F2F2F7",
+    borderColor: "#E5E5E5",
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: "#2C2C2E",
+    color: "#20222E",
     marginBottom: 20,
     letterSpacing: -0.3,
     textAlign: 'center',
   },
   scannerContainer: {
     height: height * 0.3,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#F8F8F8',
     borderWidth: 2,
-    borderColor: '#E5E5E5',
+    borderColor: '#20222E',
     marginBottom: 20,
   },
   scanner: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   overlay: {
     position: 'absolute',
@@ -275,7 +570,7 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderWidth: 3,
-    borderColor: '#999',
+    borderColor: '#20222E',
     backgroundColor: 'transparent',
     borderRadius: 16,
     borderStyle: 'dashed',
@@ -288,16 +583,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scannerStatusText: {
-    color: '#2C2E2E',
+    color: '#20222E',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     letterSpacing: -0.2,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: '#20222E',
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -308,7 +603,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   rescanButton: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#20222E',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -341,7 +636,7 @@ const styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: 16,
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#20222E',
     fontWeight: '600',
   },
   manualInputContainer: {
@@ -349,7 +644,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    color: '#333',
+    color: '#20222E',
     marginLeft: 4,
     marginBottom: 12,
     fontWeight: '600',
@@ -358,23 +653,25 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    borderRadius: 16,
-    borderColor: '#E5E5E5',
+    borderRadius: 12,
+    borderColor: '#20222E',
     borderWidth: 2,
     paddingHorizontal: 16,
     paddingVertical: 4,
     marginBottom: 12,
     minHeight: 80,
+    backgroundColor: '#FAFAFA',
   },
   inputIcon: {
     marginTop: 12,
     marginRight: 8,
+    color: '#20222E',
   },
   textInput: {
     flex: 1,
     fontSize: 16,
     paddingVertical: 12,
-    color: '#000',
+    color: '#20222E',
     fontWeight: '500',
     minHeight: 60,
     textAlignVertical: 'top',
@@ -386,16 +683,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   helpSection: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
     marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
   },
   helpTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
+    fontWeight: '600',
+    color: '#20222E',
     marginBottom: 8,
   },
   helpText: {
@@ -416,7 +715,7 @@ const styles = StyleSheet.create({
   permissionText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#6D6D70',
+    color: '#20222E',
     marginBottom: 8,
     textAlign: 'center',
     letterSpacing: -0.3,
@@ -427,4 +726,1799 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-});
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(32, 34, 46, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#20222E',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    marginLeft: -20,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 'auto',
+    marginTop: 8,
+    backgroundColor: 'rgba(32, 34, 46, 0.1)',
+    borderRadius: 20,
+  },
+  progressContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  progressAnimationContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+  },
+  stepIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  progressInfo: {
+    alignItems: 'center',
+    marginBottom: 32,
+    width: '100%',
+  },
+  progressTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#20222E',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#20222E',
+  },
+  qrInfo: {
+    width: '100%',
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  qrInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  qrInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  // Simplified Modal Styles
+  statusTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  responseMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    maxWidth: 120,
+  },
+  primaryButton: {
+    backgroundColor: '#20222E',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  secondaryButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  successNote: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Keep all other existing styles unchanged
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  headerSection: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 120,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#E5E5E5",
+    lineHeight: 22,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: "#20222E",
+    marginBottom: 20,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  scannerContainer: {
+    height: height * 0.3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 2,
+    borderColor: '#20222E',
+    marginBottom: 20,
+  },
+  scanner: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 180,
+    height: 180,
+    borderWidth: 3,
+    borderColor: '#20222E',
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    borderStyle: 'dashed',
+  },
+  scannerStatus: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  scannerStatusText: {
+    color: '#20222E',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    letterSpacing: -0.2,
+    borderWidth: 1,
+    borderColor: '#20222E',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#20222E',
+    fontWeight: '600',
+  },
+  manualInputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#20222E',
+    marginLeft: 4,
+    marginBottom: 12,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderColor: '#20222E',
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 12,
+    minHeight: 80,
+    backgroundColor: '#FAFAFA',
+  },
+  inputIcon: {
+    marginTop: 12,
+    marginRight: 8,
+    color: '#20222E',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+    color: '#20222E',
+    fontWeight: '500',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  helperText: {
+    fontSize: 14,
+    color: "#666",
+    letterSpacing: -0.1,
+    fontWeight: '500',
+  },
+  helpSection: {
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
+  },
+  permissionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  permissionSubtext: {
+    fontSize: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(32, 34, 46, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#20222E',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    marginLeft: -20,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 'auto',
+    marginTop: 8,
+    backgroundColor: 'rgba(32, 34, 46, 0.1)',
+    borderRadius: 20,
+  },
+  progressContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  progressAnimationContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+  },
+  stepIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  progressInfo: {
+    alignItems: 'center',
+    marginBottom: 32,
+    width: '100%',
+  },
+  progressTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#20222E',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#20222E',
+  },
+  qrInfo: {
+    width: '100%',
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  qrInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  qrInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  // Simplified Modal Styles
+  statusTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  responseMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    maxWidth: 120,
+  },
+  primaryButton: {
+    backgroundColor: '#20222E',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  secondaryButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  successNote: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Keep all other existing styles unchanged
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  headerSection: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 120,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#E5E5E5",
+    lineHeight: 22,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: "#20222E",
+    marginBottom: 20,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  scannerContainer: {
+    height: height * 0.3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 2,
+    borderColor: '#20222E',
+    marginBottom: 20,
+  },
+  scanner: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 180,
+    height: 180,
+    borderWidth: 3,
+    borderColor: '#20222E',
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    borderStyle: 'dashed',
+  },
+  scannerStatus: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  scannerStatusText: {
+    color: '#20222E',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    letterSpacing: -0.2,
+    borderWidth: 1,
+    borderColor: '#20222E',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#20222E',
+    fontWeight: '600',
+  },
+  manualInputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#20222E',
+    marginLeft: 4,
+    marginBottom: 12,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderColor: '#20222E',
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 12,
+    minHeight: 80,
+    backgroundColor: '#FAFAFA',
+  },
+  inputIcon: {
+    marginTop: 12,
+    marginRight: 8,
+    color: '#20222E',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+    color: '#20222E',
+    fontWeight: '500',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  helperText: {
+    fontSize: 14,
+    color: "#666",
+    letterSpacing: -0.1,
+    fontWeight: '500',
+  },
+  helpSection: {
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
+  },
+  permissionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  permissionSubtext: {
+    fontSize: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(32, 34, 46, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#20222E',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    marginLeft: -20,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 'auto',
+    marginTop: 8,
+    backgroundColor: 'rgba(32, 34, 46, 0.1)',
+    borderRadius: 20,
+  },
+  progressContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  progressAnimationContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+  },
+  stepIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  progressInfo: {
+    alignItems: 'center',
+    marginBottom: 32,
+    width: '100%',
+  },
+  progressTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#20222E',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#20222E',
+  },
+  qrInfo: {
+    width: '100%',
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  qrInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  qrInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  // Simplified Modal Styles
+  statusTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  responseMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    maxWidth: 120,
+  },
+  primaryButton: {
+    backgroundColor: '#20222E',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  secondaryButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  successNote: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Keep all other existing styles unchanged
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  headerSection: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 120,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#E5E5E5",
+    lineHeight: 22,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: "#20222E",
+    marginBottom: 20,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  scannerContainer: {
+    height: height * 0.3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 2,
+    borderColor: '#20222E',
+    marginBottom: 20,
+  },
+  scanner: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 180,
+    height: 180,
+    borderWidth: 3,
+    borderColor: '#20222E',
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    borderStyle: 'dashed',
+  },
+  scannerStatus: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  scannerStatusText: {
+    color: '#20222E',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    letterSpacing: -0.2,
+    borderWidth: 1,
+    borderColor: '#20222E',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#20222E',
+    fontWeight: '600',
+  },
+  manualInputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#20222E',
+    marginLeft: 4,
+    marginBottom: 12,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderColor: '#20222E',
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 12,
+    minHeight: 80,
+    backgroundColor: '#FAFAFA',
+  },
+  inputIcon: {
+    marginTop: 12,
+    marginRight: 8,
+    color: '#20222E',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+    color: '#20222E',
+    fontWeight: '500',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  helperText: {
+    fontSize: 14,
+    color: "#666",
+    letterSpacing: -0.1,
+    fontWeight: '500',
+  },
+  helpSection: {
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
+  },
+  permissionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  permissionSubtext: {
+    fontSize: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(32, 34, 46, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#20222E',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    marginLeft: -20,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 'auto',
+    marginTop: 8,
+    backgroundColor: 'rgba(32, 34, 46, 0.1)',
+    borderRadius: 20,
+  },
+  progressContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  progressAnimationContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+  },
+  stepIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  progressInfo: {
+    alignItems: 'center',
+    marginBottom: 32,
+    width: '100%',
+  },
+  progressTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#20222E',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#20222E',
+  },
+  qrInfo: {
+    width: '100%',
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  qrInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  qrInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+    flex: 1,
+  },
+
+  // Simplified Modal Styles
+  statusTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  responseMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    maxWidth: 120,
+  },
+  primaryButton: {
+    backgroundColor: '#20222E',
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  secondaryButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  successNote: {
+    color: '#666',
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Keep all other existing styles unchanged
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  headerSection: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  headerBackground: {
+    backgroundColor: 'rgba(32, 34, 46, 1)',
+    height: 120,
+    borderBottomRightRadius: 15,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#E5E5E5",
+    lineHeight: 22,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 15,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: "#20222E",
+    marginBottom: 20,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  scannerContainer: {
+    height: height * 0.3,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 2,
+    borderColor: '#20222E',
+    marginBottom: 20,
+  },
+  scanner: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 180,
+    height: 180,
+    borderWidth: 3,
+    borderColor: '#20222E',
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    borderStyle: 'dashed',
+  },
+  scannerStatus: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  scannerStatusText: {
+    color: '#20222E',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    letterSpacing: -0.2,
+    borderWidth: 1,
+    borderColor: '#20222E',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rescanButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#20222E',
+    fontWeight: '600',
+  },
+  manualInputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#20222E',
+    marginLeft: 4,
+    marginBottom: 12,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderColor: '#20222E',
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 12,
+    minHeight: 80,
+    backgroundColor: '#FAFAFA',
+  },
+  inputIcon: {
+    marginTop: 12,
+    marginRight: 8,
+    color: '#20222E',
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+    color: '#20222E',
+    fontWeight: '500',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  helperText: {
+    fontSize: 14,
+    color: "#666",
+    letterSpacing: -0.1,
+    fontWeight: '500',
+  },
+  helpSection: {
+    backgroundColor: 'rgba(32, 34, 46, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(32, 34, 46, 0.1)',
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+  },
+  helpText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    marginBottom: 24,
+  },
+  permissionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#20222E',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  permissionSubtext: {
+    fontSize: 15,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(32, 34, 46, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.6,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#20222E',
+    borderRadius: 2,
+    position: 'absolute',
+    top: 8,
+    left: '50%',
+    marginLeft: -20,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 'auto',
+    marginTop: 8,
+    backgroundColor: 'rgba(32, 34, 46, 0.1)',
+    borderRadius: 20,
+  },
+  progressContent: {
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  progressAnimationContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  progressCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
