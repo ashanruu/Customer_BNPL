@@ -13,8 +13,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { callMobileApi, callMerchantApi } from '../scripts/api';
+import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard } from '../scripts/api';
 import CustomButton from "../components/CustomButton";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type CustomerDetails = {
   firstName?: string;
@@ -32,7 +33,23 @@ type CustomerDetails = {
   cardExpiry?: string;
   cardType?: string;
   hasPaymentMethod?: boolean;
+  customerId?: string;
+  id?: string;
 };
+
+type CardData = {
+  cardDate: string | undefined;
+  cardNumber?: string;
+  cardExpiry?: string;
+  cardType?: string;
+  isActive?: boolean;
+  cardId?: string;
+  maskedCardNumber?: string;
+  expiryDate?: string;
+  brand?: string;
+  status?: string;
+};
+
 type RootStackParamList = {
   UserProfileScreen: undefined;
   PlansScreen: undefined;
@@ -43,9 +60,12 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [customerPlan, setCustomerPlan] = useState<any>(null);
+  const [cardData, setCardData] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
+  const [cardLoading, setCardLoading] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [removingCard, setRemovingCard] = useState(false);
 
   const documents = [
     { id: "1", name: "NIC", date: "18 Aug 6:30 pm", status: "Submitted" },
@@ -58,6 +78,13 @@ const ProfileScreen: React.FC = () => {
     fetchCustomerDetails();
     fetchCustomerPlan();
   }, []);
+
+  // Fetch card data when customer details are loaded
+  useEffect(() => {
+    if (customerDetails && (customerDetails.customerId || customerDetails.id)) {
+      fetchCardData();
+    }
+  }, [customerDetails]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -127,6 +154,41 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  // Fetch customer card data
+  const fetchCardData = async () => {
+    try {
+      setCardLoading(true);
+      console.log("Fetching customer card data...");
+
+      // Get customer ID from customerDetails or AsyncStorage
+      const customerId = customerDetails?.customerId || customerDetails?.id;
+
+      if (!customerId) {
+        console.warn("No customer ID available for card fetch");
+        return;
+      }
+
+      const response = await fetchCustomerCard(customerId);
+
+      console.log("=== FULL GetCusCard RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      console.log("=== END RESPONSE ===");
+
+      if (response.statusCode === 200 && response.data) {
+        setCardData(response.data);
+        console.log("Customer card data loaded successfully");
+      } else {
+        console.warn("No card data found or failed to fetch:", response.message);
+        setCardData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching customer card:", error);
+      setCardData(null);
+    } finally {
+      setCardLoading(false);
+    }
+  };
+
   // Handle payment method onboarding
   const handleAddPaymentMethod = async () => {
     try {
@@ -171,6 +233,70 @@ const ProfileScreen: React.FC = () => {
     } finally {
       setOnboardingLoading(false);
     }
+  };
+
+  // Handle removing payment method
+  const handleRemovePaymentMethod = () => {
+    Alert.alert(
+      "Remove Payment Method",
+      "Are you sure you want to remove this payment method? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setRemovingCard(true);
+              console.log("Removing payment method...");
+
+              // Get card ID from card data
+              const cardId = cardData?.cardId;
+
+              if (!cardId) {
+                Alert.alert("Error", "Card ID not found. Please try again.");
+                return;
+              }
+
+              // Call the API to remove payment method
+              const response = await deleteCustomerCard(cardId);
+
+              if (response.statusCode === 200) {
+                // Successfully removed - update local state
+                setCardData(null);
+                setCustomerDetails(prev => prev ? { ...prev, hasPaymentMethod: false } : null);
+
+                Alert.alert("Success", "Payment method removed successfully");
+                console.log("Payment method removed successfully");
+              } else {
+                // Handle API error response
+                const errorMessage = response.message || "Failed to remove payment method";
+                Alert.alert("Error", errorMessage);
+                console.error("Failed to remove payment method:", response);
+              }
+            } catch (error: any) {
+              console.error("Error removing payment method:", error);
+
+              // Handle different types of errors
+              let errorMessage = "Failed to remove payment method. Please try again.";
+
+              if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+              } else if (error.message) {
+                errorMessage = error.message;
+              }
+
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setRemovingCard(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Helper function to get customer name
@@ -243,20 +369,20 @@ const ProfileScreen: React.FC = () => {
     return customerDetails?.profileImage || customerDetails?.avatar || "https://randomuser.me/api/portraits/men/17.jpg"; // fallback
   };
 
-  // Mock payment method data - replace with actual API data
+  // Helper function to get payment method data from API response
   const getPaymentMethodData = () => {
-    // Check if customer has payment method (you can get this from API)
-    const hasCard = customerDetails?.hasPaymentMethod || false; // Set to true to test card display
-
-    if (hasCard) {
-      return {
-        cardNumber: customerDetails?.cardNumber || "**** **** **** 1234",
-        cardExpiry: customerDetails?.cardExpiry || "12/26",
-        cardType: customerDetails?.cardType || "VISA",
-        cardholderName: getCustomerName().toUpperCase(),
-      };
+    if (!cardData) {
+      return null;
     }
-    return null;
+
+    // Map API response to expected format
+    return {
+      cardNumber: cardData.maskedCardNumber || cardData.cardNumber || "**** **** **** ****",
+      cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || "**/**",
+      cardType: cardData.brand || cardData.cardType || "CARD",
+      isActive: cardData.isActive || cardData.status === 'active' || true,
+      cardId: cardData.cardId
+    };
   };
 
   const paymentData = getPaymentMethodData();
@@ -264,7 +390,7 @@ const ProfileScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Loading indicator */}
-      {(loading || planLoading) && (
+      {(loading || planLoading || cardLoading) && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#20222E" />
         </View>
@@ -339,50 +465,76 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.paymentCard}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
 
-          {paymentData ? (
-            // Show existing card
-            <View style={styles.cardContainer}>
-              <LinearGradient
-                colors={["#1e3c72", "#2a5298"]}
-                style={styles.debitCard}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {/* Card Type Logo */}
-                <View style={styles.cardHeader}>
-                  <Text style={styles.cardType}>{paymentData.cardType}</Text>
-                  <View style={styles.cardChip} />
-                </View>
+          {cardLoading ? (
+            <View style={styles.cardLoadingContainer}>
+              <ActivityIndicator size="small" color="#666" />
+              <Text style={styles.loadingText}>Loading payment methods...</Text>
+            </View>
+          ) : paymentData ? (
+            // Show existing card AND add button
+            <View>
+              <View style={styles.cardContainer}>
+                <View style={styles.debitCard}>
+                  {/* Card Content */}
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardNumber}>{paymentData.cardNumber}</Text>
 
-                {/* Card Number */}
-                <Text style={styles.cardNumber}>{paymentData.cardNumber}</Text>
+                    {/* Active Tag - After Card Number */}
+                    <View style={styles.activeTag}>
+                      <Text style={styles.activeTagText}>
+                        {paymentData.isActive ? 'Active' : 'Inactive'}
+                      </Text>
+                    </View>
 
-                {/* Card Footer */}
-                <View style={styles.cardFooter}>
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardLabel}>CARDHOLDER NAME</Text>
-                    <Text style={styles.cardValue}>{paymentData.cardholderName}</Text>
+                    <View style={styles.cardFooter}>
+                      <View style={styles.cardInfoRow}>
+                        <View style={styles.cardTypeContainer}>
+                          <Text style={styles.cardTypeLabel}>Card Type</Text>
+                          <Text style={styles.cardValue}>{paymentData.cardType}</Text>
+                        </View>
+                        <View style={styles.expiryContainer}>
+                          <Text style={styles.expiryLabel}>Exp Date</Text>
+                          <Text style={styles.cardValue}>{paymentData.cardExpiry}</Text>
+                        </View>
+                      </View>
+
+                      {/* Remove Button - Bottom Right */}
+                      <TouchableOpacity
+                        style={[styles.removeBtn, removingCard && styles.disabledBtn]}
+                        onPress={handleRemovePaymentMethod}
+                        disabled={removingCard}
+                      >
+                        {removingCard ? (
+                          <ActivityIndicator size="small" color="#666" />
+                        ) : (
+                          <Text style={styles.removeBtnText}>Remove</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardLabel}>EXPIRES</Text>
-                    <Text style={styles.cardValue}>{paymentData.cardExpiry}</Text>
-                  </View>
                 </View>
-              </LinearGradient>
+              </View>
 
-              {/* Edit Button */}
+              {/* Add New Payment Method Button */}
               <TouchableOpacity
-                style={styles.editCardBtn}
-                onPress={() => navigation.navigate("WebViewScreen", {
-                  url: "undefined",
-                  jobId: undefined
-                })}
+                style={[styles.addPaymentBtn, styles.addPaymentBtnWithCard, onboardingLoading && styles.disabledBtn]}
+                onPress={handleAddPaymentMethod}
+                disabled={onboardingLoading}
               >
-                <Text style={styles.editCardText}>Edit</Text>
+                <View style={styles.addPaymentBtnContent}>
+                  {onboardingLoading ? (
+                    <ActivityIndicator size="small" color="#666" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Text style={styles.addPaymentIcon}>+</Text>
+                  )}
+                  <Text style={styles.addPaymentText}>
+                    {onboardingLoading ? "Setting up..." : "Add New Payment Method"}
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           ) : (
-            // Show add payment method
+            // Show add payment method only
             <View style={styles.noCardContainer}>
               <View style={styles.noCardContent}>
                 <Text style={styles.noCardTitle}>No Payment Method Added</Text>
@@ -398,7 +550,7 @@ const ProfileScreen: React.FC = () => {
               >
                 <View style={styles.addPaymentBtnContent}>
                   {onboardingLoading ? (
-                    <ActivityIndicator size="small" color="#FF4444" style={{ marginRight: 8 }} />
+                    <ActivityIndicator size="small" color="#666" style={{ marginRight: 8 }} />
                   ) : (
                     <Text style={styles.addPaymentIcon}>+</Text>
                   )}
@@ -569,74 +721,71 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   debitCard: {
+    backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 20,
-    height: 200,
-    justifyContent: 'space-between',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    padding: 0,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  activeTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 8,
   },
-  cardType: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 2,
+  activeTagText: {
+    color: '#2D5016',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  cardChip: {
-    width: 35,
-    height: 25,
-    backgroundColor: '#FFD700',
-    borderRadius: 4,
-  },
-  cardNumber: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '500',
-    letterSpacing: 2,
-    marginTop: 20,
+  cardContent: {
+    padding: 16,
   },
   cardFooter: {
+    marginTop: 16,
+  },
+  cardInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    alignItems: 'flex-end',
+    marginBottom: 12,
   },
-  cardInfo: {
-    flex: 1,
+  cardNumber: {
+    color: '#333',
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: 2,
   },
-  cardLabel: {
-    color: '#E0E0E0',
+  cardTypeContainer: {
+    alignItems: 'flex-start',
+  },
+  cardTypeLabel: {
     fontSize: 10,
-    fontWeight: '500',
-    marginBottom: 5,
+    color: '#999',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  expiryContainer: {
+    alignItems: 'flex-end',
+  },
+  expiryLabel: {
+    fontSize: 10,
+    color: '#999',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   cardValue: {
-    color: '#fff',
+    color: '#666',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  editCardBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  editCardText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   noCardContainer: {
     alignItems: 'center',
@@ -666,6 +815,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     width: '100%',
   },
+  addPaymentBtnWithCard: {
+    marginTop: 15,
+  },
   addPaymentBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -674,13 +826,13 @@ const styles = StyleSheet.create({
   addPaymentIcon: {
     fontSize: 18,
     fontWeight: '500',
-    color: "#6c757d",
+    color: "#666",
     marginRight: 8,
   },
   addPaymentText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6c757d",
+    color: "#666",
   },
   sectionTitle: {
     fontSize: 16,
@@ -730,7 +882,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF4E6",
     color: "#8B4513",
   },
+  removeBtn: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#ffebee',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ffcdd2',
+  },
+  removeBtnText: {
+    color: '#fa828eff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   disabledBtn: {
     opacity: 0.6,
+  },
+  cardLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#666',
   },
 });

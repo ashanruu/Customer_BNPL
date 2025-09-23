@@ -2,42 +2,52 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import { WebView } from "react-native-webview";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { RouteProp } from "@react-navigation/native";
 
-// ✅ Accept navigation prop from React Navigation
+// ✅ Updated type definitions to include route params
 type RootStackParamList = {
-  WebViewScreen: undefined;
+  WebViewScreen: { url?: string; jobId?: number };
   CardAddedSuccess: { message: string };
   CardAddFailed: { message: string };
 };
 
 type Props = {
   navigation: StackNavigationProp<RootStackParamList, "WebViewScreen">;
+  route: RouteProp<RootStackParamList, "WebViewScreen">;
 };
 
-export default function WebViewScreen({ navigation }: Props) {
-  const [url, setUrl] = useState<string | null>(null);
+export default function WebViewScreen({ navigation, route }: Props) {
+  const [url, setUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUrl = async () => {
+    const initializeUrl = async () => {
       try {
-        const response = await fetch("https://hexdive.com/dpay.php");
-        const data = await response.json();
+        // Check if URL is passed from navigation params
+        const { url: passedUrl, jobId } = route.params || {};
 
-        // The API returns nested JSON inside `json.data.link`
-        const link = data?.json?.data?.link;
-        if (link) {
-          setUrl(link);
-        }
+          // Use the URL passed from ProfileScreen
+          console.log("Using passed URL:", passedUrl);
+          //setUrl(passedUrl);
+        
+          const response = await fetch(new URL(passedUrl || ""));
+          const data = await response.json();
+
+          // The API returns nested JSON inside `json.data.link`
+          const link = data?.json?.data?.link;
+          if (link) {
+            setUrl(link);
+          }
+        
       } catch (error) {
-        console.error("Error fetching API:", error);
+        console.error("Error initializing URL:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUrl();
-  }, []);
+    initializeUrl();
+  }, [route.params]);
 
   if (loading) {
     return (
