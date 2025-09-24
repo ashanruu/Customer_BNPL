@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
         marginTop: 24,
     },
     stepIndicatorWrapper: {
-        width: '90%',
+        width: '80%',
         maxWidth: 400,
         alignSelf: 'center',
     },

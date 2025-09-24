@@ -53,7 +53,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Main" component={ManualTabNavigator} />
 
       {/* LogIn */}
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="LogInOtp" component={LogInOtpScreen} />
       <Stack.Screen name="BiometricPinLogin" component={BiometricPinLoginScreen} options={{ gestureEnabled: false }} />
 

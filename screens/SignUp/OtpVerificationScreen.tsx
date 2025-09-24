@@ -4,6 +4,8 @@ import {
     StyleSheet,
     SafeAreaView,
     TouchableOpacity,
+    TouchableWithoutFeedback,
+    Keyboard,
     Text,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -90,15 +92,17 @@ const OtpVerificationScreen: React.FC = ({ navigation, route }: any) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <CustomNotification
-                message={notification.message}
-                type={notification.type}
-                visible={notification.visible}
-                duration={notification.duration}
-                onHide={hideNotification}
-            />
-            
-            <View style={styles.contentWrapper}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.innerContainer}>
+                    <CustomNotification
+                        message={notification.message}
+                        type={notification.type}
+                        visible={notification.visible}
+                        duration={notification.duration}
+                        onHide={hideNotification}
+                    />
+                    
+                    <View style={styles.contentWrapper}>
                 {/* Back Button */}
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <MaterialCommunityIcons name="arrow-left" size={20} color="#374151" />
@@ -133,6 +137,8 @@ const OtpVerificationScreen: React.FC = ({ navigation, route }: any) => {
                     style={styles.verifyButton}
                 />
             </View>
+                </View>
+            </TouchableWithoutFeedback>
         </SafeAreaView>
     );
 };
@@ -141,6 +147,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.light.background,
+    },
+    innerContainer: {
+        flex: 1,
     },
     contentWrapper: {
         flex: 1,
@@ -177,7 +186,7 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     stepIndicatorWrapper: {
-        width: '90%',
+        width: '80%',
         maxWidth: 400,
         alignSelf: 'center',
     },

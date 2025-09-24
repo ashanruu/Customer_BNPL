@@ -36,7 +36,7 @@ interface SecuritySettings {
 
 const BiometricPinLoginScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  
+
   const [pin, setPin] = useState('');
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     pinEnabled: false,
@@ -122,7 +122,7 @@ const BiometricPinLoginScreen: React.FC = () => {
     try {
       // Verify PIN against stored PIN
       const isValidPin = await verifyPin(pin);
-      
+
       if (isValidPin) {
         await handleSuccessfulLogin('pin');
       } else {
@@ -140,7 +140,7 @@ const BiometricPinLoginScreen: React.FC = () => {
   const handleSuccessfulLogin = async (method: 'pin' | 'biometric') => {
     try {
       await saveLoginSuccess(method);
-      
+
       // Navigate to main app
       navigation.navigate('Main');
     } catch (error) {
@@ -154,9 +154,19 @@ const BiometricPinLoginScreen: React.FC = () => {
     navigation.navigate('Login');
   };
 
+  const handleBackNavigation = () => {
+    if (showPinEntry) {
+      // If we're in PIN entry mode, go back to biometric screen
+      setShowPinEntry(false);
+    } else {
+      // If we're on the main biometric screen, go back to previous screen
+      navigation.goBack();
+    }
+  };
+
   const renderPinPad = () => {
     const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'delete'];
-    
+
     return (
       <View style={styles.pinPadContainer}>
         {digits.map((digit, index) => (
@@ -176,7 +186,7 @@ const BiometricPinLoginScreen: React.FC = () => {
             disabled={digit === '' || loading}
           >
             {digit === 'delete' ? (
-              <MaterialCommunityIcons name="backspace" size={24} color="#333" />
+              <MaterialCommunityIcons name="backspace" size={24} color="#fff" />
             ) : digit !== '' ? (
               <Text style={styles.pinButtonText}>{digit}</Text>
             ) : null}
@@ -213,9 +223,9 @@ const BiometricPinLoginScreen: React.FC = () => {
         >
           <View style={styles.overlay}>
             {/* Back Button */}
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={() => setShowPinEntry(false)}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackNavigation}
             >
               <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
             </TouchableOpacity>
@@ -246,14 +256,18 @@ const BiometricPinLoginScreen: React.FC = () => {
                 )}
               </View>
 
-              <TouchableOpacity
-                style={styles.fallbackButton}
-                onPress={handleFallbackToRegularLogin}
-              >
-                <Text style={styles.fallbackButtonText}>
-                  Use Email & Password Instead
-                </Text>
-              </TouchableOpacity>
+              {/* Only show fallback button when PIN is not complete */}
+              {pin.length < 6 && (
+                <TouchableOpacity
+                  style={styles.fallbackButton}
+                  onPress={handleFallbackToRegularLogin}
+                >
+                  <Text style={styles.fallbackButtonText}>
+                    Use Email & Password Instead
+                  </Text>
+                  <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </ImageBackground>
@@ -271,9 +285,9 @@ const BiometricPinLoginScreen: React.FC = () => {
       >
         <View style={styles.overlay}>
           {/* Back Button */}
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={handleFallbackToRegularLogin}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBackNavigation}
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
           </TouchableOpacity>
@@ -322,6 +336,7 @@ const BiometricPinLoginScreen: React.FC = () => {
               <Text style={styles.fallbackButtonText}>
                 Use Email & Password Instead
               </Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -333,14 +348,14 @@ const BiometricPinLoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: 'rgba(0, 0, 0, 1)',
   },
   background: {
     flex: 1,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 1)',
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 30,
@@ -361,7 +376,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 30,
   },
   title: {
     fontSize: 28,
@@ -426,7 +441,7 @@ const styles = StyleSheet.create({
   pinDotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: 10,
   },
   pinDot: {
     width: 16,
@@ -443,7 +458,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     width: width * 0.8,
-    marginBottom: 30,
   },
   pinButton: {
     width: (width * 0.8) / 3 - 20,
@@ -466,28 +480,57 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 25,
-    minWidth: 200,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white like your other elements
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    minWidth: 220,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4.65,
+    elevation: 8,
+    marginTop: 20,
   },
   submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#333', // Dark text on light background
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   fallbackButton: {
     backgroundColor: 'transparent',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    minWidth: 220,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   fallbackButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginRight: 8,
     textAlign: 'center',
-    textDecorationLine: 'underline',
   },
 });
 
