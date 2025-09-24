@@ -96,19 +96,19 @@ const OrderPageScreen: React.FC = () => {
 
       console.log('GetCusSaleDetailId response:', response);
 
-      if (response.statusCode === 200 && response.payload) {
-        const orderData = response.payload;
+      if (response.statusCode === 200 && response.data) {
+        const orderData = response.data;
         
         setOrderDetails({
-          merchantName: orderData.merchantName || orderData.MerchantName || 'N/A',
-          orderId: orderData.orderId || orderData.OrderId || orderIdToFetch,
-          amount: orderData.amount || orderData.Amount || orderData.totalAmount || '0',
-          note: orderData.note || orderData.Note || orderData.description || 'No notes available',
-          instalments: orderData.instalments || orderData.Instalments || orderData.installmentCount || 3,
-          status: orderData.status || orderData.Status || 'Unknown',
-          createdDate: orderData.createdDate || orderData.CreatedDate || new Date().toISOString(),
-          merchantId: orderData.merchantId || orderData.MerchantId || '',
-          customerId: orderData.customerId || orderData.CustomerId || '',
+          merchantName: orderData.provider || 'N/A', // Using 'provider' field from response
+          orderId: orderData.saleCode || orderIdToFetch, // Using 'saleCode' as order ID
+          amount: orderData.salesAmount?.toString() || '0', // Using 'salesAmount'
+          note: orderData.productName || 'No product information', // Using 'productName' as note
+          instalments: orderData.noOfInstallments || 0, // Using 'noOfInstallments'
+          status: orderData.paymentStatus || 'Unknown', // Using 'paymentStatus'
+          createdDate: orderData.saleDate || new Date().toISOString(), // Using 'saleDate'
+          merchantId: orderData.fK_MerchantId?.toString() || '', // Using 'fK_MerchantId'
+          customerId: orderData.fK_CusId?.toString() || '', // Using 'fK_CusId'
         });
       } else {
         setError(response.message || 'Failed to fetch order details');
@@ -215,25 +215,25 @@ const OrderPageScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Merchant Name */}
+              {/* Provider/Merchant Name */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Merchant Name</Text>
+                <Text style={styles.label}>Provider</Text>
                 <View style={styles.displayField}>
                   <Text style={styles.displayText}>{orderDetails.merchantName || 'Loading...'}</Text>
                 </View>
               </View>
 
-              {/* Order ID */}
+              {/* Sale Code */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Order ID</Text>
+                <Text style={styles.label}>Sale Code</Text>
                 <View style={styles.displayField}>
                   <Text style={styles.displayText}>{orderDetails.orderId || 'Loading...'}</Text>
                 </View>
               </View>
 
-              {/* Amount */}
+              {/* Sales Amount */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Amount</Text>
+                <Text style={styles.label}>Sales Amount</Text>
                 <View style={styles.displayField}>
                   <Text style={styles.amountText}>
                     LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toLocaleString() : 'Loading...'}
@@ -241,29 +241,31 @@ const OrderPageScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Note */}
+              {/* Product Name */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Note</Text>
+                <Text style={styles.label}>Product Name</Text>
                 <View style={[styles.displayField, styles.noteField]}>
-                  <Text style={styles.displayText}>{orderDetails.note || 'No notes available'}</Text>
+                  <Text style={styles.displayText}>{orderDetails.note || 'No product information'}</Text>
                 </View>
               </View>
 
-              {/* Instalments */}
+              {/* Number of Installments */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Instalments</Text>
+                <Text style={styles.label}>Number of Installments</Text>
                 <View style={styles.displayField}>
                   <View style={styles.instalmentContent}>
-                    <Text style={styles.displayText}>{orderDetails.instalments} Months</Text>
+                    <Text style={styles.displayText}>
+                      {orderDetails.instalments > 0 ? `${orderDetails.instalments} Installments` : 'No installments'}
+                    </Text>
                     <Ionicons name="calendar-outline" size={20} color="#666" />
                   </View>
                 </View>
               </View>
 
-              {/* Created Date */}
+              {/* Sale Date */}
               {orderDetails.createdDate && (
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Order Date</Text>
+                  <Text style={styles.label}>Sale Date</Text>
                   <View style={styles.displayField}>
                     <Text style={styles.displayText}>
                       {new Date(orderDetails.createdDate).toLocaleDateString()}

@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 //domain name
 //const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.1.74:5111";
+const BASE_DOMAIN = "http://192.168.1.56:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
 
 
@@ -219,6 +219,27 @@ export const fetchCustomerCard = async (customerId) => {
     return response;
   } catch (error) {
     console.error("Error fetching customer card:", error);
+    throw error;
+  }
+};
+
+// Convenience method for fetching order details
+export const fetchOrderDetails = async (orderId) => {
+  try {
+    console.log("Fetching order details for ID:", orderId);
+
+    const response = await callMobileApi(
+      'GetCusSaleDetailId',
+      { saleCode: orderId },
+      'mobile-app-order-details',
+      '',
+      'customer'
+    );
+
+    console.log("GetCusSaleDetailId response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error fetching order details:", error);
     throw error;
   }
 };
