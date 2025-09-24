@@ -11,14 +11,12 @@ import {
     Keyboard,
     Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MainText, SubText } from '../../components/CustomText';
 import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
 import StepIndicator from '../../components/StepIndicator';
-import { callAuthApi } from '../../scripts/api';
 
 interface PersonalInfoScreenProps {
     navigation: any;
@@ -115,61 +113,22 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
         setLoading(true);
 
         try {
-            const payload = {
-                firstName: name.trim(),
-                email: email.trim(),
-                phoneNumber: phoneNumber,
+            // Prepare personal info data to pass to next screen
+            const personalInfo = {
+                fullName: name.trim(),
                 nic: nic.trim(),
+                email: email.trim(),
                 password: password,
-                userType: 2
             };
 
-            const response = await callAuthApi('RegisterUser', payload);
-
-            console.log('Registration response:', response);
-
-            if (response.statusCode === 200) {
-                // Save the token to AsyncStorage
-                if (response.payload && response.payload.token) {
-                    try {
-                        await AsyncStorage.setItem('bearerToken', response.payload.token);
-                        console.log('Token saved successfully');
-                    } catch (storageError) {
-                        console.error('Failed to save token:', storageError);
-                    }
-                }
-
-                Alert.alert(
-                    'Success',
-                    'Registration successful!',
-                    [
-                        {
-                            text: 'OK',
-                            onPress: () => navigation.navigate('AddressDetails', { 
-                                phoneNumber: phoneNumber,
-                                personalInfo: {
-                                    fullName: name.trim(),
-                                    nic: nic.trim(),
-                                    email: email.trim(),
-                                },
-                                userInfo: {
-                                    firstName: name.trim(),
-                                    email: email.trim(),
-                                    nic: nic.trim(),
-                                    userType: response.payload?.userType,
-                                    token: response.payload?.token
-                                }
-                            })
-                        }
-                    ]
-                );
-            } else {
-                Alert.alert('Error', response.message || 'Registration failed');
-            }
+            // Navigate to AddressDetails with personal info
+            navigation.navigate('AddressDetails', { 
+                phoneNumber: phoneNumber,
+                personalInfo: personalInfo,
+            });
         } catch (error: any) {
-            console.error('Registration error:', error);
-            const errorMessage = error?.response?.data?.message || 'Registration failed. Please try again.';
-            Alert.alert('Error', errorMessage);
+            console.error('Navigation error:', error);
+            Alert.alert('Error', 'Failed to proceed to next step. Please try again.');
         } finally {
             setLoading(false);
         }

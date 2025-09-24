@@ -2,11 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Main: undefined;
+  BiometricPinLogin: undefined;
 };
 
 type SplashScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Splash'>;
@@ -38,9 +40,29 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
 
-    // Navigate after 2 seconds
-    const timeout = setTimeout(() => {
-      navigation.replace('Login');
+    // Check authentication status and navigate after 2 seconds
+    const timeout = setTimeout(async () => {
+      try {
+        // Check if user has security setup (PIN or biometric)
+        const [pinEnabled, biometricEnabled, hasUserToken] = await Promise.all([
+          AsyncStorage.getItem('pinEnabled'),
+          AsyncStorage.getItem('biometricEnabled'),
+          AsyncStorage.getItem('bearerToken'),
+        ]);
+
+        const hasSecuritySetup = pinEnabled === 'true' || biometricEnabled === 'true';
+        
+        // If user has a token and has security setup, go to biometric/PIN login
+        if (hasUserToken && hasSecuritySetup) {
+          navigation.replace('BiometricPinLogin');
+        } else {
+          // Otherwise go to regular login
+          navigation.replace('Login');
+        }
+      } catch (error) {
+        console.error('Error checking authentication status:', error);
+        navigation.replace('Login');
+      }
     }, 2000);
 
     return () => clearTimeout(timeout);

@@ -21,10 +21,9 @@ import CustomButton from '../../components/CustomButton';
 import StepIndicator from '../../components/StepIndicator';
 import CustomCheckbox from '../../components/CustomCheckbox'; // Your checkbox component
 import TermsModal from '../../components/TermsModal';
-import { callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
-  KycScreen: undefined;
+  SecuritySetupScreen: undefined;
   AddressDetailsScreen: undefined;
 };
 
@@ -220,7 +219,7 @@ Last updated: ${new Date().toLocaleDateString()}`;
     setLoading(true);
 
     try {
-      // Prepare address data
+      // Prepare address data to pass to SecuritySetupScreen
       const addressData = {
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim(),
@@ -230,52 +229,19 @@ Last updated: ${new Date().toLocaleDateString()}`;
         country: country.trim(),
       };
 
-      // Split full name into first and last name
-      const firstName = personalInfo?.fullName || '';
-      const lastName = personalInfo?.lastName || '.';
-
-      // Prepare customer data for API
-      const customerPayload = {
-        firstName: firstName,
-        lastName: lastName,
-        address: addressData.addressLine1,
-        addressOptional: addressData.addressLine2 || null,
-        city: addressData.city,
-        state: addressData.state,
-        postalCode: parseInt(addressData.postalCode) || null,
-        country: addressData.country,
-        email: personalInfo?.email || '',
-        phoneNumber: phoneNumber || '',
-        salary: 0,
-      };
-
-      console.log('Creating customer with payload:', customerPayload);
-      console.log('Full name split - First:', firstName, 'Last:', lastName);
-
-      const response = await callMobileApi(
-        'CreateCustomer',
-        customerPayload,
-        'mobile-app-create-customer',
-        '',
-        'customer'
-      );
-
-      console.log('CreateCustomer response:', response);
-
-      if (response.statusCode === 200) {
-        // Navigate to KycScreen with proper error handling
-        try {
-          navigation.navigate('KycScreen');
-        } catch (navError) {
-          console.error('Navigation error:', navError);
-        }
-      } else {
-        Alert.alert('Error', response.message || 'Failed to create customer profile');
+      // Navigate to SecuritySetupScreen with all collected data
+      try {
+        navigation.navigate('SecuritySetupScreen', {
+          phoneNumber: phoneNumber,
+          personalInfo: personalInfo,
+          addressInfo: addressData,
+        });
+      } catch (navError) {
+        console.error('Navigation error:', navError);
       }
     } catch (error: any) {
-      console.error('CreateCustomer error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create customer profile. Please try again.';
-      Alert.alert('Error', errorMessage);
+      console.error('Navigation error:', error);
+      Alert.alert('Error', 'Failed to proceed to next step. Please try again.');
     } finally {
       setLoading(false);
     }

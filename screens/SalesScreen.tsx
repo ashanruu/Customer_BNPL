@@ -2522,3 +2522,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+

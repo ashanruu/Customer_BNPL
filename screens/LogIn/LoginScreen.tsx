@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MainText, SubText, LinkText } from '../../components/CustomText';
 import CustomButton from '../../components/CustomButton';
 import CustomNotification from '../../components/CustomNotification';
@@ -28,12 +29,32 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasSecuritySetup, setHasSecuritySetup] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   
   const { notification, showSuccess, showError, hideNotification } = useNotification();
+
+  useEffect(() => {
+    checkSecuritySetup();
+  }, []);
+
+  const checkSecuritySetup = async () => {
+    try {
+      const [pinEnabled, biometricEnabled] = await Promise.all([
+        AsyncStorage.getItem('pinEnabled'),
+        AsyncStorage.getItem('biometricEnabled'),
+      ]);
+
+      // Check if user has any security setup
+      const hasAnySecuritySetup = pinEnabled === 'true' || biometricEnabled === 'true';
+      setHasSecuritySetup(hasAnySecuritySetup);
+    } catch (error) {
+      console.error('Error checking security setup:', error);
+    }
+  };
 
   const scrollToInput = (inputRef: React.RefObject<TextInput | null>) => {
     if (inputRef.current && scrollViewRef.current) {
@@ -206,6 +227,17 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                 disabled={isLoading}
               />
 
+              {/* Biometric/PIN Login Option */}
+              {hasSecuritySetup && (
+                <TouchableOpacity
+                  style={styles.biometricLoginButton}
+                  onPress={() => navigation.navigate('BiometricPinLogin')}
+                >
+                  <MaterialCommunityIcons name="fingerprint" size={20} color="#4CAF50" />
+                  <Text style={styles.biometricLoginText}>Use PIN or Biometric</Text>
+                </TouchableOpacity>
+              )}
+
               <View style={styles.registerRow}>
                 <SubText size="small" style={styles.mutedText}>
                   Don't have an account?{' '}
@@ -292,5 +324,23 @@ const styles = StyleSheet.create({
   mutedText: {
     color: Colors.light.mutedText,
     fontSize: 14
+  },
+  biometricLoginButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  biometricLoginText: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

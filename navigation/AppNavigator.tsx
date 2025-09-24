@@ -6,11 +6,13 @@ import ManualTabNavigator from "../components/ManualTabNavigator";
 // LogIn
 import LoginScreen from "../screens/LogIn/LoginScreen";
 import LogInOtpScreen from "../screens/LogIn/LogInOtpScreen";
+import BiometricPinLoginScreen from "../screens/LogIn/BiometricPinLoginScreen";
 // Register
 import GetStartedScreen from "../screens/SignUp/GetStartedScreen";
 import OtpVerificationScreen from "../screens/SignUp/OtpVerificationScreen";
 import PersonalInfoScreen from "../screens/SignUp/PersonalInfoScreen";
 import AddressDetailsScreen from "../screens/SignUp/AddressDetailsScreen";
+import SecuritySetupScreen from "../screens/SignUp/SecuritySetupScreen";
 
 // Other Screens
 import DetailsScreen from "../screens/DetailsScreen";
@@ -27,7 +29,6 @@ import UserProfileScreen from "../screens/UserProfileScreen";
 import SalesScreen from "../screens/SalesScreen";
 import OrderPageScreen from "../screens/OrderPageScreen";
 import PaymentProcessScreen from "../screens/PaymentProcessScreen";
-import KycScreen from "../screens/SignUp/KycScreen";
 //import QRProgressScreen from "../screens/QRProgressScreen";
 
 import HomeScreen from "../screens/HomeScreen";
@@ -54,12 +55,14 @@ const AppNavigator = () => {
       {/* LogIn */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="LogInOtp" component={LogInOtpScreen} />
+      <Stack.Screen name="BiometricPinLogin" component={BiometricPinLoginScreen} options={{ gestureEnabled: false }} />
 
       {/* Register */}
       <Stack.Screen name="GetStarted" component={GetStartedScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="AddressDetails" component={AddressDetailsScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
 
       {/* Other Screens */}
       <Stack.Screen name="DetailsScreen" component={DetailsScreen} options={{ gestureEnabled: false }} />
@@ -77,7 +80,6 @@ const AppNavigator = () => {
       <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} />
       <Stack.Screen name="PaymentProcessScreen" component={PaymentProcessScreen} />
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
-      <Stack.Screen name="KycScreen" component={KycScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
       {/* <Stack.Screen name="QRProgressScreen" component={QRProgressScreen} options={{ gestureEnabled: false }} /> */}
     </Stack.Navigator>
