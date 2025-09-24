@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
   Alert,
-  Dimensions,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   Platform,
+  Text,
 } from 'react-native';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MainText, SubText } from '../../components/CustomText';
+import CustomButton from '../../components/CustomButton';
+import StepIndicator from '../../components/StepIndicator';
 import { Colors } from '../../constants/Colors';
 import { callMobileApi, callAuthApi } from '../../scripts/api';
 import {
@@ -19,8 +24,6 @@ import {
   authenticateWithBiometrics,
   saveSecuritySettings,
 } from '../../utils/authUtils';
-
-const { width } = Dimensions.get('window');
 
 type RootStackParamList = {
   Main: undefined;
@@ -36,10 +39,10 @@ interface SecuritySettings {
 const SecuritySetupScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
-  
+
   // Get all user data from previous screens
   const { phoneNumber, personalInfo, addressInfo } = route.params as any || {};
-  
+
   const [currentStep, setCurrentStep] = useState<'intro' | 'pin' | 'biometric' | 'complete'>('intro');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -50,10 +53,30 @@ const SecuritySetupScreen: React.FC = () => {
     biometricEnabled: false,
   });
   const [isRegistering, setIsRegistering] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     // Check if biometric authentication is available
     checkBiometricAvailability();
+
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
   }, []);
 
   const checkBiometricAvailability = async () => {
@@ -76,7 +99,7 @@ const SecuritySetupScreen: React.FC = () => {
 
     try {
       console.log('Starting final registration process...');
-      
+
       // Prepare RegisterUser payload
       const registerPayload = {
         firstName: personalInfo.fullName,
@@ -208,7 +231,7 @@ const SecuritySetupScreen: React.FC = () => {
           setCurrentStep('complete');
         } else {
           Alert.alert(
-            'Biometric Setup Failed', 
+            'Biometric Setup Failed',
             'Please try again or continue without biometric authentication.',
             [
               { text: 'Try Again', onPress: () => handleBiometricSetup(true) },
@@ -243,7 +266,7 @@ const SecuritySetupScreen: React.FC = () => {
     try {
       // First, complete the final registration process
       const registrationSuccess = await finalizeRegistration();
-      
+
       if (registrationSuccess) {
         await AsyncStorage.setItem('securitySetupCompleted', 'true');
         navigation.navigate('Main');
@@ -257,7 +280,7 @@ const SecuritySetupScreen: React.FC = () => {
 
   const renderPinPad = () => {
     const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'delete'];
-    
+
     return (
       <View style={styles.pinPadContainer}>
         {digits.map((digit, index) => (
@@ -277,7 +300,7 @@ const SecuritySetupScreen: React.FC = () => {
             disabled={digit === ''}
           >
             {digit === 'delete' ? (
-              <MaterialCommunityIcons name="backspace" size={24} color="#333" />
+              <MaterialCommunityIcons name="backspace" size={24} color="#374151" />
             ) : digit !== '' ? (
               <Text style={styles.pinButtonText}>{digit}</Text>
             ) : null}
@@ -306,152 +329,106 @@ const SecuritySetupScreen: React.FC = () => {
 
   const renderIntroStep = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="shield-lock" size={80} color="#4CAF50" />
-      </View>
-      
-      <Text style={styles.title}>Secure Your Account</Text>
-      <Text style={styles.description}>
-        Set up additional security measures to protect your account and transactions.
-      </Text>
-
       <View style={styles.featuresList}>
         <View style={styles.featureItem}>
-          <MaterialCommunityIcons name="numeric" size={24} color="#4CAF50" />
           <View style={styles.featureTextContainer}>
-            <Text style={styles.featureTitle}>Create PIN</Text>
-            <Text style={styles.featureDescription}>
+            <MainText size="medium" weight="medium" align="left">
+              Create PIN
+            </MainText>
+            <SubText size="small" align="left">
               6-digit PIN for quick and secure access
-            </Text>
+            </SubText>
           </View>
         </View>
 
         <View style={styles.featureItem}>
-          <MaterialCommunityIcons name="fingerprint" size={24} color="#4CAF50" />
+          <MaterialCommunityIcons name="fingerprint" size={24} />
           <View style={styles.featureTextContainer}>
-            <Text style={styles.featureTitle}>Biometric Authentication</Text>
-            <Text style={styles.featureDescription}>
+            <MainText size="medium" weight="medium" align="left">
+              Biometric Authentication
+            </MainText>
+            <SubText size="small" align="left">
               Use fingerprint or face recognition for instant access
-            </Text>
+            </SubText>
           </View>
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.primaryButton}
+      <CustomButton
+        title="Set Up Security"
         onPress={() => setCurrentStep('pin')}
-      >
-        <Text style={styles.primaryButtonText}>Set Up Security</Text>
-      </TouchableOpacity>
+        style={styles.primaryButton}
+      />
 
-      <TouchableOpacity
-        style={styles.skipButton}
+      <CustomButton
+        title="Skip for Now"
         onPress={handleSkipSecurity}
-      >
-        <Text style={styles.skipButtonText}>Skip for Now</Text>
-      </TouchableOpacity>
+        style={styles.primaryButton}
+        variant="outline"
+      />
     </View>
   );
 
   const renderPinStep = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="numeric" size={60} color="#4CAF50" />
+      <View style={styles.pinInstructionContainer}>
+        <MainText size="medium" weight="medium" align="center">
+          {isCreatingPin ? 'Enter your 6-digit PIN' : 'Confirm your PIN'}
+        </MainText>
       </View>
-      
-      <Text style={styles.title}>
-        {isCreatingPin ? 'Create Your PIN' : 'Confirm Your PIN'}
-      </Text>
-      <Text style={styles.description}>
-        {isCreatingPin 
-          ? 'Choose a 6-digit PIN that you can remember easily'
-          : 'Enter your PIN again to confirm'
-        }
-      </Text>
 
       {renderPinDots()}
       {renderPinPad()}
 
       {((isCreatingPin && pin.length === 6) || (!isCreatingPin && confirmPin.length === 6)) && (
-        <TouchableOpacity
-          style={styles.primaryButton}
+        <CustomButton
+          title={isCreatingPin ? 'Continue' : 'Confirm PIN'}
           onPress={handlePinSubmit}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isCreatingPin ? 'Continue' : 'Confirm PIN'}
-          </Text>
-        </TouchableOpacity>
+          style={styles.primaryButton}
+        />
       )}
 
-      <TouchableOpacity
-        style={styles.skipButton}
+      <CustomButton
+        title="Skip PIN Setup"
         onPress={handleSkipSecurity}
-      >
-        <Text style={styles.skipButtonText}>Skip PIN Setup</Text>
-      </TouchableOpacity>
+        style={styles.primaryButton}
+        variant="outline"
+      />
     </View>
   );
 
   const renderBiometricStep = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcons 
-          name="fingerprint" 
-          size={80} 
-          color={biometricAvailable ? "#4CAF50" : "#ccc"} 
-        />
-      </View>
-      
-      <Text style={styles.title}>
-        {biometricAvailable ? 'Enable Biometric Authentication' : 'Biometric Not Available'}
-      </Text>
-      <Text style={styles.description}>
-        {biometricAvailable 
-          ? 'Use your fingerprint or face recognition for quick and secure access to your account.'
-          : 'Biometric authentication is not available on this device. You can continue with PIN-only security.'
-        }
-      </Text>
-
       {biometricAvailable && (
         <View style={styles.biometricBenefits}>
           <View style={styles.benefitItem}>
-            <MaterialCommunityIcons name="lightning-bolt" size={20} color="#4CAF50" />
-            <Text style={styles.benefitText}>Faster login</Text>
+            <MaterialCommunityIcons name="lightning-bolt" size={20} />
+            <SubText size="medium"  style={styles.benefitText}>Faster login</SubText>
           </View>
           <View style={styles.benefitItem}>
-            <MaterialCommunityIcons name="shield-check" size={20} color="#4CAF50" />
-            <Text style={styles.benefitText}>Enhanced security</Text>
+            <MaterialCommunityIcons name="shield-check" size={20} />
+            <SubText size="medium" style={styles.benefitText}>Enhanced security</SubText>
           </View>
           <View style={styles.benefitItem}>
-            <MaterialCommunityIcons name="gesture-tap" size={20} color="#4CAF50" />
-            <Text style={styles.benefitText}>One-touch access</Text>
+            <MaterialCommunityIcons name="gesture-tap" size={20} />
+            <SubText size="medium" style={styles.benefitText}>One-touch access</SubText>
           </View>
         </View>
       )}
 
-      {biometricAvailable ? (
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => handleBiometricSetup(true)}
-        >
-          <Text style={styles.primaryButtonText}>Enable Biometric</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => handleBiometricSetup(false)}
-        >
-          <Text style={styles.primaryButtonText}>Continue</Text>
-        </TouchableOpacity>
-      )}
+      <CustomButton
+        title={biometricAvailable ? 'Enable Biometric' : 'Continue'}
+        onPress={() => handleBiometricSetup(biometricAvailable)}
+        style={styles.primaryButton}
+      />
 
       {biometricAvailable && (
-        <TouchableOpacity
-          style={styles.skipButton}
+        <CustomButton
+          title="Skip for Now"
           onPress={() => handleBiometricSetup(false)}
-        >
-          <Text style={styles.skipButtonText}>Skip for Now</Text>
-        </TouchableOpacity>
+          style={styles.primaryButton}
+          variant="outline"
+        />
       )}
     </View>
   );
@@ -459,38 +436,37 @@ const SecuritySetupScreen: React.FC = () => {
   const renderCompleteStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.iconContainer}>
-        <MaterialCommunityIcons name="check-circle" size={80} color="#4CAF50" />
+        <MaterialCommunityIcons name="check-circle" size={80} />
       </View>
-      
-      <Text style={styles.title}>Setup Complete!</Text>
-      <Text style={styles.description}>
+
+      <MainText size="xlarge" weight="bold" align="center">
+        Setup Complete!
+      </MainText>
+      <SubText size="medium" align="center" style={styles.description}>
         Your account is now secured with the following features:
-      </Text>
+      </SubText>
 
       <View style={styles.completeSummary}>
         {securitySettings.pinEnabled && (
           <View style={styles.summaryItem}>
-            <MaterialCommunityIcons name="check" size={20} color="#4CAF50" />
-            <Text style={styles.summaryText}>6-digit PIN created</Text>
+            <MaterialCommunityIcons name="check" size={20} />
+            <SubText size="medium" align="left" style={styles.summaryText}>6-digit PIN created</SubText>
           </View>
         )}
         {securitySettings.biometricEnabled && (
           <View style={styles.summaryItem}>
-            <MaterialCommunityIcons name="check" size={20} color="#4CAF50" />
-            <Text style={styles.summaryText}>Biometric authentication enabled</Text>
+            <MaterialCommunityIcons name="check" size={20} />
+            <SubText size="medium" align="left" style={styles.summaryText}>Biometric authentication enabled</SubText>
           </View>
         )}
       </View>
 
-      <TouchableOpacity
-        style={[styles.primaryButton, isRegistering && styles.buttonDisabled]}
+      <CustomButton
+        title={isRegistering ? 'Creating Account...' : 'Continue to App'}
         onPress={handleComplete}
-        disabled={isRegistering}
-      >
-        <Text style={styles.primaryButtonText}>
-          {isRegistering ? 'Creating Account...' : 'Continue to App'}
-        </Text>
-      </TouchableOpacity>
+        loading={isRegistering}
+        style={styles.primaryButton}
+      />
     </View>
   );
 
@@ -509,30 +485,79 @@ const SecuritySetupScreen: React.FC = () => {
     }
   };
 
+  const getHeaderContent = () => {
+    switch (currentStep) {
+      case 'intro':
+        return {
+          title: 'Secure Your Account',
+          subtitle: 'Set up security to protect your information'
+        };
+      case 'pin':
+        return {
+          title: 'Create Security PIN',
+          subtitle: 'Set up a 6-digit PIN for secure access'
+        };
+      case 'biometric':
+        return {
+          title: 'Biometric Security',
+          subtitle: 'Enable fingerprint or face recognition'
+        };
+      case 'complete':
+        return {
+          title: 'Security Setup Complete',
+          subtitle: 'Your account is now protected and ready'
+        };
+      default:
+        return {
+          title: 'Secure Your Account',
+          subtitle: 'Set up security to protect your information'
+        };
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  width: `${
-                    currentStep === 'intro' ? 25 : 
-                    currentStep === 'pin' ? 50 : 
-                    currentStep === 'biometric' ? 75 : 100
-                  }%` 
-                }
-              ]} 
-            />
-          </View>
-        </View>
-      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={[styles.contentWrapper, { paddingBottom: keyboardHeight > 0 ? keyboardHeight / 3 : 20 }]}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={20}
+                color="#374151"
+              />
+            </TouchableOpacity>
 
-      <View style={styles.content}>
-        {renderCurrentStep()}
-      </View>
+            {/* Dynamic Header */}
+            <View style={styles.header}>
+              <MainText size="xlarge" weight="bold" align="left">
+                {getHeaderContent().title}
+              </MainText>
+              <SubText size="medium" align="left" style={styles.subtitle}>
+                {getHeaderContent().subtitle}
+              </SubText>
+            </View>
+
+            {/* Step Indicator */}
+            <View style={styles.stepIndicatorWrapper}>
+              <StepIndicator currentStep={5} />
+            </View>
+
+            {/* Content */}
+            <View style={styles.centeredBox}>
+              {renderCurrentStep()}
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -542,52 +567,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+  keyboardContainer: {
+    flex: 1,
   },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 2,
-  },
-  content: {
+  contentWrapper: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  centeredBox: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    flex: 1,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  header: {
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  subtitle: {
+    color: Colors.light.mutedText,
+  },
+  stepIndicatorWrapper: {
+    width: '80%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   stepContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
   },
   iconContainer: {
     marginBottom: 30,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
   description: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
+    color: Colors.light.mutedText,
     marginBottom: 40,
     paddingHorizontal: 20,
+    lineHeight: 24,
   },
   featuresList: {
     width: '100%',
@@ -606,20 +634,10 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     flex: 1,
   },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
   pinDotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
   },
   pinDot: {
     width: 16,
@@ -629,17 +647,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   pinDotFilled: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#374151',
   },
   pinPadContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    width: width * 0.8,
-    marginBottom: 30,
+    width: '100%',
+    marginBottom: 20,
   },
   pinButton: {
-    width: (width * 0.8) / 3 - 20,
+    width: 70,
     height: 60,
     margin: 10,
     borderRadius: 30,
@@ -656,11 +674,12 @@ const styles = StyleSheet.create({
   pinButtonText: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
   },
   biometricBenefits: {
-    width: '100%',
+    width: '70%',
     marginBottom: 40,
+    alignContent: 'center',
   },
   benefitItem: {
     flexDirection: 'row',
@@ -669,8 +688,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   benefitText: {
-    fontSize: 16,
-    color: '#333',
     marginLeft: 12,
   },
   completeSummary: {
@@ -686,42 +703,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   summaryText: {
-    fontSize: 16,
-    color: '#333',
     marginLeft: 12,
   },
   primaryButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    alignItems: 'center',
+    marginTop: 12,
     width: '100%',
-    marginBottom: 16,
   },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  skipButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+  pinInstructionContainer: {
+    marginBottom: 30,
     alignItems: 'center',
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
-  skipButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '500',
+  confirmationText: {
+    color: Colors.light.mutedText,
+    marginTop: 8,
   },
 });
 

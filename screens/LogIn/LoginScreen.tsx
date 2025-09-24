@@ -39,7 +39,12 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
 
   useEffect(() => {
     checkSecuritySetup();
-  }, []);
+    
+    // Disable swipe back gesture
+    navigation.setOptions({
+      gestureEnabled: false,
+    });
+  }, [navigation]);
 
   const checkSecuritySetup = async () => {
     try {
@@ -233,7 +238,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                   style={styles.biometricLoginButton}
                   onPress={() => navigation.navigate('BiometricPinLogin')}
                 >
-                  <MaterialCommunityIcons name="fingerprint" size={20} color="#4CAF50" />
+                  <MaterialCommunityIcons name="fingerprint" size={20} />
                   <Text style={styles.biometricLoginText}>Use PIN or Biometric</Text>
                 </TouchableOpacity>
               )}
@@ -329,16 +334,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 25,
     alignItems: 'center',
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#4CAF50',
     flexDirection: 'row',
     justifyContent: 'center',
   },
   biometricLoginText: {
-    color: '#4CAF50',
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 8,

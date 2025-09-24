@@ -9,7 +9,7 @@ interface StepIndicatorProps {
   totalSteps?: number;
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps = 6 }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps = 5 }) => {
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
   return (
@@ -28,7 +28,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps =
               ]}
             >
               {isCompleted ? (
-                <MaterialCommunityIcons name="check" size={14} color="#fff" />
+                <MaterialCommunityIcons name="check" size={10} color="#fff" />
               ) : (
                 <View style={styles.emptyDot} />
               )}
@@ -57,9 +57,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   circle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: Colors.light.tint,
     justifyContent: 'center',
@@ -75,9 +75,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   emptyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.light.tint,
   },
   line: {

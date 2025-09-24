@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     stepIndicatorWrapper: {
-        width: '90%',
+        width: '80%',
         maxWidth: 400,
         alignSelf: 'center',
     },
