@@ -136,8 +136,6 @@ const SecuritySetupScreen: React.FC = () => {
         addressOptional: addressInfo.addressLine2 || null,
         city: addressInfo.city,
         state: addressInfo.state,
-        postalCode: parseInt(addressInfo.postalCode) || null,
-        country: addressInfo.country,
         email: personalInfo.email,
         phoneNumber: phoneNumber,
         salary: 0,
@@ -650,16 +648,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   pinPadContainer: {
+    width: 250, // Fixed width instead of 100%
+    alignSelf: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    width: '100%',
+    justifyContent: 'space-between', // Changed from 'center' to 'space-between'
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
   pinButton: {
-    width: 70,
-    height: 60,
-    margin: 10,
+    width: 60, // Fixed width
+    height: 60, // Fixed height
+    marginVertical: 8, // Fixed vertical margin
+    marginHorizontal: 5, // Fixed horizontal margin
     borderRadius: 30,
     backgroundColor: '#F8F9FA',
     justifyContent: 'center',
@@ -670,9 +671,11 @@ const styles = StyleSheet.create({
   emptyButton: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
+    width: 60, // Ensure same width as other buttons
+    height: 60, // Ensure same height as other buttons
   },
   pinButtonText: {
-    fontSize: 24,
+    fontSize: 22, // Slightly reduced for better fit
     fontWeight: '600',
     color: '#374151',
   },
