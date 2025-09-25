@@ -45,6 +45,7 @@ const ShopScreen: React.FC = () => {
 
   const fetchPromotions = async () => {
     try {
+      setLoading(true);
       console.log("Fetching promotions...");
       
       const response = await callMerchantApi(
@@ -93,6 +94,8 @@ const ShopScreen: React.FC = () => {
       setPromotions([]);
       setFeaturedShops([]);
       setNewArrivals([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -138,6 +141,14 @@ const ShopScreen: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
        {/* Search */}
@@ -158,7 +169,7 @@ const ShopScreen: React.FC = () => {
           {categories.length > 0 ? categories.map((category, index) => (
             <TouchableOpacity key={category.categoryId || index} style={styles.categoryButton}>
               <Text style={styles.categoryText}>
-                {category.categoryName || category.name || 'Category'}
+                {category.categoryName || category.name || `Category ${index + 1}`}
               </Text>
             </TouchableOpacity>
           )) : (
@@ -172,28 +183,20 @@ const ShopScreen: React.FC = () => {
         {promotions.length > 0 && promotions[0].promotionImageLink ? (
           <View style={styles.bannerContainer}>
             <Image
-              source={
-                typeof promotions[0].promotionImageLink === 'string' && promotions[0].promotionImageLink.startsWith('data:image')
-                  ? { uri: promotions[0].promotionImageLink }
-                  : typeof promotions[0].promotionImageLink === 'string'
-                  ? { uri: promotions[0].promotionImageLink }
-                  : promotions[0].promotionImageLink
-              }
+              source={{ uri: promotions[0].promotionImageLink }}
               style={styles.bannerImage}
               resizeMode="cover"
             />
             <View style={styles.bannerOverlay}>
-              <Text style={styles.bannerTitle}>{promotions[0].promotionName || 'Special Offer'}</Text>
-              <Text style={styles.bannerDiscount}>{promotions[0].discount || 0}% OFF</Text>
-              <Text style={styles.bannerDescription}>{promotions[0].description || 'Limited time offer'}</Text>
+              <Text style={styles.bannerTitle}>{promotions[0].promotionName}</Text>
+              <Text style={styles.bannerDiscount}>{promotions[0].discount}% OFF</Text>
+              <Text style={styles.bannerDescription}>{promotions[0].description}</Text>
             </View>
           </View>
         ) : (
-          <Image
-            source={require('../assets/images/banner.png')}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
+          <View style={styles.emptyBannerContainer}>
+            <Text style={styles.emptyBannerText}>No promotions available</Text>
+          </View>
         )}
 
         {/* Featured */}
@@ -210,11 +213,12 @@ const ShopScreen: React.FC = () => {
                 />
               ) : (
                 <View style={styles.noImagePlaceholder}>
+                  <Ionicons name="image-outline" size={40} color="#ccc" />
                   <Text style={styles.noImageText}>No Image</Text>
                 </View>
               )}
               <View style={styles.shopCardOverlay}>
-                <Text style={styles.shopName} numberOfLines={1}>{shop.name || 'Shop'}</Text>
+                <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
                 {shop.discount && (
                   <Text style={styles.shopDiscount}>{shop.discount}% OFF</Text>
                 )}
@@ -246,11 +250,12 @@ const ShopScreen: React.FC = () => {
                 />
               ) : (
                 <View style={styles.noImagePlaceholder}>
+                  <Ionicons name="image-outline" size={40} color="#ccc" />
                   <Text style={styles.noImageText}>No Image</Text>
                 </View>
               )}
               <View style={styles.shopCardOverlay}>
-                <Text style={styles.shopName} numberOfLines={1}>{item.name || 'Item'}</Text>
+                <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
                 {item.discount && (
                   <Text style={styles.shopDiscount}>{item.discount}% OFF</Text>
                 )}
@@ -279,69 +284,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F6F6F6',
   },
-  topSection: {
-    paddingTop: 10,
-    paddingHorizontal: 25,
-    paddingBottom: 30,
-    borderBottomRightRadius: 80,
-    overflow: 'hidden',
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loadingContainer: {
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  timeText: {
-    color: '#fff',
+  loadingText: {
     fontSize: 16,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  icon: {
-    marginLeft: 15,
-  },
-  planButton: {
-    backgroundColor: '#444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  planText: {
-    color: '#fff',
-  },
-  logo: {
-    fontSize: 25,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginVertical: 20,
-  },
-  creditSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  label: {
-    color: '#ccc',
-    fontSize: 14,
-  },
-  value: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  progressBarBackground: {
-    width: 150,
-    height: 6,
-    backgroundColor: '#333',
-    borderRadius: 4,
-    marginVertical: 10,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#fff',
-    borderRadius: 4,
+    color: '#666',
   },
   searchBarContainer: {
     paddingHorizontal: 16,
@@ -386,11 +335,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   bannerImage: {
-    width: '92%',
-    height: 100,
-    alignSelf: 'center',
+    width: '100%',
+    height: '100%',
     borderRadius: 12,
-    marginVertical: 10,
   },
   bannerOverlay: {
     position: 'absolute',
@@ -423,6 +370,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
+  emptyBannerContainer: {
+    width: '92%',
+    height: 100,
+    alignSelf: 'center',
+    borderRadius: 12,
+    marginVertical: 10,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  emptyBannerText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -433,11 +397,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#000',
-    paddingTop: 20
-  },
-  sectionLink: {
-    fontSize: 13,
-    color: '#4B267C',
     paddingTop: 20
   },
   horizontalCards: {
@@ -484,24 +443,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     opacity: 0.9,
   },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    height: 70,
-    backgroundColor: 'white',
-    position: 'absolute',
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -3 },
-  },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -537,12 +478,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    borderStyle: 'dashed',
   },
   noImageText: {
     fontSize: 12,
     color: '#999',
     textAlign: 'center',
+    marginTop: 5,
   },
   emptyCategoriesContainer: {
     paddingHorizontal: 20,
@@ -555,4 +496,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-    

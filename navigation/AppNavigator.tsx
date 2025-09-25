@@ -65,7 +65,7 @@ const AppNavigator = () => {
       <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
 
       {/* Other Screens */}
-      <Stack.Screen name="DetailsScreen" component={DetailsScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="DetailsScreen" component={DetailsScreen} />
       <Stack.Screen name="HistoryDetails" component={HistoryDetails} options={{ gestureEnabled: false }} />
       <Stack.Screen name="CancelledDetails" component={CancelledDetails} options={{ gestureEnabled: false }} />
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
