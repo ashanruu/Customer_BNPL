@@ -12,7 +12,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../components/CustomButton';
-import { fetchOrderDetails } from '../scripts/api';
+import { fetchOrderDetails, createLoan } from '../scripts/api';
 
 const OrderPageScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -26,6 +26,7 @@ const OrderPageScreen: React.FC = () => {
   const [orderDetails, setOrderDetails] = useState({
     merchantName: '',
     orderId: '',
+    saleId: 0, // Add numeric saleId
     amount: '',
     note: '',
     instalments: 3,
@@ -37,41 +38,41 @@ const OrderPageScreen: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [creatingLoan, setCreatingLoan] = useState(false);
 
   // Extract order ID from QR code data
   function extractOrderIdFromQR(qrString: string): string {
     try {
-      // If QR contains JSON, parse it
+  
       if (qrString.startsWith('{')) {
         const qrJson = JSON.parse(qrString);
         return qrJson.orderId || qrJson.id || qrJson.orderNumber || qrJson.saleId || '';
       }
       
-      // If QR contains URL with sale ID in path (e.g., https://bnplqr.hexdive.com/sale/512820250923215100)
       if (qrString.includes('/sale/')) {
         const match = qrString.match(/\/sale\/([^\/\?&]+)/);
         return match ? match[1] : '';
       }
       
-      // If QR contains URL with order ID parameter
+    
       if (qrString.includes('orderId=')) {
         const match = qrString.match(/orderId=([^&]+)/);
         return match ? match[1] : '';
       }
       
-      // If QR contains URL with id parameter
+    
       if (qrString.includes('id=')) {
         const match = qrString.match(/id=([^&]+)/);
         return match ? match[1] : '';
       }
       
-      // If QR contains URL with saleId parameter
+  
       if (qrString.includes('saleId=')) {
         const match = qrString.match(/saleId=([^&]+)/);
         return match ? match[1] : '';
       }
       
-      // If QR is just the order ID
+
       return qrString;
     } catch (error) {
       console.error('Error extracting order ID from QR:', error);
@@ -79,7 +80,6 @@ const OrderPageScreen: React.FC = () => {
     }
   }
 
-  // Fetch order details using the API
   const fetchOrderDetailsData = async (orderIdToFetch: string) => {
     if (!orderIdToFetch) {
       setError('No order ID provided');
@@ -100,15 +100,16 @@ const OrderPageScreen: React.FC = () => {
         const orderData = response.data;
         
         setOrderDetails({
-          merchantName: orderData.provider || 'N/A', // Using 'provider' field from response
-          orderId: orderData.saleCode || orderIdToFetch, // Using 'saleCode' as order ID
-          amount: orderData.salesAmount?.toString() || '0', // Using 'salesAmount'
-          note: orderData.productName || 'No product information', // Using 'productName' as note
-          instalments: orderData.noOfInstallments || 0, // Using 'noOfInstallments'
-          status: orderData.paymentStatus || 'Unknown', // Using 'paymentStatus'
-          createdDate: orderData.saleDate || new Date().toISOString(), // Using 'saleDate'
-          merchantId: orderData.fK_MerchantId?.toString() || '', // Using 'fK_MerchantId'
-          customerId: orderData.fK_CusId?.toString() || '', // Using 'fK_CusId'
+          merchantName: orderData.provider || 'N/A',
+          orderId: orderData.saleCode || orderIdToFetch, 
+          saleId: orderData.saleId || 0, // Add the numeric saleId
+          amount: orderData.salesAmount?.toString() || '0', 
+          note: orderData.productName || 'No product information',
+          instalments: orderData.noOfInstallments || 0,
+          status: orderData.paymentStatus || 'Unknown', 
+          createdDate: orderData.saleDate || new Date().toISOString(), 
+          merchantId: orderData.fK_MerchantId?.toString() || '', 
+          customerId: orderData.fK_CusId?.toString() || '', 
         });
       } else {
         setError(response.message || 'Failed to fetch order details');
@@ -136,19 +137,42 @@ const OrderPageScreen: React.FC = () => {
     }
   }, [orderId]);
 
-  const handleContinue = () => {
-    if (!orderDetails.orderId) {
+  const handleContinue = async () => {
+    if (!orderDetails.orderId || !orderDetails.saleId) {
       Alert.alert('Error', 'Order details not loaded. Please try again.');
       return;
     }
 
-    console.log('Order data:', orderDetails);
-    
-    // Navigate to PaymentProcessScreen with order data
-    (navigation as any).navigate('PaymentProcessScreen', {
-      orderDetails: orderDetails,
-      orderId: orderDetails.orderId,
-    });
+    setCreatingLoan(true);
+
+    try {
+      console.log('Creating loan for sale ID:', orderDetails.saleId);
+
+      // Call CreateLoan API with the numeric saleId
+      const loanResponse = await createLoan(orderDetails.saleId);
+
+      console.log('CreateLoan response:', loanResponse);
+
+      if (loanResponse.statusCode === 200) {
+        console.log('Loan created successfully');
+        
+        // Navigate to PaymentProcessScreen with order data and loan response
+        (navigation as any).navigate('PaymentProcessScreen', {
+          orderDetails: orderDetails,
+          orderId: orderDetails.orderId,
+          saleId: orderDetails.saleId,
+          loanData: loanResponse.data,
+        });
+      } else {
+        Alert.alert('Error', loanResponse.message || 'Failed to create loan');
+      }
+    } catch (error: any) {
+      console.error('Error creating loan:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create loan';
+      Alert.alert('Loan Creation Error', errorMessage);
+    } finally {
+      setCreatingLoan(false);
+    }
   };
 
   const handleRetry = () => {
@@ -281,10 +305,12 @@ const OrderPageScreen: React.FC = () => {
         {!loading && !error && orderDetails.orderId && (
           <View style={styles.submitButtonContainer}>
             <CustomButton
-              title="Continue to Payment"
+              title={creatingLoan ? "Creating Loan..." : "Continue to Payment"}
               size="medium"
               variant="primary"
               onPress={handleContinue}
+              loading={creatingLoan}
+              disabled={creatingLoan}
             />
           </View>
         )}
