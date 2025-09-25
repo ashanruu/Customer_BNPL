@@ -24,14 +24,14 @@ const OrdersScreen: React.FC = () => {
     returnedLoans: []
   });
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   // Fetch loan list data
   const fetchLoanList = async () => {
     try {
       setLoading(true);
       console.log("Fetching loan list...");
-      
+
       const response = await callMobileApi(
         'GetLoanList',
         {},
@@ -48,21 +48,21 @@ const OrdersScreen: React.FC = () => {
       console.log("Response keys:", Object.keys(response));
       console.log("Response statusCode:", response.statusCode);
       console.log("Response message:", response.message);
-      
+
       if (response.data) {
         console.log("Response.data keys:", Object.keys(response.data));
         console.log("Response.data:", JSON.stringify(response.data, null, 2));
-        
+
         if (response.data.activeLoans) {
           console.log("Active loans count:", response.data.activeLoans.length);
           console.log("Active loans structure:", JSON.stringify(response.data.activeLoans, null, 2));
         }
-        
+
         if (response.data.completedLoans) {
           console.log("Completed loans count:", response.data.completedLoans.length);
           console.log("Completed loans structure:", JSON.stringify(response.data.completedLoans, null, 2));
         }
-        
+
         if (response.data.returnedLoans) {
           console.log("Returned loans count:", response.data.returnedLoans.length);
           console.log("Returned loans structure:", JSON.stringify(response.data.returnedLoans, null, 2));
@@ -76,7 +76,7 @@ const OrdersScreen: React.FC = () => {
           completedLoans: Array.isArray(responseData.completedLoans) ? responseData.completedLoans : [],
           returnedLoans: Array.isArray(responseData.returnedLoans) ? responseData.returnedLoans : []
         };
-        
+
         setLoanData(loans);
         console.log("Loan list loaded successfully:");
         console.log("- Active loans:", loans.activeLoans.length);
@@ -123,31 +123,92 @@ const OrdersScreen: React.FC = () => {
         {item.createdOn ? new Date(item.createdOn).toLocaleDateString() : 'N/A'}
       </Text>
       <TouchableOpacity style={styles.card} onPress={() => handlePress(item)} activeOpacity={0.7}>
+        {/* Left Border Line */}
+        <View style={[styles.leftBorderLine, getLeftBorderStyle(item.loanStatus)]} />
+        
+        {/* Card Content */}
         <View style={styles.cardContent}>
-          <Text style={styles.orderName}>
-            Loan #{item.loanId || 'Unknown'}
-          </Text>
-          <Text style={styles.details}>
-            {item.loanStatus || 'Status Unknown'} • {item.noOfInstallments || 0} Installments
-          </Text>
-          <Text style={styles.subDetails}>
-            Down Payment: Rs. {item.downPaymentet?.toLocaleString() || '0'}
-          </Text>
-        </View>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>
+          {/* Order Name and Status Row */}
+          <View style={styles.orderHeader}>
+            <Text style={styles.orderName}>
+              {`LOAN #${item.loanId || 'UNKNOWN'}`}
+            </Text>
+            <View style={[styles.loanStatusTag, getStatusTagStyle(item.loanStatus)]}>
+              <Text style={[styles.loanStatusText, getStatusTextStyle(item.loanStatus)]}>
+                {item.loanStatus || 'Status Unknown'}
+              </Text>
+            </View>
+          </View>
+          
+          {/* Loan Value */}
+          <Text style={styles.loanAmount}>
             Rs. {item.totLoanValue?.toLocaleString() || '0'}
           </Text>
-          <Text style={styles.creditValue}>
-            Credit: Rs. {item.totCreditValue?.toLocaleString() || '0'}
-          </Text>
-          <View style={styles.chevronContainer}>
-            <Ionicons name="chevron-forward" size={20} color="#C1C1C1" />
+          
+          {/* Credit and Installments Info */}
+          <View style={styles.loanDetailsRow}>
+            <Text style={styles.creditInfo}>
+              Credit: Rs. {item.totCreditValue?.toLocaleString() || '0'}
+            </Text>
+            <Text style={styles.installmentInfo}>
+              {item.noOfInstallments || 0} Installments
+            </Text>
+          </View>
+        </View>
+
+        {/* Right Side - Down Payment moved to top */}
+        <View style={styles.rightSection}>
+          <View style={styles.downPaymentContainer}>
+            <Text style={styles.downPaymentLabel}>Down Payment</Text>
+            <Text style={styles.downPaymentAmount}>
+              Rs. {item.downPaymentet?.toLocaleString() || '0'}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
     </View>
   );
+
+  // Add helper function for left border styling
+  const getLeftBorderStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return styles.activeBorderLine;
+      case 'completed':
+        return styles.completedBorderLine;
+      case 'returned':
+        return styles.returnedBorderLine;
+      default:
+        return styles.defaultBorderLine;
+    }
+  };
+
+  // Add helper functions for status styling
+  const getStatusTagStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return styles.activeStatusTag;
+      case 'completed':
+        return styles.completedStatusTag;
+      case 'returned':
+        return styles.returnedStatusTag;
+      default:
+        return styles.defaultStatusTag;
+    }
+  };
+
+  const getStatusTextStyle = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return styles.activeStatusText;
+      case 'completed':
+        return styles.completedStatusText;
+      case 'returned':
+        return styles.returnedStatusText;
+      default:
+        return styles.defaultStatusText;
+    }
+  };
 
   // Filter data based on active tab and loan status
   const getFilteredData = () => {
@@ -160,15 +221,15 @@ const OrdersScreen: React.FC = () => {
 
     switch (activeTab) {
       case "ongoing":
-        return allLoans.filter(item => 
+        return allLoans.filter(item =>
           item.loanStatus === 'Active'  // Shows Active status loans
         );
       case "history":
-        return allLoans.filter(item => 
+        return allLoans.filter(item =>
           item.loanStatus === 'Completed'  // Shows Completed status loans
         );
       case "cancelled":
-        return allLoans.filter(item => 
+        return allLoans.filter(item =>
           item.loanStatus === 'Returned'  // Shows Returned status loans
         );
       default:
@@ -252,13 +313,13 @@ const OrdersScreen: React.FC = () => {
                   <Ionicons name="receipt-outline" size={64} color="#E5E5E7" />
                 </View>
                 <Text style={styles.emptyText}>
-                  {activeTab === "ongoing" ? "No ongoing orders" : 
-                   activeTab === "history" ? "No order history" : "No cancelled orders"}
+                  {activeTab === "ongoing" ? "No ongoing orders" :
+                    activeTab === "history" ? "No order history" : "No cancelled orders"}
                 </Text>
                 <Text style={styles.emptySubtext}>
                   {activeTab === "ongoing" ? "Your active loans will appear here" :
-                   activeTab === "history" ? "Your completed orders will appear here" : 
-                   "Your cancelled orders will appear here"}
+                    activeTab === "history" ? "Your completed orders will appear here" :
+                      "Your cancelled orders will appear here"}
                 </Text>
               </View>
             }
@@ -277,9 +338,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingTop: 10,
   },
-  container: { 
-    flex: 1, 
-    backgroundColor: "#fff", 
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
     paddingHorizontal: 20,
   },
   header: {
@@ -301,20 +362,153 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  tabContainer: { 
-    flexDirection: "row", 
-    backgroundColor: "#F2F2F7", 
-    borderRadius: 12, 
-    padding: 3, 
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F2F2F7",
+    borderRadius: 12,
+    padding: 3,
     marginBottom: 24,
   },
-  tab: { 
-    flex: 1, 
-    paddingVertical: 12, 
-    alignItems: "center", 
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
     borderRadius: 9,
   },
-  activeTab: { 
+  card: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    overflow: 'hidden',
+    position: 'relative', // Add this for absolute positioning
+  },
+
+  // Left border line styles
+  leftBorderLine: {
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderRadius: 2,
+    height: '30%',
+    alignSelf: 'center',
+  },
+
+  // Border colors for different statuses
+  activeBorderLine: {
+    backgroundColor: '#000000', // Black for active
+  },
+  
+  completedBorderLine: {
+    backgroundColor: '#2196F3', // Blue for completed
+  },
+  
+  returnedBorderLine: {
+    backgroundColor: '#F44336', // Red for returned/cancelled
+  },
+  
+  defaultBorderLine: {
+    backgroundColor: '#9E9E9E', // Gray for default
+  },
+
+  // Update cardContent style
+  cardContent: {
+    flex: 1,
+    paddingVertical: 18,
+    paddingLeft: 16,
+    paddingRight: 12,
+  },
+
+  // Update orderHeader style - remove justifyContent: 'space-between'
+  orderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  // Update orderName style - remove flex: 1 and add marginRight
+  orderName: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#666",
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginRight: 8,
+  },
+
+  // New style for loan amount (main amount)
+  loanAmount: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 8,
+  },
+
+  // New style for loan details row
+  loanDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  // Update credit info style
+  creditInfo: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+
+  // New style for installment info
+  installmentInfo: {
+    fontSize: 13,
+    color: "#888",
+    fontWeight: "500",
+  },
+
+  // Update right section style to align to top
+  rightSection: {
+    paddingRight: 16,
+    paddingLeft: 8,
+    paddingTop: 18, // Add top padding to align with card content
+    alignSelf: 'flex-start', // Align to top
+  },
+
+  // Update down payment container to align to top right
+  downPaymentContainer: {
+    alignItems: 'flex-end',
+  },
+
+  // New down payment label style
+  downPaymentLabel: {
+    fontSize: 11,
+    color: "#888",
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // New down payment amount style
+  downPaymentAmount: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1a1a1a",
+  },
+
+  activeTab: {
     backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: {
@@ -325,13 +519,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  tabText: { 
-    fontSize: 15, 
-    fontWeight: "600", 
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
     color: "#8E8E93",
     letterSpacing: -0.2,
   },
-  activeTabText: { 
+  activeTabText: {
     color: "#2C2C2E",
   },
   listContainer: {
@@ -340,94 +534,37 @@ const styles = StyleSheet.create({
   orderWrapper: {
     marginBottom: 16,
   },
-  card: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "flex-start", 
-    backgroundColor: "#FFFFFF", 
-    paddingVertical: 20,
-    paddingHorizontal: 16, 
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#F2F2F7",
-  },
-  cardContent: {
-    flex: 1,
-  },
-  orderName: { 
-    fontSize: 17, 
-    fontWeight: "600", 
-    marginBottom: 6,
-    color: "#2C2C2E",
-    letterSpacing: -0.2,
-  },
-  details: { 
-    fontSize: 15, 
-    color: "#6D6D70", 
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  subDetails: { 
-    fontSize: 13, 
+  date: {
+    fontSize: 13,
     color: "#8E8E93",
-  },
-  date: { 
-    fontSize: 13, 
-    color: "#8E8E93", 
-    marginBottom: 8, 
-    marginLeft: 4,
+    marginBottom: 8,
     fontWeight: "500",
     letterSpacing: -0.1,
+    textAlign: 'center',
   },
-  priceContainer: { 
-    alignItems: 'flex-end',
-  },
-  price: { 
-    fontSize: 18, 
-    fontWeight: "600", 
-    color: "#2C2C2E",
-    marginBottom: 4,
-  },
-  creditValue: { 
-    fontSize: 12, 
-    color: "#8E8E93", 
-    marginBottom: 8,
-  },
-  chevronContainer: {
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    paddingLeft: 8,
-  },
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
     alignItems: 'center',
     paddingTop: 80,
   },
-  loadingText: { 
-    marginTop: 16, 
-    fontSize: 16, 
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
     color: '#8E8E93',
     fontWeight: '500',
   },
-  emptyContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingTop: 80,
     paddingHorizontal: 40,
   },
   emptyIconContainer: {
     marginBottom: 24,
   },
-  emptyText: { 
+  emptyText: {
     fontSize: 20,
     fontWeight: '600',
     color: '#6D6D70',
@@ -440,5 +577,50 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  // Update loanStatus style to be a container
+  loanStatusTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+
+  loanStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+
+  // Active status (green)
+  activeStatusTag: {
+    backgroundColor: '#E8F5E8',
+  },
+  activeStatusText: {
+    color: '#2D5016',
+  },
+
+  // Completed status (blue)
+  completedStatusTag: {
+    backgroundColor: '#E3F2FD',
+  },
+  completedStatusText: {
+    color: '#1565C0',
+  },
+
+  // Returned/Cancelled status (red)
+  returnedStatusTag: {
+    backgroundColor: '#FFEBEE',
+  },
+  returnedStatusText: {
+    color: '#C62828',
+  },
+
+  // Default status (gray)
+  defaultStatusTag: {
+    backgroundColor: '#F5F5F5',
+  },
+  defaultStatusText: {
+    color: '#616161',
   },
 });
