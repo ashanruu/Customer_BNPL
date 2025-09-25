@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
-
+ 
 const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
 // const BASE_DOMAIN = "http://192.168.1.74:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
@@ -219,6 +219,27 @@ export const fetchCustomerCard = async (customerId) => {
     return response;
   } catch (error) {
     console.error("Error fetching customer card:", error);
+    throw error;
+  }
+};
+
+// Convenience method for deleting customer card
+export const deleteCustomerCard = async (jobId) => {
+  try {
+    console.log("Deleting customer card with job ID:", jobId);
+
+    const response = await callMobileApi(
+      'DeleteCard',
+      { jobId: jobId },
+      'mobile-app-delete-card',
+      '',
+      'payment'
+    );
+
+    console.log("DeleteCard response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error deleting customer card:", error);
     throw error;
   }
 };

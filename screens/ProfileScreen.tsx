@@ -43,7 +43,7 @@ type CardData = {
   cardExpiry?: string;
   cardType?: string;
   isActive?: boolean;
-  cardId?: string;
+  jobId?: string; // Changed from cardId to jobId
   maskedCardNumber?: string;
   expiryDate?: string;
   brand?: string;
@@ -253,16 +253,17 @@ const ProfileScreen: React.FC = () => {
               setRemovingCard(true);
               console.log("Removing payment method...");
 
-              // Get card ID from card data
-              const cardId = cardData?.cardId;
+              // Get job ID from card data
+              const jobId = cardData?.jobId;
+              console.log("Job ID for card removal:", jobId);
 
-              if (!cardId) {
-                Alert.alert("Error", "Card ID not found. Please try again.");
+              if (!jobId) {
+                Alert.alert("Error", "Job ID not found. Please try again.");
                 return;
               }
 
               // Call the API to remove payment method
-              const response = await deleteCustomerCard(cardId);
+              const response = await deleteCustomerCard(jobId);
 
               if (response.statusCode === 200) {
                 // Successfully removed - update local state
@@ -381,7 +382,7 @@ const ProfileScreen: React.FC = () => {
       cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || "**/**",
       cardType: cardData.brand || cardData.cardType || "CARD",
       isActive: cardData.isActive || cardData.status === 'active' || true,
-      cardId: cardData.cardId
+      jobId: cardData.jobId // Use jobId instead of cardId
     };
   };
 
