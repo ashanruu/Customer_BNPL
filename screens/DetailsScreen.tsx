@@ -12,13 +12,21 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
+// Remove DateTimePicker import as we don't need it anymore
+// import DateTimePicker from "@react-native-community/datetimepicker";
 import { callMobileApi } from '../scripts/api';
 
 const paymentOptions = [
   { type: "MasterCard", last4: "8295" },
   { type: "Visa", last4: "5445" },
   { type: "PayPal", name: "Alexei Sidorenko" },
+];
+
+// Add reschedule options
+const rescheduleOptions = [
+  { label: "7 Days", value: 7 },
+  { label: "14 Days", value: 14 },
+  { label: "21 Days", value: 21 },
 ];
 
 const DetailsScreen = ({ route }: any) => {
@@ -33,31 +41,45 @@ const DetailsScreen = ({ route }: any) => {
   const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<number | null>(0);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState(new Date());
+  // Replace date picker states with reschedule modal states
+  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+  const [selectedRescheduleOption, setSelectedRescheduleOption] = useState<number | null>(0);
 
   const openPaymentModal = (index: number) => {
     setSelectedInstallment(index);
     setModalVisible(true);
   };
 
-  const openDatePicker = (index: number) => {
+  // Replace openDatePicker with openRescheduleModal
+  const openRescheduleModal = (index: number) => {
     setSelectedInstallment(index);
-    setRescheduleDate(new Date(installments[index].dueDate));
-    setShowDatePicker(true);
+    setRescheduleModalVisible(true);
   };
 
-  const handleDateChange = (event: any, date?: Date) => {
-    setShowDatePicker(false);
-    if (date && selectedInstallment !== null) {
+  // Replace handleDateChange with handleReschedule
+  const handleReschedule = () => {
+    if (selectedInstallment !== null && selectedRescheduleOption !== null) {
+      const daysToAdd = rescheduleOptions[selectedRescheduleOption].value;
+      const currentDueDate = new Date(installments[selectedInstallment].dueDate);
+      const newDueDate = new Date(currentDueDate.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
+      
       const updated = [...installments];
-      updated[selectedInstallment].dueDate = date.toISOString();
+      updated[selectedInstallment].dueDate = newDueDate.toISOString();
       setInstallments(updated);
+      
+      setRescheduleModalVisible(false);
+      // Optionally show a success message
+      Alert.alert('Success', `Due date rescheduled by ${daysToAdd} days`);
     }
   };
 
   const handleSelectPayment = (index: number) => {
     setSelectedPayment(index);
+  };
+
+  // Add handler for reschedule option selection
+  const handleSelectRescheduleOption = (index: number) => {
+    setSelectedRescheduleOption(index);
   };
 
   const handleRefill = () => {
@@ -313,7 +335,7 @@ const DetailsScreen = ({ route }: any) => {
 
                       <TouchableOpacity
                         style={[styles.actionButton, styles.rescheduleButton]}
-                        onPress={() => openDatePicker(index)}
+                        onPress={() => openRescheduleModal(index)}
                       >
                         <Text style={styles.rescheduleButtonText}>Reschedule</Text>
                       </TouchableOpacity>
@@ -392,15 +414,76 @@ const DetailsScreen = ({ route }: any) => {
         </View>
       </Modal>
 
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={rescheduleDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleDateChange}
-        />
-      )}
+      {/* Reschedule Modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={rescheduleModalVisible}
+        onRequestClose={() => setRescheduleModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reschedule Payment</Text>
+
+            {rescheduleOptions.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.paymentOption,
+                  selectedRescheduleOption === index && styles.paymentOptionSelected,
+                ]}
+                onPress={() => handleSelectRescheduleOption(index)}
+              >
+                <View style={styles.paymentIcon}>
+                  <MaterialIcons name="schedule" size={24} color="#8E8E93" />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.paymentText}>
+                    {option.label}
+                  </Text>
+                </View>
+
+                {selectedRescheduleOption === index && (
+                  <MaterialIcons name="check-circle" size={24} color="#2C2C2E" />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            <View style={styles.amountSection}>
+              <Text style={styles.amountLabel}>Current Due Date</Text>
+              <Text style={styles.amountText}>
+                {selectedInstallment !== null && installments[selectedInstallment] 
+                  ? formatDate(installments[selectedInstallment].dueDate)
+                  : 'N/A'
+                }
+              </Text>
+              {selectedRescheduleOption !== null && (
+                <Text style={styles.newDueDateText}>
+                  New Date: {selectedInstallment !== null && installments[selectedInstallment] 
+                    ? formatDate(new Date(new Date(installments[selectedInstallment].dueDate).getTime() + 
+                        (rescheduleOptions[selectedRescheduleOption].value * 24 * 60 * 60 * 1000)).toISOString())
+                    : 'N/A'
+                  }
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.payButton} onPress={handleReschedule}>
+              <Text style={styles.payButtonText}>Add</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setRescheduleModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Remove Date Picker component */}
     </View>
   );
 };
@@ -807,5 +890,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8E8E8",
     marginTop: 16,
     marginBottom: 16,
+  },
+
+  // Add new style for new due date text
+  newDueDateText: {
+    fontSize: 14,
+    color: '#2C2C2E',
+    fontWeight: '500',
+    marginTop: 8,
   },
 });
