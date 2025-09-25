@@ -207,8 +207,17 @@ const HomeScreen: React.FC = () => {
       return null;
     }
 
-    // Sort by createdOn date and get the latest
-    const sortedLoans = loanList.activeLoans.sort((a, b) =>
+    interface ActiveLoan {
+      createdOn: string;
+      merchantName: string;
+      totalAmount: number;
+    }
+
+    interface LoanListData {
+      activeLoans: ActiveLoan[];
+    }
+
+    const sortedLoans: ActiveLoan[] = loanList.activeLoans.sort((a: ActiveLoan, b: ActiveLoan) =>
       new Date(b.createdOn).getTime() - new Date(a.createdOn).getTime()
     );
 
@@ -216,13 +225,20 @@ const HomeScreen: React.FC = () => {
   };
 
   // Helper function to format currency
-  const formatCurrency = (amount) => {
-    return `Rs. ${amount?.toLocaleString() || '0'}`;
+  const formatCurrency = (amount: number | undefined): string => {
+    if (!amount) return '';
+    return `Rs. ${amount.toLocaleString()}`;
   };
 
-  // Helper function to calculate next payment date (dummy calculation)
-  const getNextPaymentDate = (loan) => {
-    if (!loan) return '2025.08.02';
+  interface Loan {
+    createdOn: string;
+    merchantName: string;
+    totalAmount: number;
+    // Add other loan properties as needed
+  }
+
+  const getNextPaymentDate = (loan: Loan | null): string => {
+    if (!loan) return "";
 
     const createdDate = new Date(loan.createdOn);
     const nextPayment = new Date(createdDate);
@@ -232,10 +248,12 @@ const HomeScreen: React.FC = () => {
   };
 
   // Helper function to calculate days left
-  const getDaysLeft = (loan) => {
-    if (!loan) return '05 Days';
+  const getDaysLeft = (loan: Loan | null) => {
+    if (!loan) return '';
 
     const nextPaymentDate = getNextPaymentDate(loan);
+    if (!nextPaymentDate) return '';
+    
     const targetDate = new Date(nextPaymentDate.replace(/\./g, '-'));
     const today = new Date();
     const diffTime = targetDate.getTime() - today.getTime();
@@ -357,7 +375,7 @@ const HomeScreen: React.FC = () => {
                     <Text style={styles.circleText}>
                       {(creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined)
                         ? Math.round(((creditLimits.fullCredit - creditLimits.totalConsumed) / creditLimits.fullCredit) * 100)
-                        : "100"}
+                        : 0}
                       %
                     </Text>
                     <Text style={styles.circleSubText}>Available</Text>
@@ -388,7 +406,7 @@ const HomeScreen: React.FC = () => {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               scrollEnabled={false} // Disable manual scrolling for auto slideshow
-              contentOffset={{ x: currentSlide * (screenWidth - 30), y: 0 }} // 30 is total horizontal margin
+              contentOffset={{ x: currentSlide * (screenWidth - 30), y: 0 }} 
               style={styles.slideshowContainer}
             >
               {promotions.map((promo, index) => (
@@ -427,52 +445,46 @@ const HomeScreen: React.FC = () => {
           </View>
         )}
         
-        {/* Payment Notification */}
-        <View style={styles.cardsContainer}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>Payment Notification</Text>
-          </View>
+        {/* Payment Notification - Only show if there's an active loan with all required data */}
+        {(latestLoan && latestLoan.merchantName && latestLoan.totalAmount && getNextPaymentDate(latestLoan)) && (
+          <View style={styles.cardsContainer}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.sectionTitle}>Payment Notification</Text>
+            </View>
 
-          <View style={styles.paymentBox}>
-            {/* Next Payment as header inside the box */}
-            <Text style={styles.nextPaymentHeader}>Next Payment</Text>
+            <View style={styles.paymentBox}>
+              {/* Next Payment as header inside the box */}
+              <Text style={styles.nextPaymentHeader}>Next Payment</Text>
 
-            {/* Main payment content */}
-            <View style={styles.paymentContent}>
-              <View style={styles.leftSection}>
-                <Text style={styles.paymentDescription}>
-                  {latestLoan
-                    ? `Fashion Bug (${latestLoan.noOfInstallments - (latestLoan.paidInstallments || 0)}/${latestLoan.noOfInstallments})`
-                    : 'Fashion Bug (2/3)'
-                  }
-                </Text>
-                <Text style={styles.paymentAmount}>Rs. 15,500</Text>
+              {/* Main payment content */}
+              <View style={styles.paymentContent}>
+                <View style={styles.leftSection}>
+                  <Text style={styles.paymentDescription}>
+                    {latestLoan.merchantName}
+                  </Text>
+                  <Text style={styles.paymentAmount}>
+                    {formatCurrency(latestLoan.totalAmount)}
+                  </Text>
+                </View>
+                <View style={styles.rightSection}>
+                  <Text style={styles.paymentDate}>
+                    {getNextPaymentDate(latestLoan)}
+                  </Text>
+                  <Text style={styles.daysRemaining}>
+                    {getDaysLeft(latestLoan)}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.rightSection}>
-                <Text style={styles.paymentDate}>
-                  {latestLoan ? getNextPaymentDate(latestLoan) : '2025.08.02'}
-                </Text>
-                <Text style={styles.daysRemaining}>
-                  {latestLoan ? getDaysLeft(latestLoan) : '5 days'}
-                </Text>
-              </View>
+              {loanListLoading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#666" />
+                  <Text style={styles.loadingText}>Loading loan data...</Text>
+                </View>
+              )}
             </View>
           </View>
-
-          {/* <View style={styles.buttonHeader}>
-              <TouchableOpacity>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View> */}
-
-          {loanListLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#666" />
-              <Text style={styles.loadingText}>Loading loan data...</Text>
-            </View>
-          )}
-        </View>
+        )}
 
         {/* Promotions */}
         <View style={styles.section}>

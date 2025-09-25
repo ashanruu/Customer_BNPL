@@ -120,7 +120,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
 
         showSuccess('Login successful!');
         setTimeout(() => {
-          navigation.navigate('LogInOtp');
+          navigation.navigate('Main');
         }, 1500);
       } else {
         showError(response.message || 'Login failed');
