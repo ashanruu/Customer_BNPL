@@ -19,7 +19,7 @@ import { MainText, SubText, LinkText } from '../../components/CustomText';
 import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import StepIndicator from '../../components/StepIndicator';
-import CustomCheckbox from '../../components/CustomCheckbox'; // Your checkbox component
+import CustomCheckbox from '../../components/CustomCheckbox';
 import TermsModal from '../../components/TermsModal';
 
 type RootStackParamList = {
@@ -45,8 +45,6 @@ const AddressDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -55,8 +53,6 @@ const AddressDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     addressLine1: '',
     city: '',
     state: '',
-    postalCode: '',
-    country: '',
   });
 
   // New state for checkbox and modal
@@ -184,8 +180,6 @@ Last updated: ${new Date().toLocaleDateString()}`;
       addressLine1: '',
       city: '',
       state: '',
-      postalCode: '',
-      country: '',
     };
 
     if (!addressLine1.trim()) {
@@ -197,15 +191,7 @@ Last updated: ${new Date().toLocaleDateString()}`;
       valid = false;
     }
     if (!state.trim()) {
-      newErrors.state = 'State is required';
-      valid = false;
-    }
-    if (!postalCode.trim()) {
-      newErrors.postalCode = 'Postal Code is required';
-      valid = false;
-    }
-    if (!country.trim()) {
-      newErrors.country = 'Country is required';
+      newErrors.state = 'District is required';
       valid = false;
     }
 
@@ -225,8 +211,6 @@ Last updated: ${new Date().toLocaleDateString()}`;
         addressLine2: addressLine2.trim(),
         city: city.trim(),
         state: state.trim(),
-        postalCode: postalCode.trim(),
-        country: country.trim(),
       };
 
       // Navigate to SecuritySetupScreen with all collected data
@@ -266,20 +250,6 @@ Last updated: ${new Date().toLocaleDateString()}`;
     setState(text);
     if (errors.state) {
       setErrors(prev => ({ ...prev, state: '' }));
-    }
-  };
-
-  const handlePostalCodeChange = (text: string) => {
-    setPostalCode(text);
-    if (errors.postalCode) {
-      setErrors(prev => ({ ...prev, postalCode: '' }));
-    }
-  };
-
-  const handleCountryChange = (text: string) => {
-    setCountry(text);
-    if (errors.country) {
-      setErrors(prev => ({ ...prev, country: '' }));
     }
   };
 
@@ -354,26 +324,11 @@ Last updated: ${new Date().toLocaleDateString()}`;
                     error={errors.city}
                   />
                   <CustomInputField
-                    placeholder="State"
+                    placeholder="District"
                     value={state}
                     onChangeText={handleStateChange}
                     iconName="map-marker-radius-outline"
                     error={errors.state}
-                  />
-                  <CustomInputField
-                    placeholder="Postal Code"
-                    value={postalCode}
-                    onChangeText={handlePostalCodeChange}
-                    iconName="mailbox-outline"
-                    keyboardType="numeric"
-                    error={errors.postalCode}
-                  />
-                  <CustomInputField
-                    placeholder="Country"
-                    value={country}
-                    onChangeText={handleCountryChange}
-                    iconName="earth"
-                    error={errors.country}
                   />
 
                   {/* Terms and Conditions checkbox with clickable text */}
@@ -465,7 +420,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   sendButton: {
-    marginTop: 24,
+    marginTop: 60,
   },
   disabledButton: {
     opacity: 0.5,

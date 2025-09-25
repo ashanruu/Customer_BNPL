@@ -51,14 +51,8 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         ]);
 
         const hasSecuritySetup = pinEnabled === 'true' || biometricEnabled === 'true';
-        
-        // If user has a token and has security setup, go to biometric/PIN login
-        if (hasUserToken && hasSecuritySetup) {
-          navigation.replace('BiometricPinLogin');
-        } else {
-          // Otherwise go to regular login
-          navigation.replace('Login');
-        }
+        navigation.replace('Login');
+
       } catch (error) {
         console.error('Error checking authentication status:', error);
         navigation.replace('Login');
@@ -74,10 +68,10 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
     >
       <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
-        <Text style={styles.logo}>🚀 BNPL</Text>
+        <Text style={styles.logo}>BNPL</Text>
       </Animated.View>
       <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
-        Welcome to My App
+        Shop Today, Pay Your Way.
       </Animated.Text>
       <View style={styles.dotsContainer}>
         <AnimatedDot delay={0} />
