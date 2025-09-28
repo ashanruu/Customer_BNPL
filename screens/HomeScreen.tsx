@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator, Animated, Dimensions } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,12 +27,13 @@ const HomeScreen: React.FC = () => {
   const [promotionsLoading, setPromotionsLoading] = useState(false);
   const [creditLimitsLoading, setCreditLimitsLoading] = useState(false);
   const [loanListLoading, setLoanListLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigation = useNavigation();
 
   // Get screen width for slideshow
   const screenWidth = Dimensions.get('window').width;
-  const slideInterval = useRef<NodeJS.Timeout | null>(null);
+  const slideInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Animation values for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -262,6 +263,31 @@ const HomeScreen: React.FC = () => {
     return diffDays > 0 ? `${diffDays.toString().padStart(2, '0')} Days` : 'Overdue';
   };
 
+  // Comprehensive refresh function for pull-to-refresh
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      console.log('Refreshing home screen data...');
+      
+      // Reset slideshow to first slide
+      setCurrentSlide(0);
+      
+      // Fetch all data simultaneously for better performance
+      await Promise.all([
+        fetchPromotions(),
+        fetchCreditLimits(),
+        fetchLoanList()
+      ]);
+      
+      console.log('Home screen refresh completed successfully');
+    } catch (error) {
+      console.error('Error refreshing home screen:', error);
+      Alert.alert('Refresh Failed', 'Unable to refresh data. Please check your connection and try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const latestLoan = getLatestActiveLoan();
 
   return (
@@ -397,6 +423,17 @@ const HomeScreen: React.FC = () => {
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
+            tintColor={'#2DD4BF'} // iOS color
+            title="Pull to refresh"
+            titleColor={'#666'}
+            progressBackgroundColor={'#f0f0f0'}
+          />
+        }
       >
         {/* Auto Slideshow Banner - Show multiple promotions */}
         {promotions.length > 0 && (

@@ -39,6 +39,7 @@ const OrderPageScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [creatingLoan, setCreatingLoan] = useState(false);
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'once' | 'installments'>('installments');
 
   // Extract order ID from QR code data
   function extractOrderIdFromQR(qrString: string): string {
@@ -132,8 +133,6 @@ const OrderPageScreen: React.FC = () => {
     } else {
       setError('No order ID found in QR code or parameters');
       
-      // For testing purposes, you can uncomment this line to use a demo order ID
-      // fetchOrderDetailsData('DEMO123');
     }
   }, [orderId]);
 
@@ -148,8 +147,12 @@ const OrderPageScreen: React.FC = () => {
     try {
       console.log('Creating loan for sale ID:', orderDetails.saleId);
 
-      // Call CreateLoan API with the numeric saleId
-      const loanResponse = await createLoan(orderDetails.saleId);
+      // Determine number of installments based on selected payment option
+      const noOfInstallment = selectedPaymentOption === 'once' ? 1 : 3;
+      console.log('Selected payment option:', selectedPaymentOption, 'Number of installments:', noOfInstallment);
+
+      // Call CreateLoan API with the numeric saleId and noOfInstallment
+      const loanResponse = await createLoan(orderDetails.saleId, noOfInstallment);
 
       console.log('CreateLoan response:', loanResponse);
 
@@ -162,6 +165,8 @@ const OrderPageScreen: React.FC = () => {
           orderId: orderDetails.orderId,
           saleId: orderDetails.saleId,
           loanData: loanResponse.data,
+          paymentOption: selectedPaymentOption, // Pass the selected payment option
+          installments: noOfInstallment, // Pass the actual number of installments
         });
       } else {
         Alert.alert('Error', loanResponse.message || 'Failed to create loan');
@@ -275,14 +280,99 @@ const OrderPageScreen: React.FC = () => {
 
               {/* Number of Installments */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Number of Installments</Text>
-                <View style={styles.displayField}>
-                  <View style={styles.instalmentContent}>
-                    <Text style={styles.displayText}>
-                      {orderDetails.instalments > 0 ? `${orderDetails.instalments} Installments` : 'No installments'}
+                <Text style={styles.label}>Payment Options</Text>
+                
+                {/* Payment Option Selection */}
+                <View style={styles.paymentOptionsContainer}>
+                  {/* Pay Once Option */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentOption,
+                      selectedPaymentOption === 'once' && styles.paymentOptionSelected
+                    ]}
+                    onPress={() => setSelectedPaymentOption('once')}
+                  >
+                    <View style={styles.paymentOptionHeader}>
+                      <View style={styles.paymentOptionTitleRow}>
+                        <Ionicons 
+                          name="wallet-outline" 
+                          size={20} 
+                          color={selectedPaymentOption === 'once' ? '#4CAF50' : '#666'} 
+                        />
+                        <Text style={[
+                          styles.paymentOptionTitle,
+                          selectedPaymentOption === 'once' && styles.paymentOptionTitleSelected
+                        ]}>
+                          Pay Once
+                        </Text>
+                      </View>
+                      <View style={[
+                        styles.radioButton,
+                        selectedPaymentOption === 'once' && styles.radioButtonSelected
+                      ]}>
+                        {selectedPaymentOption === 'once' && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                    </View>
+                    <Text style={[
+                      styles.paymentOptionDescription,
+                      selectedPaymentOption === 'once' && styles.paymentOptionDescriptionSelected
+                    ]}>
+                      Complete payment in full now
                     </Text>
-                    <Ionicons name="calendar-outline" size={20} color="#666" />
-                  </View>
+                    <Text style={[
+                      styles.paymentOptionAmount,
+                      selectedPaymentOption === 'once' && styles.paymentOptionAmountSelected
+                    ]}>
+                      LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toLocaleString() : '0'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Installments Option */}
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentOption,
+                      selectedPaymentOption === 'installments' && styles.paymentOptionSelected
+                    ]}
+                    onPress={() => setSelectedPaymentOption('installments')}
+                  >
+                    <View style={styles.paymentOptionHeader}>
+                      <View style={styles.paymentOptionTitleRow}>
+                        <Ionicons 
+                          name="calendar-outline" 
+                          size={20} 
+                          color={selectedPaymentOption === 'installments' ? '#4CAF50' : '#666'} 
+                        />
+                        <Text style={[
+                          styles.paymentOptionTitle,
+                          selectedPaymentOption === 'installments' && styles.paymentOptionTitleSelected
+                        ]}>
+                          3 Installments
+                        </Text>
+                      </View>
+                      <View style={[
+                        styles.radioButton,
+                        selectedPaymentOption === 'installments' && styles.radioButtonSelected
+                      ]}>
+                        {selectedPaymentOption === 'installments' && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                    </View>
+                    <Text style={[
+                      styles.paymentOptionDescription,
+                      selectedPaymentOption === 'installments' && styles.paymentOptionDescriptionSelected
+                    ]}>
+                      Split payment into 3 equal parts
+                    </Text>
+                    <Text style={[
+                      styles.paymentOptionAmount,
+                      selectedPaymentOption === 'installments' && styles.paymentOptionAmountSelected
+                    ]}>
+                      {/* LKR {orderDetails.amount ? (parseFloat(orderDetails.amount) / 3).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0'} × 3 */}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -305,7 +395,8 @@ const OrderPageScreen: React.FC = () => {
         {!loading && !error && orderDetails.orderId && (
           <View style={styles.submitButtonContainer}>
             <CustomButton
-              title={creatingLoan ? "Creating Loan..." : "Continue to Payment"}
+              title={creatingLoan ? "Creating Loan..." : 
+                selectedPaymentOption === 'once' ? "Pay Full Amount" : "Continue to Installments"}
               size="medium"
               variant="primary"
               onPress={handleContinue}
@@ -495,5 +586,83 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#333',
+  },
+
+  // Payment Options Styles
+  paymentOptionsContainer: {
+    gap: 12,
+  },
+  paymentOption: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 2,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  paymentOptionSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F8FFF8',
+    elevation: 4,
+    shadowOpacity: 0.1,
+  },
+  paymentOptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  paymentOptionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  paymentOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  paymentOptionTitleSelected: {
+    color: '#4CAF50',
+  },
+  paymentOptionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  paymentOptionDescriptionSelected: {
+    color: '#333',
+  },
+  paymentOptionAmount: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+  },
+  paymentOptionAmountSelected: {
+    color: '#4CAF50',
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    borderColor: '#4CAF50',
+  },
+  radioButtonInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
   },
 });

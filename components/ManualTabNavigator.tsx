@@ -10,7 +10,9 @@ import {
     Text,
     Easing,
     Platform,
+    Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -73,6 +75,56 @@ const ManualTabNavigator: React.FC = () => {
             easing: Easing.in(Easing.ease),
             useNativeDriver: false,
         }).start(() => setMenuVisible(false));
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Confirm Logout',
+            'Are you sure you want to log out?',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Log Out',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            // Get all AsyncStorage keys
+                            const allKeys = await AsyncStorage.getAllKeys();
+                            
+                            // Filter out keys to preserve (biometric/PIN data and token)
+                            const keysToPreserve = [
+                                'pinEnabled',
+                                'biometricEnabled', 
+                                'userPin',
+                                'securitySetupCompleted',
+                                'securitySetupSkipped',
+                                'bearerToken'  // Preserve the authentication token
+                            ];
+                            
+                            // Get keys to remove (all keys except preserved keys)
+                            const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
+                            
+                            // Remove all data except biometric/PIN settings and token
+                            if (keysToRemove.length > 0) {
+                                await AsyncStorage.multiRemove(keysToRemove);
+                            }
+                            
+                            console.log('Logout successful - biometric data and token preserved');
+                            
+                            // Close drawer and navigate to login
+                            closeDrawer();
+                            navigation.replace('Login');
+                        } catch (error) {
+                            console.error('Error during logout:', error);
+                            Alert.alert('Error', 'Failed to log out. Please try again.');
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const CurrentScreen = tabs[activeTab].component;
@@ -143,11 +195,15 @@ const ManualTabNavigator: React.FC = () => {
                                 <Pressable
                                     key={index}
                                     onPress={() => {
-                                        closeDrawer();
-                                        if (item.replace) {
-                                            navigation.replace(item.screen);
+                                        if (item.label === 'Log Out') {
+                                            handleLogout();
                                         } else {
-                                            navigation.navigate(item.screen);
+                                            closeDrawer();
+                                            if (item.replace) {
+                                                navigation.replace(item.screen);
+                                            } else {
+                                                navigation.navigate(item.screen);
+                                            }
                                         }
                                     }}
                                     style={({ pressed }) => [

@@ -47,12 +47,45 @@ const DetailsScreen = ({ route }: any) => {
     setShowDatePicker(true);
   };
 
+  // Get minimum and maximum dates for reschedule
+  const getRescheduleDateConstraints = () => {
+    if (installments.length < 2) {
+      return {
+        minimumDate: new Date(),
+        maximumDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      };
+    }
+    
+    const firstInstallmentDate = new Date(installments[0].dueDate);
+    const secondInstallmentDate = new Date(installments[1].dueDate);
+    
+    return {
+      minimumDate: firstInstallmentDate,
+      maximumDate: secondInstallmentDate
+    };
+  };
+
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
     if (date && selectedInstallment !== null) {
-      const updated = [...installments];
-      updated[selectedInstallment].dueDate = date.toISOString();
-      setInstallments(updated);
+      const constraints = getRescheduleDateConstraints();
+      
+      // Validate the selected date is within constraints
+      if (date >= constraints.minimumDate && date <= constraints.maximumDate) {
+        const updated = [...installments];
+        updated[selectedInstallment].dueDate = date.toISOString();
+        setInstallments(updated);
+        
+        Alert.alert(
+          'Date Updated',
+          `Installment ${selectedInstallment + 1} has been rescheduled to ${date.toLocaleDateString()}`
+        );
+      } else {
+        Alert.alert(
+          'Invalid Date',
+          `Please select a date between ${constraints.minimumDate.toLocaleDateString()} and ${constraints.maximumDate.toLocaleDateString()}`
+        );
+      }
     }
   };
 
@@ -311,12 +344,15 @@ const DetailsScreen = ({ route }: any) => {
                         <Text style={styles.actionButtonText}>Pay Now</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.rescheduleButton]}
-                        onPress={() => openDatePicker(index)}
-                      >
-                        <Text style={styles.rescheduleButtonText}>Reschedule</Text>
-                      </TouchableOpacity>
+                      {/* Show reschedule button only for first installment (index 0) */}
+                      {index === 0 && (
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.rescheduleButton]}
+                          onPress={() => openDatePicker(index)}
+                        >
+                          <Text style={styles.rescheduleButtonText}>Reschedule</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -393,14 +429,19 @@ const DetailsScreen = ({ route }: any) => {
       </Modal>
 
       {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={rescheduleDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleDateChange}
-        />
-      )}
+      {showDatePicker && (() => {
+        const constraints = getRescheduleDateConstraints();
+        return (
+          <DateTimePicker
+            value={rescheduleDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={handleDateChange}
+            minimumDate={constraints.minimumDate}
+            maximumDate={constraints.maximumDate}
+          />
+        );
+      })()}
     </View>
   );
 };
@@ -609,9 +650,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   statusTagInline: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 2,
   },
   statusText: {
     fontSize: 11,
@@ -769,11 +810,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-  },
-  statusTagInline: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 2,
   },
   loanDateSection: {
     alignItems: "flex-end",

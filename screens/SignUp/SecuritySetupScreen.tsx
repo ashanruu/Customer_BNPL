@@ -250,29 +250,53 @@ const SecuritySetupScreen: React.FC = () => {
     }
   };
 
+  const handleSetupSecurity = async () => {
+    try {
+      setIsRegistering(true);
+      
+      // First, complete the final registration process
+      const registrationSuccess = await finalizeRegistration();
+      
+      if (registrationSuccess) {
+        setCurrentStep('pin');
+      }
+      // If registration fails, stay on the screen (error is already shown in finalizeRegistration)
+    } catch (error) {
+      console.error('Error starting security setup:', error);
+      Alert.alert('Error', 'Failed to complete registration. Please try again.');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleSkipSecurity = async () => {
     try {
-      await AsyncStorage.setItem('securitySetupSkipped', 'true');
-      navigation.navigate('Main');
+      setIsRegistering(true);
+      
+      // First, complete the final registration process
+      const registrationSuccess = await finalizeRegistration();
+      
+      if (registrationSuccess) {
+        await AsyncStorage.setItem('securitySetupSkipped', 'true');
+        navigation.navigate('Main');
+      }
+      // If registration fails, stay on the screen (error is already shown in finalizeRegistration)
     } catch (error) {
       console.error('Error skipping security setup:', error);
-      navigation.navigate('Main');
+      Alert.alert('Error', 'Failed to complete registration. Please try again.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
   const handleComplete = async () => {
     try {
-      // First, complete the final registration process
-      const registrationSuccess = await finalizeRegistration();
-
-      if (registrationSuccess) {
-        await AsyncStorage.setItem('securitySetupCompleted', 'true');
-        navigation.navigate('Main');
-      }
-      // If registration fails, stay on the screen (error is already shown in finalizeRegistration)
+      // Registration is already done at this point, just complete the security setup
+      await AsyncStorage.setItem('securitySetupCompleted', 'true');
+      navigation.navigate('Main');
     } catch (error) {
       console.error('Error completing security setup:', error);
-      Alert.alert('Error', 'Failed to complete registration. Please try again.');
+      Alert.alert('Error', 'Failed to complete security setup. Please try again.');
     }
   };
 
@@ -353,14 +377,16 @@ const SecuritySetupScreen: React.FC = () => {
       </View>
 
       <CustomButton
-        title="Set Up Security"
-        onPress={() => setCurrentStep('pin')}
+        title={isRegistering ? 'Creating Account...' : 'Set Up Security'}
+        onPress={handleSetupSecurity}
+        loading={isRegistering}
         style={styles.primaryButton}
       />
 
       <CustomButton
-        title="Skip for Now"
+        title={isRegistering ? 'Creating Account...' : 'Skip for Now'}
         onPress={handleSkipSecurity}
+        loading={isRegistering}
         style={styles.primaryButton}
         variant="outline"
       />
@@ -388,7 +414,7 @@ const SecuritySetupScreen: React.FC = () => {
 
       <CustomButton
         title="Skip PIN Setup"
-        onPress={handleSkipSecurity}
+        onPress={() => setCurrentStep('biometric')}
         style={styles.primaryButton}
         variant="outline"
       />
@@ -460,9 +486,8 @@ const SecuritySetupScreen: React.FC = () => {
       </View>
 
       <CustomButton
-        title={isRegistering ? 'Creating Account...' : 'Continue to App'}
+        title="Continue to App"
         onPress={handleComplete}
-        loading={isRegistering}
         style={styles.primaryButton}
       />
     </View>

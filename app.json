@@ -20,10 +20,19 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.shi000123.Customer_BNPL"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "39179ed9-bfd7-4940-b080-c64dfc28ce3c"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

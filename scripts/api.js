@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
  
 //const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.1.74:5111";
+const BASE_DOMAIN = "http://192.168.0.178:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
 
 
@@ -261,6 +261,30 @@ export const fetchOrderDetails = async (orderId) => {
     return response;
   } catch (error) {
     console.error("Error fetching order details:", error);
+    throw error;
+  }
+};
+
+// Convenience method for creating loan with payment options
+export const createLoan = async (saleId, noOfInstallment) => {
+  try {
+    console.log("Creating loan for sale ID:", saleId, "with installments:", noOfInstallment);
+
+    const response = await callMobileApi(
+      'CreateLoan',
+      { 
+        saleId: saleId,
+        noOfinstllment: noOfInstallment  
+      },
+      'mobile-app-create-loan',
+      '',
+      'payment'
+    );
+
+    console.log("createLoan response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error creating loan:", error);
     throw error;
   }
 };

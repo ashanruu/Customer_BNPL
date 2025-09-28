@@ -14,7 +14,7 @@ import HomeScreen from './HomeScreen';
 
 // Define your stack param list according to your navigator setup
 type RootStackParamList = {
-  Home: undefined;
+  Main: undefined;
  
 };
 
@@ -55,13 +55,9 @@ const PaymentProcessScreen: React.FC = () => {
   }, []);
 
   const handleNavigateToDashboard = () => {
-    // Navigate to the Home screen
-    navigation.navigate('Home');
+   
+    navigation.navigate('Main');
     
-    // Alternative: if you know you came from a specific screen, go back multiple times
-    // navigation.goBack();
-    // navigation.goBack();
-    // navigation.goBack();
   };
 
   if (isProcessing) {

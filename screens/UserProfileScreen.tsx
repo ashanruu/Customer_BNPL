@@ -155,11 +155,6 @@ const UserProfileScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Personal Information</Text>
 
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Customer ID:</Text>
-              <Text style={styles.infoValue}>{customerDetails?.customerId || "N/A"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Phone Number:</Text>
               <Text style={styles.infoValue}>{customerDetails?.phoneNumber || "N/A"}</Text>
             </View>
@@ -167,11 +162,6 @@ const UserProfileScreen: React.FC = () => {
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Address:</Text>
               <Text style={styles.infoValue}>{customerDetails?.address || "N/A"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Salary:</Text>
-              <Text style={styles.infoValue}>{formatSalary(customerDetails?.salary)}</Text>
             </View>
 
             <View style={styles.infoRow}>
