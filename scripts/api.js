@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
  
 //const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.0.178:5111";
+const BASE_DOMAIN = "http://192.168.1.56:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
 
 
@@ -15,7 +15,8 @@ const ENDPOINTS = {
   customer: "/api/customer", //with token //Kalana
   merchant: "/api/merchant", //with token //Kalana 
   auth: "/api/user", // Auth endpoint for authentication functions //naveen
-  payment: "/api/payment"
+  payment: "/api/payment",
+  validation: "/api/validatecus"
 };
 
 // Authentication function names that should use AUTH_DOMAIN
@@ -345,6 +346,29 @@ export const resetPassword = async (recoveryReferenceNum, newPassword) => {
     return response;
   } catch (error) {
     console.error("Error resetting password:", error);
+    throw error;
+  }
+};
+
+// Convenience method for customer validation
+export const validateCustomer = async (phoneNumber) => {
+  try {
+    console.log("Validating customer with phone number:", phoneNumber);
+
+    const response = await callMobileApi(
+      'validatecus',
+      { 
+        PhoneNumber: phoneNumber
+      },
+      'mobile-app-validate-customer',
+      '',
+      'validation'
+    );
+
+    console.log("validatecus response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error validating customer:", error);
     throw error;
   }
 };

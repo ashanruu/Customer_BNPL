@@ -6,7 +6,7 @@ import {
     Alert,
     TouchableOpacity,
 } from 'react-native';
-import { callAuthApi } from '../../scripts/api';
+import { callAuthApi, validateCustomer } from '../../scripts/api';
 import { MainText, SubText } from '../../components/CustomText';
 import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
@@ -29,27 +29,65 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
         setLoading(true);
 
         try {
-            const response = await callAuthApi(
-                "SendMobileOtp",
-                {
-                    phone: phoneNumber.trim()
+            // First, validate the customer
+            console.log('Validating customer with phone number:', phoneNumber.trim());
+            
+            const validateResponse = await validateCustomer(phoneNumber.trim());
+
+            console.log('Customer validation response:', validateResponse);
+
+            // Check if validation was successful
+            if (validateResponse.statusCode !== 200) {
+                setLoading(false);
+                Alert.alert('Validation Error', validateResponse.message || 'Customer validation failed');
+                return;
+            }
+
+            // Check the success status and message from the validation response
+            const validationData = validateResponse.data || validateResponse.payload || validateResponse;
+            
+            if (!validationData.success) {
+                setLoading(false);
+                // Handle specific error messages
+                if (validationData.message === "Phone number is required") {
+                    Alert.alert('Validation Error', 'Phone number is required');
+                } else if (validationData.message === "Phone number already exists") {
+                    Alert.alert('Phone Number Exists', 'This phone number is already registered. Please use a different number or try logging in.');
+                } else {
+                    Alert.alert('Validation Error', validationData.message || 'Customer validation failed');
                 }
-            );
+                return;
+            }
 
-            setLoading(false);
+            // Only proceed if message is "Phone number is available"
+            if (validationData.message === "Phone number is available") {
+                console.log('Customer validated successfully, sending OTP...');
+                
+                const response = await callAuthApi(
+                    "SendMobileOtp",
+                    {
+                        phone: phoneNumber.trim()
+                    }
+                );
 
-            if (response.statusCode === 200) {
-                // Pass the phone number to the next screen
-                navigation.navigate('OtpVerification', { 
-                    phoneNumber: phoneNumber.trim() 
-                });
+                setLoading(false);
+
+                if (response.statusCode === 200) {
+                    // Pass the phone number to the next screen
+                    navigation.navigate('OtpVerification', { 
+                        phoneNumber: phoneNumber.trim() 
+                    });
+                } else {
+                    Alert.alert('Error', response.message || 'Failed to send OTP');
+                }
             } else {
-                Alert.alert('Error', response.message || 'Failed to send OTP');
+                setLoading(false);
+                Alert.alert('Validation Error', 'Unexpected validation response');
             }
         } catch (error) {
             setLoading(false);
-            console.error('OTP sending error:', error);
-            Alert.alert('Error', 'Failed to send OTP. Please try again.');
+            console.error('Error during customer validation or OTP sending:', error);
+            Alert.alert('Error', 'Failed to process request. Please try again.');
         }
     };
 
