@@ -7,6 +7,10 @@ import ManualTabNavigator from "../components/ManualTabNavigator";
 import LoginScreen from "../screens/LogIn/LoginScreen";
 import LogInOtpScreen from "../screens/LogIn/LogInOtpScreen";
 import BiometricPinLoginScreen from "../screens/LogIn/BiometricPinLoginScreen";
+import ForgotPasswordScreen from "../screens/LogIn/ForgotPasswordScreen";
+import ForgotPasswordOtpScreen from "../screens/LogIn/ForgotPasswordOtpScreen";
+import ResetPasswordScreen from "../screens/LogIn/ResetPasswordScreen";
+
 // Register
 import GetStartedScreen from "../screens/SignUp/GetStartedScreen";
 import OtpVerificationScreen from "../screens/SignUp/OtpVerificationScreen";
@@ -29,7 +33,6 @@ import UserProfileScreen from "../screens/UserProfileScreen";
 import SalesScreen from "../screens/SalesScreen";
 import OrderPageScreen from "../screens/OrderPageScreen";
 import PaymentProcessScreen from "../screens/PaymentProcessScreen";
-//import QRProgressScreen from "../screens/QRProgressScreen";
 
 import HomeScreen from "../screens/HomeScreen";
 
@@ -56,6 +59,9 @@ const AppNavigator = () => {
       <Stack.Screen name="Login" component={LoginScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="LogInOtp" component={LogInOtpScreen} />
       <Stack.Screen name="BiometricPinLogin" component={BiometricPinLoginScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="ForgotPasswordOtp" component={ForgotPasswordOtpScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
 
       {/* Register */}
       <Stack.Screen name="GetStarted" component={GetStartedScreen} options={{ gestureEnabled: false }} />
