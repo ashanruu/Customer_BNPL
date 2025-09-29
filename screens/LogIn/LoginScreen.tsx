@@ -30,16 +30,16 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasSecuritySetup, setHasSecuritySetup] = useState(false);
-  
+
   const scrollViewRef = useRef<ScrollView>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
-  
+
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   useEffect(() => {
     checkSecuritySetup();
-    
+
     // Disable swipe back gesture
     navigation.setOptions({
       gestureEnabled: false,
@@ -99,13 +99,13 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
       const payload = {
         identifier: email.trim(),
         password: password.trim(),
-        userType: 2      
+        userType: 2
       };
 
       const response = await callAuthApi('LoginUser', payload);
 
       console.log('Login response:', response);
-      
+
       // Handle successful login
       if (response.statusCode === 200) {
         // Save the token to AsyncStorage if present
@@ -127,7 +127,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       // Extract the server error message
       const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
       showError(errorMessage);
@@ -145,7 +145,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
         duration={notification.duration}
         onHide={hideNotification}
       />
-      
+
       {/* Fixed Welcome Section - Always Visible */}
       <ImageBackground
         source={require('../../assets/images/bg.jpg')}
@@ -163,11 +163,11 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
       </ImageBackground>
 
       {/* Scrollable Form Section */}
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
@@ -178,7 +178,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
               <TextInput
                 ref={emailInputRef}
                 style={styles.input}
-                placeholder="Enter your email here" 
+                placeholder="Enter your email here"
                 placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={(text) => {
@@ -220,15 +220,15 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
               <TouchableOpacity style={styles.forgotPasswordContainer}>
                 <LinkText
                   style={{ fontSize: 14 }}
-                  onPress={() => Alert.alert('Forgot Password')}
+                  onPress={() => navigation.navigate('ForgotPassword')}
                 >
                   Forgot Password?
                 </LinkText>
               </TouchableOpacity>
 
-              <CustomButton 
-                title={isLoading ? "Logging in..." : "Login"} 
-                onPress={handleLogin} 
+              <CustomButton
+                title={isLoading ? "Logging in..." : "Login"}
+                onPress={handleLogin}
                 disabled={isLoading}
               />
 

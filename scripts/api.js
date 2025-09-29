@@ -289,3 +289,62 @@ export const createLoan = async (saleId, noOfInstallment) => {
   }
 };
 
+export const forgotPassword = async (email) => {
+  try {
+    console.log("Sending forgot password request for email:", email);
+
+    const response = await callAuthApi(
+      'ForgotPassword',
+      { identifier: email },
+      'mobile-app-forgot-password'
+    );
+
+    console.log("ForgotPassword response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error sending forgot password:", error);
+    throw error;
+  }
+};
+
+export const verifyRecoveryOtp = async (otpReferenceNum, otp) => {
+  try {
+    console.log("Verifying recovery OTP with reference:", otpReferenceNum);
+
+    const response = await callAuthApi(
+      'VerifyRecoveryOtp',
+      { 
+        otpReferenceNum: otpReferenceNum,
+        otp: otp 
+      },
+      'mobile-app-verify-recovery-otp'
+    );
+
+    console.log("VerifyRecoveryOtp response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error verifying recovery OTP:", error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (recoveryReferenceNum, newPassword) => {
+  try {
+    console.log("Resetting password with recovery reference:", recoveryReferenceNum);
+
+    const response = await callAuthApi(
+      'ResetPassword',
+      { 
+        recoveryReferenceNum: recoveryReferenceNum,
+        newPassword: newPassword
+      },
+      'mobile-app-reset-password'
+    );
+
+    console.log("ResetPassword response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    throw error;
+  }
+};
