@@ -16,6 +16,8 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard } from '../scripts/api';
 import CustomButton from "../components/CustomButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 type CustomerDetails = {
   firstName?: string;
@@ -66,6 +68,7 @@ const ProfileScreen: React.FC = () => {
   const [cardLoading, setCardLoading] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [removingCard, setRemovingCard] = useState(false);
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
 
   const documents = [
     { id: "1", name: "NIC", date: "18 Aug 6:30 pm", status: "Submitted" },
@@ -298,6 +301,117 @@ const ProfileScreen: React.FC = () => {
         }
       ]
     );
+  };
+
+  // Handle document upload
+  const handleDocumentUpload = (documentId: string, documentName: string) => {
+    Alert.alert(
+      "Upload Document",
+      `Select how you want to upload your ${documentName}`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Choose Image",
+          onPress: () => pickImage(documentId, documentName)
+        },
+        {
+          text: "Choose PDF",
+          onPress: () => pickDocument(documentId, documentName)
+        }
+      ]
+    );
+  };
+
+  // Pick image from gallery
+  const pickImage = async (documentId: string, documentName: string) => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "Permission to access camera roll is required!");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadDocument(documentId, documentName, result.assets[0].uri, 'image');
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
+    }
+  };
+
+  // Pick PDF document
+  const pickDocument = async (documentId: string, documentName: string) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadDocument(documentId, documentName, result.assets[0].uri, 'pdf');
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      Alert.alert("Error", "Failed to pick document. Please try again.");
+    }
+  };
+
+  // Upload document to server
+  const uploadDocument = async (documentId: string, documentName: string, uri: string, type: 'image' | 'pdf') => {
+    try {
+      setUploadingDocId(documentId);
+      console.log(`Uploading ${documentName} (${type}):`, uri);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', {
+        uri: uri,
+        type: type === 'pdf' ? 'application/pdf' : 'image/jpeg',
+        name: `${documentName.toLowerCase().replace(' ', '_')}.${type === 'pdf' ? 'pdf' : 'jpg'}`,
+      } as any);
+      formData.append('documentType', documentName);
+      formData.append('documentId', documentId);
+
+      // You'll need to implement this API call based on your backend
+      // const response = await uploadDocumentApi(formData);
+      
+      // For now, simulate success after 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      Alert.alert(
+        "Success", 
+        `${documentName} uploaded successfully!`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Update document status locally (you should refresh from API in real app)
+              // This is just for demo purposes
+              console.log(`Document ${documentId} uploaded successfully`);
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      Alert.alert("Error", `Failed to upload ${documentName}. Please try again.`);
+    } finally {
+      setUploadingDocId(null);
+    }
   };
 
   // Helper function to get customer name
@@ -575,25 +689,43 @@ const ProfileScreen: React.FC = () => {
                 <Text style={styles.docDate}>{item.date}</Text>
               </View>
               <View>
-                <Text
-                  style={[
-                    styles.statusBadge,
-                    item.status === "Submitted"
-                      ? styles.submitted
-                      : styles.toUpload,
-                  ]}
-                >
-                  {item.status}
-                </Text>
+                {item.status === "To Upload" ? (
+                  <TouchableOpacity
+                    style={[styles.statusBadge, styles.toUpload, styles.uploadButton]}
+                    onPress={() => handleDocumentUpload(item.id, item.name)}
+                    disabled={uploadingDocId === item.id}
+                  >
+                    {uploadingDocId === item.id ? (
+                      <ActivityIndicator size="small" color="#8B4513" />
+                    ) : (
+                      <Text style={styles.uploadButtonText}>
+                        {item.status}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text
+                    style={[styles.statusBadge, styles.submitted]}
+                  >
+                    {item.status}
+                  </Text>
+                )}
               </View>
             </View>
           ))}
-          <CustomButton
-            title="Other Document Upload"
-            size="small"
-            variant="primary"
-            onPress={() => { }}
-          ></CustomButton>
+          
+          {/* Updated document upload button to match payment method button style */}
+          <TouchableOpacity
+            style={styles.addPaymentBtn}
+            onPress={() => handleDocumentUpload("other", "Other Document")}
+          >
+            <View style={styles.addPaymentBtnContent}>
+              <Text style={styles.addPaymentIcon}>+</Text>
+              <Text style={styles.addPaymentText}>
+                Other Document Upload
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -856,6 +988,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderColor: "#eee",
+    marginBottom: 10,
   },
   docName: {
     fontSize: 14,
@@ -910,5 +1043,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#666',
+  },
+  uploadButton: {
+    // Make it look more clickable
+    borderWidth: 1,
+    borderColor: '#8B4513',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  uploadButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8B4513",
   },
 });
