@@ -8,10 +8,12 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  TextInput
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { callMobileApi } from '../scripts/api';
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
 
 type CustomerDetails = {
   firstName?: string;
@@ -32,10 +34,25 @@ const UserProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string>("https://randomuser.me/api/portraits/men/17.jpg");
+  
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editablePhone, setEditablePhone] = useState("");
+  const [editableAddress, setEditableAddress] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCustomerDetails();
   }, []);
+
+  useEffect(() => {
+    // Initialize editable fields when customer details are loaded
+    if (customerDetails) {
+      setEditablePhone(customerDetails.phoneNumber || "");
+      setEditableAddress(customerDetails.address || "");
+    }
+  }, [customerDetails]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -75,6 +92,35 @@ const UserProfileScreen: React.FC = () => {
     }
   };
 
+  const pickImage = async () => {
+    try {
+      // Request permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission required", "Permission to access camera roll is required!");
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+        // Here you could also upload the image to your server
+        console.log("Selected image:", result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
   const getCustomerName = () => {
     if (customerDetails) {
       return customerDetails.firstName && customerDetails.lastName
@@ -99,108 +145,268 @@ const UserProfileScreen: React.FC = () => {
     return `$${salary.toLocaleString()}`;
   };
 
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Cancel editing - reset to original values
+      setEditablePhone(customerDetails?.phoneNumber || "");
+      setEditableAddress(customerDetails?.address || "");
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      
+      // Here you would typically call an API to update the customer details
+      // Example:
+      // const response = await callMobileApi(
+      //   'UpdateCustomerDetails',
+      //   {
+      //     phoneNumber: editablePhone,
+      //     address: editableAddress
+      //   },
+      //   'mobile-app-update-customer',
+      //   '',
+      //   'customer'
+      // );
+
+      // For now, we'll just update the local state
+      setCustomerDetails(prev => prev ? {
+        ...prev,
+        phoneNumber: editablePhone,
+        address: editableAddress
+      } : null);
+
+      setIsEditing(false);
+      Alert.alert("Success", "Profile updated successfully!");
+      
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      Alert.alert("Error", "Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const InfoItem = ({ icon, label, value }: { icon: string, label: string, value: string }) => (
+    <View style={styles.infoItem}>
+      <View style={styles.infoIconContainer}>
+        <Ionicons name={icon as any} size={20} color="#6B7280" />
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
+
+  const EditableInfoItem = ({ 
+    icon, 
+    label, 
+    value, 
+    onChangeText, 
+    placeholder,
+    multiline = false
+  }: { 
+    icon: string;
+    label: string;
+    value: string;
+    onChangeText: (text: string) => void;
+    placeholder: string;
+    multiline?: boolean;
+  }) => (
+    <View style={styles.editableInfoItem}>
+      <Text style={styles.editableLabel}>{label}</Text>
+      <View style={styles.editableInputWrapper}>
+        <View style={styles.editableIconContainer}>
+          <Ionicons name={icon as any} size={20} color="#bdbdbd" />
+        </View>
+        <TextInput
+          style={[styles.editableInput, multiline && styles.multilineInput]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          multiline={multiline}
+          numberOfLines={multiline ? 3 : 1}
+          textAlignVertical={multiline ? "top" : "center"}
+        />
+      </View>
+    </View>
+  );
+
+  const StatusBadge = ({ status, type }: { status: boolean, type: string }) => (
+    <View style={[styles.statusBadge, status ? styles.statusActive : styles.statusInactive]}>
+      <Text style={[styles.statusText, status ? styles.statusActiveText : styles.statusInactiveText]}>
+        {status ? "Verified" : "Pending"}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Ionicons name="arrow-back" size={22} color="#666" />
-          </TouchableOpacity>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back" size={22} color="#666" />
+        </TouchableOpacity>
 
-          <View style={styles.titleSection}>
-            <Text style={styles.headerTitle}>Profile Details</Text>
-            {/* <Text style={styles.subText}>View and track your support requests</Text> */}
-          </View>
+        <View style={styles.titleSection}>
+          <Text style={styles.headerTitle}>Profile</Text>
         </View>
+      </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#20222E" />
+          <ActivityIndicator size="large" color="#6366F1" />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          {/* Profile Section */}
-          <View style={styles.profileSection}>
-            <Image
-              source={{ uri: "https://randomuser.me/api/portraits/men/17.jpg" }}
-              style={styles.avatar}
-            />
-            <Text style={styles.name}>{getCustomerName()}</Text>
-            <Text style={styles.email}>{customerDetails?.email || "N/A"}</Text>
-
-            {/* KYC Status */}
-            <View style={styles.kycContainer}>
-              {customerDetails?.kycStatus ? (
+        <View style={styles.contentContainer}>
+          {/* Profile Header Card - Fixed at top */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.avatar}
+              />
+              <TouchableOpacity
+                style={styles.editImageButton}
+                onPress={pickImage}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="camera" size={14} color="#fff" />
+              </TouchableOpacity>
+              {customerDetails?.kycStatus && (
                 <View style={styles.verifiedBadge}>
-                  <Text style={styles.verifiedText}>✓ KYC Verified</Text>
-                </View>
-              ) : (
-                <View style={styles.unverifiedContainer}>
-                  <Text style={styles.unverifiedText}>You should complete KYC verification</Text>
-                  <TouchableOpacity style={styles.kycButton} disabled>
-                    <Text style={styles.kycButtonText}>KYC Verification Process</Text>
-                  </TouchableOpacity>
+                  <Ionicons name="checkmark" size={12} color="#fff" />
                 </View>
               )}
             </View>
-          </View>
 
-          {/* Personal Information */}
-          <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+            <Text style={styles.name}>{getCustomerName()}</Text>
+            <Text style={styles.email}>{customerDetails?.email || "N/A"}</Text>
 
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Phone Number:</Text>
-              <Text style={styles.infoValue}>{customerDetails?.phoneNumber || "N/A"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Address:</Text>
-              <Text style={styles.infoValue}>{customerDetails?.address || "N/A"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Member Since:</Text>
-              <Text style={styles.infoValue}>{formatDate(customerDetails?.createdDate)}</Text>
+            <View style={styles.memberSinceContainer}>
+              <Text style={styles.memberSinceText}>
+                Member since {formatDate(customerDetails?.createdDate)}
+              </Text>
             </View>
           </View>
 
-          {/* Document Status */}
-          <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>Document Status</Text>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Bill Proof:</Text>
-              <View style={[styles.statusBadge, customerDetails?.billProofStatus ? styles.statusApproved : styles.statusPending]}>
-                <Text style={styles.statusText}>
-                  {customerDetails?.billProofStatus ? "Approved" : "Pending"}
-                </Text>
+          {/* Scrollable content */}
+          <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            {/* Personal Information */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Personal Information</Text>
+              
+              <View style={styles.sectionContent}>
+                {isEditing ? (
+                  <>
+                    <EditableInfoItem
+                      icon="call-outline"
+                      label="Phone Number"
+                      value={editablePhone}
+                      onChangeText={setEditablePhone}
+                      placeholder="Enter phone number"
+                    />
+                    <EditableInfoItem
+                      icon="location-outline"
+                      label="Address"
+                      value={editableAddress}
+                      onChangeText={setEditableAddress}
+                      placeholder="Enter address"
+                      multiline={true}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <InfoItem
+                      icon="call-outline"
+                      label="Phone Number"
+                      value={customerDetails?.phoneNumber || "Not provided"}
+                    />
+                    <InfoItem
+                      icon="location-outline"
+                      label="Address"
+                      value={customerDetails?.address || "Not provided"}
+                    />
+                  </>
+                )}
+              </View>
+
+              <View style={styles.sectionFooter}>
+                <TouchableOpacity
+                  onPress={handleEditToggle}
+                  style={[styles.editButton, isEditing && styles.cancelButton]}
+                  disabled={saving}
+                >
+                  <Ionicons 
+                    name={isEditing ? "close" : "create-outline"} 
+                    size={18} 
+                    color={isEditing ? "#fa828eff" : "#1F2937"} 
+                  />
+                  <Text style={[styles.editButtonText, isEditing && styles.cancelButtonText]}>
+                    {isEditing ? "Cancel" : "Edit"}
+                  </Text>
+                </TouchableOpacity>
+
+                {isEditing && (
+                  <TouchableOpacity
+                    onPress={handleSaveChanges}
+                    style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="save-outline" size={18} color="#65b62fff" />
+                        <Text style={styles.saveButtonText}>Save</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Salary Slip:</Text>
-              <View style={[styles.statusBadge, customerDetails?.salarySlipStatus ? styles.statusApproved : styles.statusPending]}>
-                <Text style={styles.statusText}>
-                  {customerDetails?.salarySlipStatus ? "Approved" : "Pending"}
-                </Text>
+            {/* Verification Status */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Verification Status</Text>
+              <View style={styles.sectionContent}>
+                <View style={styles.verificationItem}>
+                  <View style={styles.verificationLeft}>
+                    <Ionicons name="document-text-outline" size={20} color="#6B7280" />
+                    <Text style={styles.verificationLabel}>KYC Verification</Text>
+                  </View>
+                  <StatusBadge status={customerDetails?.kycStatus || false} type="kyc" />
+                </View>
+
+                <View style={styles.verificationItem}>
+                  <View style={styles.verificationLeft}>
+                    <Ionicons name="receipt-outline" size={20} color="#6B7280" />
+                    <Text style={styles.verificationLabel}>Bill Proof</Text>
+                  </View>
+                  <StatusBadge status={customerDetails?.billProofStatus || false} type="bill" />
+                </View>
+
+                <View style={styles.verificationItem}>
+                  <View style={styles.verificationLeft}>
+                    <Ionicons name="wallet-outline" size={20} color="#6B7280" />
+                    <Text style={styles.verificationLabel}>Salary Slip</Text>
+                  </View>
+                  <StatusBadge status={customerDetails?.salarySlipStatus || false} type="salary" />
+                </View>
               </View>
             </View>
 
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Account Status:</Text>
-              <View style={[styles.statusBadge, customerDetails?.isActive ? styles.statusApproved : styles.statusInactive]}>
-                <Text style={styles.statusText}>
-                  {customerDetails?.isActive ? "Active" : "Inactive"}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
+            <View style={styles.bottomPadding} />
+          </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -212,172 +418,300 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 40,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#666",
-  },
-  
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 8,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
+    paddingTop: 52,
   },
   backButton: {
+    position: 'absolute',
+    top: 52,
+    left: 20,
+    zIndex: 1,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
   },
   titleSection: {
-    flex: 1,
+    alignItems: 'center',
+    paddingTop: 8,
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "600",
     color: "#1a1a1a",
     letterSpacing: -0.3,
+    marginBottom: 6,
   },
-  subText: {
-    fontSize: 15,
-    color: "#666",
-    textAlign: 'center',
-    lineHeight: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+  },
+  loadingText: {
+    marginTop: 16,
+    color: "#6B7280",
+    fontSize: 16,
+  },
+  contentContainer: {
+    flex: 1,
   },
   scrollContainer: {
     flex: 1,
-    padding: 15,
+    paddingHorizontal: 20,
   },
-  profileSection: {
+
+  profileCard: {
+    backgroundColor: "#fff",
+    padding: 24,
     alignItems: "center",
-    borderRadius: 12,
-    marginBottom: 20,
+    elevation: 2,
+  },
+  avatarContainer: {
+    position: "relative",
+    marginBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 15,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#E5E7EB",
+  },
+  editImageButton: {
+    position: "absolute",
+    bottom: 2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1F2937",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  verifiedBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#fff",
   },
   name: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#20222E",
-    marginBottom: 5,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    color: "#666",
-    marginBottom: 15,
+    color: "#6B7280",
+    marginBottom: 16,
   },
-  kycContainer: {
+  memberSinceContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    width: "100%",
+    gap: 6,
   },
-  verifiedBadge: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  verifiedText: {
-    color: "#fff",
-    fontWeight: "600",
+  memberSinceText: {
     fontSize: 14,
+    color: "#6B7280",
   },
-  unverifiedContainer: {
-    alignItems: "center",
-  },
-  unverifiedText: {
-    color: "#FF6B6B",
-    fontSize: 14,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  kycButton: {
-    backgroundColor: "#E0E0E0",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    opacity: 0.6,
-  },
-  kycButtonText: {
-    color: "#666",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  infoCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    padding: 20,
-    marginBottom: 15,
-    backgroundColor: '#fff',
+  section: {
+    marginTop: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 15,
+    color: "#1F2937",
+    marginBottom: 12,
   },
-  infoRow: {
+  sectionContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 4,
+    elevation: 1,
+  },
+  infoItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#F3F4F6",
+  },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  infoContent: {
+    flex: 1,
   },
   infoLabel: {
     fontSize: 14,
-    color: "#666",
-    flex: 1,
+    color: "#6B7280",
+    marginBottom: 2,
   },
   infoValue: {
-    fontSize: 14,
-    color: "#333",
+    fontSize: 16,
+    color: "#1F2937",
     fontWeight: "500",
-    flex: 1,
-    textAlign: "right",
   },
-  statusRow: {
+  verificationItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  verificationLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  verificationLabel: {
+    fontSize: 16,
+    color: "#1F2937",
+    marginLeft: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  statusActive: {
+    backgroundColor: "#E8F5E8",
+  },
+  statusInactive: {
+    backgroundColor: "#FFF4E6",
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  statusActiveText: {
+    color: "#2D5016",
+  },
+  statusInactiveText: {
+    color: "#8B4513",
+  },
+  bottomPadding: {
+    height: 40,
+  },
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    marginBottom: 12,
   },
-  statusLabel: {
-    fontSize: 14,
-    color: "#666",
-    flex: 1,
+  sectionFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    marginTop: 12,
+    gap: 12,
   },
-  statusBadge: {
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 6,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    minWidth: 90, // Increased from 80 to 90
+    justifyContent: "center",
   },
-  statusApproved: {
-    backgroundColor: "#E8F5E8",
+  cancelButton: {
+    backgroundColor: "#ffebee",
+    borderColor: "#ffcdd2",
   },
-  statusPending: {
-    backgroundColor: "#FFF4E6",
-  },
-  statusInactive: {
-    backgroundColor: "#FFEBEE",
-  },
-  statusText: {
+  editButtonText: {
     fontSize: 12,
-    fontWeight: "600",
+    color: "#1F2937",
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  cancelButtonText: {
+    color: "#fa828eff",
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E8F5E8",
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#65b62fff",
+    minWidth: 90, // Increased from 80 to 90
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: "#65b62fff",
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 6,
+  },
+
+  editableInfoItem: {
+    marginBottom: 16,
+  },
+  editableLabel: {
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 4,
+    marginBottom: 8,
+  },
+  editableInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    elevation: 2,
+    minHeight: 48,
+  },
+  editableIconContainer: {
+    marginRight: 12,
+  },
+  editableInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+    color: '#000',
+    fontWeight: '500',
+  },
+  multilineInput: {
+    minHeight: 80,
+    maxHeight: 120,
+    paddingVertical: 12,
   },
 });
