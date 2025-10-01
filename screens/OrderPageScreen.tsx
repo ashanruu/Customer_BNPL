@@ -159,15 +159,28 @@ const OrderPageScreen: React.FC = () => {
       if (loanResponse.statusCode === 200) {
         console.log('Loan created successfully');
         
-        // Navigate to PaymentProcessScreen with order data and loan response
-        (navigation as any).navigate('PaymentProcessScreen', {
-          orderDetails: orderDetails,
-          orderId: orderDetails.orderId,
-          saleId: orderDetails.saleId,
-          loanData: loanResponse.data,
-          paymentOption: selectedPaymentOption, // Pass the selected payment option
-          installments: noOfInstallment, // Pass the actual number of installments
-        });
+        // Navigate based on payment option
+        if (selectedPaymentOption === 'once') {
+          // For pay once, go directly to PaymentProcessScreen
+          (navigation as any).navigate('PaymentProcessScreen', {
+            orderDetails: orderDetails,
+            orderId: orderDetails.orderId,
+            saleId: orderDetails.saleId,
+            loanData: loanResponse.data,
+            paymentOption: selectedPaymentOption,
+            installments: noOfInstallment,
+          });
+        } else {
+          // For installments, go to DownPaymentScreen first
+          (navigation as any).navigate('DownPaymentScreen', {
+            orderDetails: orderDetails,
+            orderId: orderDetails.orderId,
+            saleId: orderDetails.saleId,
+            loanData: loanResponse.data,
+            paymentOption: selectedPaymentOption,
+            installments: noOfInstallment,
+          });
+        }
       } else {
         Alert.alert('Error', loanResponse.message || 'Failed to create loan');
       }

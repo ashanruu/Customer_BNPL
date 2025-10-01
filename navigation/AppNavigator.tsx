@@ -32,6 +32,7 @@ import TicketsDetailsScreen from "../screens/TicketsDetailsScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import SalesScreen from "../screens/SalesScreen";
 import OrderPageScreen from "../screens/OrderPageScreen";
+import DownPaymentScreen from "../screens/DownPaymentScreen";
 import PaymentProcessScreen from "../screens/PaymentProcessScreen";
 
 import HomeScreen from "../screens/HomeScreen";
@@ -84,6 +85,7 @@ const AppNavigator = () => {
       <Stack.Screen name="UserProfileScreen" component={UserProfileScreen} />
       <Stack.Screen name="SalesScreen" component={SalesScreen} />
       <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} />
+      <Stack.Screen name="DownPaymentScreen" component={DownPaymentScreen} />
       <Stack.Screen name="PaymentProcessScreen" component={PaymentProcessScreen} />
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
