@@ -13,11 +13,12 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard } from '../scripts/api';
+import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument } from '../scripts/api';
 import CustomButton from "../components/CustomButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 type CustomerDetails = {
   firstName?: string;
@@ -70,11 +71,12 @@ const ProfileScreen: React.FC = () => {
   const [removingCard, setRemovingCard] = useState(false);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
 
-  const documents = [
-    { id: "1", name: "NIC", date: "18 Aug 6:30 pm", status: "Submitted" },
-    { id: "2", name: "Pay Slip", date: "17 Aug 9:23 pm", status: "To Upload" },
-    { id: "3", name: "Utility bills", date: "16 Aug 10:43 am", status: "Submitted" },
-  ];
+  const [documents, setDocuments] = useState([
+    { id: "nic_front", name: "NIC Front Side", date: "", status: "To Upload", type: "nic_front" },
+    { id: "nic_back", name: "NIC Back Side", date: "", status: "To Upload", type: "nic_back" },
+    { id: "address_proof", name: "Address Proof Document", date: "", status: "To Upload", type: "address_proof" },
+    { id: "salary_slip", name: "Salary Slip", date: "", status: "To Upload", type: "salary_slip" },
+  ]);
 
   // Fetch customer details when component mounts
   useEffect(() => {
@@ -344,7 +346,7 @@ const ProfileScreen: React.FC = () => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadDocument(documentId, documentName, result.assets[0].uri, 'image');
+        await uploadDocumentFile(documentId, documentName, result.assets[0].uri, 'image');
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -361,7 +363,7 @@ const ProfileScreen: React.FC = () => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadDocument(documentId, documentName, result.assets[0].uri, 'pdf');
+        await uploadDocumentFile(documentId, documentName, result.assets[0].uri, 'pdf');
       }
     } catch (error) {
       console.error("Error picking document:", error);
@@ -370,45 +372,54 @@ const ProfileScreen: React.FC = () => {
   };
 
   // Upload document to server
-  const uploadDocument = async (documentId: string, documentName: string, uri: string, type: 'image' | 'pdf') => {
+  const uploadDocumentFile = async (documentId: string, documentName: string, uri: string, type: 'image' | 'pdf') => {
     try {
       setUploadingDocId(documentId);
       console.log(`Uploading ${documentName} (${type}):`, uri);
 
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', {
-        uri: uri,
-        type: type === 'pdf' ? 'application/pdf' : 'image/jpeg',
-        name: `${documentName.toLowerCase().replace(' ', '_')}.${type === 'pdf' ? 'pdf' : 'jpg'}`,
-      } as any);
-      formData.append('documentType', documentName);
-      formData.append('documentId', documentId);
+      // Convert file to base64
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      // You'll need to implement this API call based on your backend
-      // const response = await uploadDocumentApi(formData);
-      
-      // For now, simulate success after 2 seconds
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      Alert.alert(
-        "Success", 
-        `${documentName} uploaded successfully!`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Update document status locally (you should refresh from API in real app)
-              // This is just for demo purposes
-              console.log(`Document ${documentId} uploaded successfully`);
-            }
-          }
-        ]
-      );
+      // Add data URI prefix based on file type
+      const mimeType = type === 'pdf' ? 'application/pdf' : 'image/jpeg';
+      const documentBase64 = `data:${mimeType};base64,${base64}`;
 
-    } catch (error) {
+      // Find document type from documents array
+      const documentItem = documents.find(doc => doc.id === documentId);
+      const documentType = documentItem?.type || documentId;
+
+      // Generate filename based on document type and file type
+      const fileExtension = type === 'pdf' ? 'pdf' : 'jpg';
+      const fileName = `${documentType}.${fileExtension}`;
+
+      // Call the upload API
+      const response = await uploadDocument(documentBase64, documentType, fileName);
+
+      if (response.statusCode === 200) {
+        // Update document status locally
+        setDocuments(prevDocs => 
+          prevDocs.map(doc => 
+            doc.id === documentId 
+              ? { ...doc, status: "Submitted", date: new Date().toLocaleDateString() }
+              : doc
+          )
+        );
+
+        Alert.alert(
+          "Success", 
+          `${documentName} uploaded successfully!`
+        );
+        console.log(`Document ${documentId} uploaded successfully`);
+      } else {
+        throw new Error(response.message || 'Upload failed');
+      }
+
+    } catch (error: any) {
       console.error("Error uploading document:", error);
-      Alert.alert("Error", `Failed to upload ${documentName}. Please try again.`);
+      const errorMessage = error.response?.data?.message || error.message || `Failed to upload ${documentName}`;
+      Alert.alert("Upload Error", errorMessage);
     } finally {
       setUploadingDocId(null);
     }
@@ -686,7 +697,7 @@ const ProfileScreen: React.FC = () => {
             <View key={item.id} style={styles.docRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.docName}>{item.name}</Text>
-                <Text style={styles.docDate}>{item.date}</Text>
+                {item.date && <Text style={styles.docDate}>{item.date}</Text>}
               </View>
               <View>
                 {item.status === "To Upload" ? (
@@ -713,19 +724,6 @@ const ProfileScreen: React.FC = () => {
               </View>
             </View>
           ))}
-          
-          {/* Updated document upload button to match payment method button style */}
-          <TouchableOpacity
-            style={styles.addPaymentBtn}
-            onPress={() => handleDocumentUpload("other", "Other Document")}
-          >
-            <View style={styles.addPaymentBtnContent}>
-              <Text style={styles.addPaymentIcon}>+</Text>
-              <Text style={styles.addPaymentText}>
-                Other Document Upload
-              </Text>
-            </View>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>

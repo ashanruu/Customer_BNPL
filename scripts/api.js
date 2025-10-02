@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
  
 //const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.1.56:5111";
+const BASE_DOMAIN = "http://192.168.43.68:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
 
 
@@ -16,7 +16,8 @@ const ENDPOINTS = {
   merchant: "/api/merchant", //with token //Kalana 
   auth: "/api/user", // Auth endpoint for authentication functions //naveen
   payment: "/api/payment",
-  validation: "/api/validatecus"
+  validation: "/api/validatecus",
+  dochandle: "/api/dochandle" // Document upload endpoint
 };
 
 // Authentication function names that should use AUTH_DOMAIN
@@ -65,8 +66,7 @@ export const callMobileApi = async (
       'Content-Type': 'application/json',
     };
 
-    // For non-auth functions (using BASE_DOMAIN), always add token
-    // For auth functions (using AUTH_DOMAIN), only add token for specific endpoints like OTP
+
     if (!useAuthDomain || endpointType === "otp") {
       const token = await AsyncStorage.getItem('bearerToken');
       if (token) {
@@ -369,6 +369,34 @@ export const validateCustomer = async (phoneNumber) => {
     return response;
   } catch (error) {
     console.error("Error validating customer:", error);
+    throw error;
+  }
+};
+
+// Convenience method for document upload
+export const uploadDocument = async (documentBase64, documentType, fileName) => {
+  try {
+    console.log(`Uploading document of type: ${documentType}, filename: ${fileName}`);
+
+    const response = await callMobileApi(
+      'UploadDocument',
+      { 
+        document: [
+          {
+            FileName: fileName,
+            Base64: documentBase64
+          }
+        ]
+      },
+      'mobile-app-document-upload',
+      '',
+      'dochandle'
+    );
+
+    console.log("UploadDocument response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error uploading document:", error);
     throw error;
   }
 };

@@ -30,37 +30,37 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
 
         try {
             // First, validate the customer
-            console.log('Validating customer with phone number:', phoneNumber.trim());
+            // console.log('Validating customer with phone number:', phoneNumber.trim());
             
-            const validateResponse = await validateCustomer(phoneNumber.trim());
+            // const validateResponse = await validateCustomer(phoneNumber.trim());
 
-            console.log('Customer validation response:', validateResponse);
+            // console.log('Customer validation response:', validateResponse);
 
-            // Check if validation was successful
-            if (validateResponse.statusCode !== 200) {
-                setLoading(false);
-                Alert.alert('Validation Error', validateResponse.message || 'Customer validation failed');
-                return;
-            }
+            // // Check if validation was successful
+            // if (validateResponse.statusCode !== 200) {
+            //     setLoading(false);
+            //     Alert.alert('Validation Error', validateResponse.message || 'Customer validation failed');
+            //     return;
+            // }
 
-            // Check the success status and message from the validation response
-            const validationData = validateResponse.data || validateResponse.payload || validateResponse;
+            // // Check the success status and message from the validation response
+            // const validationData = validateResponse.data || validateResponse.payload || validateResponse;
             
-            if (!validationData.success) {
-                setLoading(false);
-                // Handle specific error messages
-                if (validationData.message === "Phone number is required") {
-                    Alert.alert('Validation Error', 'Phone number is required');
-                } else if (validationData.message === "Phone number already exists") {
-                    Alert.alert('Phone Number Exists', 'This phone number is already registered. Please use a different number or try logging in.');
-                } else {
-                    Alert.alert('Validation Error', validationData.message || 'Customer validation failed');
-                }
-                return;
-            }
+            // if (!validationData.success) {
+            //     setLoading(false);
+            //     // Handle specific error messages
+            //     if (validationData.message === "Phone number is required") {
+            //         Alert.alert('Validation Error', 'Phone number is required');
+            //     } else if (validationData.message === "Phone number already exists") {
+            //         Alert.alert('Phone Number Exists', 'This phone number is already registered. Please use a different number or try logging in.');
+            //     } else {
+            //         Alert.alert('Validation Error', validationData.message || 'Customer validation failed');
+            //     }
+            //     return;
+            // }
 
-            // Only proceed if message is "Phone number is available"
-            if (validationData.message === "Phone number is available") {
+            // Only proceed if message is "Phone number is available"  validationData.message === "Phone number is available"
+            //if () {
                 console.log('Customer validated successfully, sending OTP...');
                 
                 const response = await callAuthApi(
@@ -77,9 +77,9 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                     navigation.navigate('OtpVerification', { 
                         phoneNumber: phoneNumber.trim() 
                     });
-                } else {
-                    Alert.alert('Error', response.message || 'Failed to send OTP');
-                }
+                // } else {
+                //     Alert.alert('Error', response.message || 'Failed to send OTP');
+                // }
             } else {
                 setLoading(false);
                 Alert.alert('Validation Error', 'Unexpected validation response');
@@ -107,7 +107,7 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                     <SubText size="medium" align="left" style={styles.subtitle}>
                         Enter your mobile number to sign up
                     </SubText>
-                </View>
+                </View>   //228461
 
                 {/* Step Indicator */}
                 <View style={styles.stepIndicatorWrapper}>
