@@ -81,13 +81,14 @@ const ProfileScreen: React.FC = () => {
   // Fetch customer details when component mounts
   useEffect(() => {
     fetchCustomerDetails();
-    fetchCustomerPlan();
+    // Remove fetchCustomerPlan() from here
   }, []);
 
   // Fetch card data when customer details are loaded
   useEffect(() => {
     if (customerDetails && (customerDetails.customerId || customerDetails.id)) {
       fetchCardData();
+      fetchCustomerPlan(); // Move this here so it has access to customer ID
     }
   }, [customerDetails]);
 
@@ -134,9 +135,17 @@ const ProfileScreen: React.FC = () => {
       setPlanLoading(true);
       console.log("Fetching customer plan...");
 
+      // Get customer ID from customerDetails
+      const customerId = customerDetails?.customerId || customerDetails?.id;
+      
+      if (!customerId) {
+        console.warn("No customer ID available for plan fetch");
+        return;
+      }
+
       const response = await callMobileApi(
         'GetCustomerPlanByCustomerId',
-        {},
+        { customerId: parseInt(customerId) },
         'mobile-app-customer-plan',
         '',
         'customer'
@@ -147,6 +156,7 @@ const ProfileScreen: React.FC = () => {
       console.log("=== END RESPONSE ===");
 
       if (response.statusCode === 200) {
+
         setCustomerPlan(response.data);
         console.log("Customer plan loaded successfully");
       } else {
@@ -440,54 +450,62 @@ const ProfileScreen: React.FC = () => {
     return customerDetails?.email || "N/A"; // fallback
   };
 
-  // Helper function to get plan details
-  const getPlanPrice = () => {
-    if (customerPlan) {
-      return `Rs. ${customerPlan.creditLimit?.toLocaleString() || customerPlan.planPrice?.toLocaleString() || '0'}`;
-    }
-    return customerDetails?.planPrice || customerDetails?.creditLimit || "Rs. 300,000";
-  };
-
   // Helper function to get plan name
   const getPlanName = () => {
-    if (customerPlan) {
-      return customerPlan.planName || customerPlan.planTitle || customerPlan.name || "Premium Plan";
+    if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan && customerPlan.customer.customerPlan.planName) {
+      return customerPlan.customer.customerPlan.planName;
     }
-    return customerDetails?.planName || "Plan";
-  };
-
-  // Helper function to get plan details
-  const getPlanDetails = () => {
-    if (customerPlan) {
-      const details = [];
-
-      if (customerPlan.creditLimit) {
-        details.push(`Credit Limit: Rs. ${customerPlan.creditLimit.toLocaleString()}`);
-      }
-
-      if (customerPlan.interestRate) {
-        details.push(`Interest Rate: ${customerPlan.interestRate}%`);
-      }
-
-      if (customerPlan.maxInstallments) {
-        details.push(`Max Installments: ${customerPlan.maxInstallments}`);
-      }
-
-      if (customerPlan.planFeatures) {
-        details.push(customerPlan.planFeatures);
-      }
-
-      return details.length > 0 ? details.join(' • ') : "Premium features included";
-    }
-    return customerDetails?.planDetails || "Premium features included";
+    return customerDetails?.planName || "Premium Plan";
   };
 
   // Helper function to get plan status
   const getPlanStatus = () => {
-    if (customerPlan) {
-      return customerPlan.status || customerPlan.planStatus || "Active";
+    if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan && typeof customerPlan.customer.customerPlan.planIsActive !== 'undefined') {
+      return customerPlan.customer.customerPlan.planIsActive ? "Active" : "Inactive";
     }
     return "Active";
+  };
+
+  // Helper function to get plan details
+  // const getPlanDetails = () => {
+  //   if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan) {
+  //     const details = [];
+      
+  //     // Add plan creation date if available
+  //     if (customerPlan.customer.customerPlan.planCreatedDate) {
+  //       const createdDate = new Date(customerPlan.customer.customerPlan.planCreatedDate).toLocaleDateString();
+  //       details.push(`Created: ${createdDate}`);
+  //     }
+
+  //     return details.length > 0 ? details.join(' • ') : "Base plan features included";
+  //   }
+  //   return customerDetails?.planDetails || "Premium features included";
+  // };
+
+  // Helper function to get plan price - updated to use correct baseCreditLimit path
+  const getPlanPrice = () => {
+ 
+    if (customerPlan) {
+ 
+      // Check if baseCreditLimit exists and is a valid number
+      if (customerPlan.baseCreditLimit !== undefined && customerPlan.baseCreditLimit !== null) {
+        const creditLimit = parseFloat(customerPlan.baseCreditLimit);
+        
+        if (!isNaN(creditLimit)) {
+          const formattedPrice = `Rs. ${creditLimit.toLocaleString()}`;
+          console.log("Formatted price:", formattedPrice);
+          return formattedPrice;
+        } else {
+          console.log("Credit limit is NaN after parsing");
+        }
+      } 
+    } else {
+      console.log("customerPlan is null/undefined");
+    }
+    
+    const fallbackPrice = customerDetails?.planPrice || customerDetails?.creditLimit || "Rs. 300,000";
+    console.log("Using fallback price:", fallbackPrice);
+    return fallbackPrice;
   };
 
   // Helper function to get avatar URL
@@ -568,9 +586,9 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.planPrice}>{getPlanPrice()}</Text>
 
-        <Text style={styles.planDetails}>
+        {/* <Text style={styles.planDetails}>
           {getPlanDetails()}
-        </Text>
+        </Text> */}
 
         {customerPlan?.validUntil && (
           <Text style={styles.planExpiry}>

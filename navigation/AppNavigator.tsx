@@ -82,9 +82,9 @@ const AppNavigator = () => {
       <Stack.Screen name="RaiseTickets" component={RaiseTicketsScreen} />
       <Stack.Screen name="TicketsDetails" component={TicketsDetailsScreen} />
       <Stack.Screen name="UserProfileScreen" component={UserProfileScreen} />
-      <Stack.Screen name="SalesScreen" component={SalesScreen} />
-      <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} />
-      <Stack.Screen name="PaymentProcessScreen" component={PaymentProcessScreen} />
+      <Stack.Screen name="SalesScreen" component={SalesScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="PaymentProcessScreen" component={PaymentProcessScreen} options={{ gestureEnabled: false }}  />
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
       {/* <Stack.Screen name="QRProgressScreen" component={QRProgressScreen} options={{ gestureEnabled: false }} /> */}
