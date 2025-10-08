@@ -129,7 +129,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
   
   // Size variants
@@ -161,7 +160,6 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#E5E7EB',
     shadowOpacity: 0,
-    elevation: 0,
   },
   
   // Text styles

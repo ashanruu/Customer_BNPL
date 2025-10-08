@@ -272,7 +272,9 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: 'rgba(0,0,0,0.5)', // Increased opacity
+        zIndex: 9999, // Add high z-index
+        elevation: 999, // Add high elevation for Android
     },
     drawer: {
         position: 'absolute',
@@ -284,8 +286,8 @@ const styles = StyleSheet.create({
         paddingRight: 24,
         borderTopRightRadius: 30,
         borderBottomRightRadius: 30,
-        elevation: 8,
-        zIndex: 10,
+        elevation: 1000, // Increase elevation significantly
+        zIndex: 10000, // Add very high z-index
     },
     drawerHeader: {
         marginBottom: 30,

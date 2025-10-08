@@ -247,7 +247,6 @@ const SalesScreen: React.FC = () => {
     <View style={styles.screenContainer}>
       {/* Header Section with Dark Theme */}
       <View style={styles.headerSection}>
-        <View style={styles.headerBackground} />
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Sales</Text>
           <Text style={styles.headerSubtitle}>Scan QR codes or enter manually</Text>
@@ -498,33 +497,28 @@ const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
     backgroundColor: "#fff",
+    paddingTop: 10,
   },
   headerSection: {
-    position: 'relative',
+    paddingHorizontal: 20,
+    paddingBottom: 22,
     marginBottom: 20,
   },
-  headerBackground: {
-    backgroundColor: 'rgba(32, 34, 46, 1)',
-    height: 120,
-    borderBottomRightRadius: 15,
-  },
   headerContent: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
+    alignItems: 'flex-start',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: -0.5,
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
     marginBottom: 6,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "#E5E5E5",
-    lineHeight: 22,
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
   },
   container: {
     flex: 1,
@@ -561,7 +555,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: '#F8F8F8',
     borderWidth: 2,
-    borderColor: '#20222E',
     marginBottom: 20,
   },
   scanner: {
@@ -581,7 +574,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderWidth: 3,
-    borderColor: '#20222E',
     backgroundColor: 'transparent',
     borderRadius: 16,
     borderStyle: 'dashed',
