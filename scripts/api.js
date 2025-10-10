@@ -374,9 +374,9 @@ export const validateCustomer = async (phoneNumber) => {
 };
 
 // Convenience method for document upload
-export const uploadDocument = async (documentBase64, documentType, fileName) => {
+export const uploadDocument = async (documentBase64, documentType, fileName, fileType = 1) => {
   try {
-    console.log(`Uploading document of type: ${documentType}, filename: ${fileName}`);
+    console.log(`Uploading document of type: ${documentType}, filename: ${fileName}, fileType: ${fileType}`);
 
     const response = await callMobileApi(
       'UploadDocument',
@@ -384,7 +384,8 @@ export const uploadDocument = async (documentBase64, documentType, fileName) => 
         document: [
           {
             FileName: fileName,
-            Base64: documentBase64
+            Base64: documentBase64,
+            FileType: fileType,
           }
         ]
       },
@@ -397,6 +398,26 @@ export const uploadDocument = async (documentBase64, documentType, fileName) => 
     return response;
   } catch (error) {
     console.error("Error uploading document:", error);
+    throw error;
+  }
+};
+
+export const fetchCustomerDocApproveStatus = async () => {
+  try {
+    console.log("Fetching customer document approval status");
+
+    const response = await callMobileApi(
+      'GetCustomerDocApproveStatus',
+      {},
+      'mobile-app-doc-approve-status',
+      '',
+      'customer'
+    );
+
+    console.log("GetCustomerDocApproveStatus response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error fetching customer document approval status:", error);
     throw error;
   }
 };

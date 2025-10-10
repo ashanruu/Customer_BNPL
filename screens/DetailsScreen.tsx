@@ -13,13 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { callMobileApi } from '../scripts/api';
-
-const paymentOptions = [
-  { type: "MasterCard", last4: "8295" },
-  { type: "Visa", last4: "5445" },
-  { type: "PayPal", name: "Alexei Sidorenko" },
-];
+import { callMobileApi, fetchCustomerCard } from '../scripts/api';
 
 const DetailsScreen = ({ route }: any) => {
   const navigation = useNavigation();
@@ -28,6 +22,8 @@ const DetailsScreen = ({ route }: any) => {
   const [loanData, setLoanData] = useState<any>(null);
   const [installments, setInstallments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<any[]>([]);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
@@ -36,9 +32,63 @@ const DetailsScreen = ({ route }: any) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState(new Date());
 
+  // Fetch customer cards when payment modal opens
+  const fetchPaymentMethods = async () => {
+    try {
+      setPaymentLoading(true);
+
+      // Get customer ID from loan data instead of AsyncStorage
+      if (!loanData || !loanData.fK_CusId) {
+        Alert.alert('Error', 'Customer ID not found in loan data');
+        setPaymentOptions([]); // Ensure empty array
+        return;
+      }
+
+      const customerId = loanData.fK_CusId;
+
+      console.log("Fetching payment methods for customer ID:", customerId);
+
+      const response = await fetchCustomerCard(customerId);
+
+      // Check if response is successful and has data
+      if (response.statusCode === 200 && response.data) {
+        // Validate that we have proper card data
+        const cardData = response.data;
+
+        // Only create card if we have valid card number
+        if (cardData.cardNumber && cardData.cardNumber.trim() !== '') {
+          const transformedCard = {
+            cardId: cardData.jobId,
+            brand: cardData.cardType,
+            type: cardData.cardType,
+            last4: cardData.cardNumber.slice(-4), // Get last 4 digits
+            cardNumber: cardData.cardNumber,
+            cardDate: cardData.cardDate,
+            isActive: cardData.isActive,
+            isDefault: true // Since it's the only card, make it default
+          };
+
+          setPaymentOptions([transformedCard]);
+        } else {
+          // No valid card data
+          setPaymentOptions([]);
+        }
+      } else {
+        // No successful response or no data
+        setPaymentOptions([]);
+      }
+
+    } catch (error: any) {
+      setPaymentOptions([]); // Ensure empty array on error
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   const openPaymentModal = (index: number) => {
     setSelectedInstallment(index);
     setModalVisible(true);
+    fetchPaymentMethods(); // Fetch payment methods when modal opens
   };
 
   const openDatePicker = (index: number) => {
@@ -55,10 +105,10 @@ const DetailsScreen = ({ route }: any) => {
         maximumDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
       };
     }
-    
+
     const firstInstallmentDate = new Date(installments[0].dueDate);
     const secondInstallmentDate = new Date(installments[1].dueDate);
-    
+
     return {
       minimumDate: firstInstallmentDate,
       maximumDate: secondInstallmentDate
@@ -69,13 +119,13 @@ const DetailsScreen = ({ route }: any) => {
     setShowDatePicker(false);
     if (date && selectedInstallment !== null) {
       const constraints = getRescheduleDateConstraints();
-      
+
       // Validate the selected date is within constraints
       if (date >= constraints.minimumDate && date <= constraints.maximumDate) {
         const updated = [...installments];
         updated[selectedInstallment].dueDate = date.toISOString();
         setInstallments(updated);
-        
+
         Alert.alert(
           'Date Updated',
           `Installment ${selectedInstallment + 1} has been rescheduled to ${date.toLocaleDateString()}`
@@ -95,7 +145,22 @@ const DetailsScreen = ({ route }: any) => {
 
   const handleRefill = () => {
     // Handle refill/payment action here
+    if (paymentOptions.length > 0 && selectedPayment !== null) {
+      const selectedCard = paymentOptions[selectedPayment];
+      console.log("Processing payment with card:", selectedCard);
+      // Add your payment processing logic here
+    }
     setModalVisible(false);
+  };
+
+
+  // Format card display text - add validation
+  const formatCardText = (card: any) => {
+    if (!card || !card.cardNumber) return 'Invalid Card';
+
+    const cardType = card.brand || card.type;
+    const last4 = card.last4 || card.cardNumber?.slice(-4);
+    return `${cardType} **** ${last4}`;
   };
 
   // Fetch loan details from API
@@ -103,7 +168,7 @@ const DetailsScreen = ({ route }: any) => {
     try {
       setLoading(true);
       console.log("Fetching loan details for loan ID:", order.loanId);
-      
+
       const response = await callMobileApi(
         'GetLoanDetail',
         { loanId: order.loanId },
@@ -119,12 +184,12 @@ const DetailsScreen = ({ route }: any) => {
       if (response.statusCode === 200) {
         const responseData = response.data;
         setLoanData(responseData.loan);
-        
+
         // Filter out down payment installments
         const filteredInstallments = (responseData.installments || []).filter(
           (installment: any) => installment.instType?.toLowerCase() !== 'downpayment'
         );
-        
+
         setInstallments(filteredInstallments);
         console.log("Loan details fetched successfully");
       } else {
@@ -184,17 +249,28 @@ const DetailsScreen = ({ route }: any) => {
 
   // Helper function for timeline circle styling
   const getTimelineCircleStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-        return styles.timelineCirclePaid;
-      case 'pending':
-      case 'unpaid':
-        return styles.timelineCirclePending;
-      case 'overdue':
-        return styles.timelineCircleOverdue;
-      default:
-        return styles.timelineCircleDefault;
+    if (status?.toLowerCase() === 'completed') {
+      return styles.timelineCircleCompleted;
     }
+    return styles.timelineCircleDefault;
+  };
+
+  // Helper function for timeline line styling
+  const getTimelineLineStyle = (index: number) => {
+    // Check if current installment is completed
+    const currentCompleted = installments[index]?.instStatus?.toLowerCase() === 'completed';
+
+    if (currentCompleted) {
+      return [styles.timelineLine, styles.timelineLineCompleted];
+    }
+    return styles.timelineLine;
+  };
+
+  // Helper function to find the first active installment index
+  const getFirstActiveInstallmentIndex = () => {
+    return installments.findIndex(installment =>
+      installment.instStatus?.toLowerCase() === 'active'
+    );
   };
 
   if (loading) {
@@ -263,14 +339,14 @@ const DetailsScreen = ({ route }: any) => {
                 <Text style={styles.detailLabel}>Loan Date</Text>
                 <Text style={styles.detailValue}>{formatDate(loanData.createdOn)}</Text>
               </View>
-              
+
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Credit Value</Text>
+                <Text style={styles.detailLabel}>Due Amount</Text>
                 <Text style={styles.detailValue}>{formatAmount(loanData.totCreditValue)}</Text>
               </View>
-              
+
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Down Payment</Text>
+                <Text style={styles.detailLabel}>Paid Amount</Text>
                 <Text style={styles.detailValue}>{formatAmount(loanData.downPaymentet)}</Text>
               </View>
             </View>
@@ -293,11 +369,13 @@ const DetailsScreen = ({ route }: any) => {
                 {/* Timeline Circle and Line */}
                 <View style={styles.timelineWrapper}>
                   <View style={[styles.timelineCircle, getTimelineCircleStyle(item.instStatus)]}>
-                    {item.instStatus?.toLowerCase() === 'paid' && (
-                      <MaterialIcons name="check" size={16} color="#2D5016" />
+                    {item.instStatus?.toLowerCase() === 'completed' && (
+                      <View style={styles.innerCircle} />
                     )}
                   </View>
-                  {index < installments.length - 1 && <View style={styles.timelineLine} />}
+                  {index < installments.length - 1 && (
+                    <View style={getTimelineLineStyle(index)} />
+                  )}
                 </View>
 
                 {/* Installment Card */}
@@ -314,9 +392,6 @@ const DetailsScreen = ({ route }: any) => {
                     <Text style={styles.installmentTitle}>
                       Installment {index + 1}
                     </Text>
-                    <Text style={styles.installmentType}>
-                      ({item.instType})
-                    </Text>
                   </View>
 
                   {/* Amount */}
@@ -326,32 +401,38 @@ const DetailsScreen = ({ route }: any) => {
 
                   {/* Dates */}
                   <View style={styles.datesRow}>
-                    <Text style={styles.dateLabel}>Due: {formatDate(item.dueDate)}</Text>
-                    {item.settleDate && (
-                      <Text style={styles.settledDate}>
-                        Settled: {formatDate(item.settleDate)}
-                      </Text>
+                    {item.instStatus?.toLowerCase() === 'completed' ? (
+                      // Show only settled date for completed installments
+                      item.settleDate && (
+                        <Text style={styles.settledDate}>
+                          Settled: {formatDate(item.settleDate)}
+                        </Text>
+                      )
+                    ) : (
+                      // Show only due date for unpaid installments
+                      <Text style={styles.dateLabel}>Due: {formatDate(item.dueDate)}</Text>
                     )}
                   </View>
 
                   {/* Action Buttons */}
                   {item.instStatus !== "Paid" && (
                     <View style={styles.actionButtonsRow}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => openPaymentModal(index)}
-                      >
-                        <Text style={styles.actionButtonText}>Pay Now</Text>
-                      </TouchableOpacity>
-
-                      {/* Show reschedule button only for first installment (index 0) */}
-                      {index === 0 && (
-                        <TouchableOpacity
-                          style={[styles.actionButton, styles.rescheduleButton]}
-                          onPress={() => openDatePicker(index)}
-                        >
-                          <Text style={styles.rescheduleButtonText}>Reschedule</Text>
-                        </TouchableOpacity>
+                      {/* Show reschedule and pay now buttons only for first active installment */}
+                      {index === getFirstActiveInstallmentIndex() && (
+                        <>
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => openPaymentModal(index)}
+                          >
+                            <Text style={styles.actionButtonText}>Pay Now</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.rescheduleButton]}
+                            onPress={() => openDatePicker(index)}
+                          >
+                            <Text style={styles.rescheduleButtonText}>Reschedule</Text>
+                          </TouchableOpacity>
+                        </>
                       )}
                     </View>
                   )}
@@ -377,45 +458,75 @@ const DetailsScreen = ({ route }: any) => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Payment Method</Text>
 
-            {paymentOptions.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.paymentOption,
-                  selectedPayment === index && styles.paymentOptionSelected,
-                ]}
-                onPress={() => handleSelectPayment(index)}
-              >
-                <View style={styles.paymentIcon}>
-                  {option.type === "MasterCard" && <MaterialIcons name="credit-card" size={24} color="#8E8E93" />}
-                  {option.type === "Visa" && <MaterialIcons name="credit-card" size={24} color="#8E8E93" />}
-                  {option.type === "PayPal" && <MaterialIcons name="account-balance-wallet" size={24} color="#8E8E93" />}
-                </View>
+            {paymentLoading ? (
+              <View style={styles.paymentLoadingContainer}>
+                <ActivityIndicator size="small" color="#2C2C2E" />
+                <Text style={styles.paymentLoadingText}>Loading payment methods...</Text>
+              </View>
+            ) : paymentOptions.length > 0 ? (
+              paymentOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={option.cardId || index}
+                  style={[
+                    styles.paymentOption,
+                    selectedPayment === index && styles.paymentOptionSelected,
+                  ]}
+                  onPress={() => handleSelectPayment(index)}
+                >
+                  <View style={styles.paymentIcon}>
+                    <MaterialIcons name="credit-card" size={24} color="#666" />
+                  </View>
 
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.paymentText}>
-                    {option.type === "PayPal" ? option.name : `${option.type} **** ${option.last4}`}
-                  </Text>
-                </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.paymentText}>
+                      {formatCardText(option)}
+                    </Text>
+                    {option.holderName && (
+                      <Text style={styles.cardHolderText}>
+                        {option.holderName}
+                      </Text>
+                    )}
+                  </View>
 
-                {selectedPayment === index && (
-                  <MaterialIcons name="check-circle" size={24} color="#2C2C2E" />
-                )}
-              </TouchableOpacity>
-            ))}
+                  {selectedPayment === index && (
+                    <MaterialIcons name="check-circle" size={24} color="#2C2C2E" />
+                  )}
+                </TouchableOpacity>
+              ))
+            ) : (
+              // Show this only when there are genuinely no payment methods
+              <View style={styles.noPaymentMethodsContainer}>
+                <MaterialIcons name="credit-card-off" size={48} color="#E8E8E8" />
+                <Text style={styles.noPaymentMethodsText}>
+                  No payment methods found
+                </Text>
+                <Text style={styles.noPaymentMethodsSubtext}>
+                  Add a payment method to continue
+                </Text>
+              </View>
+            )}
 
             <View style={styles.amountSection}>
               <Text style={styles.amountLabel}>Amount</Text>
               <Text style={styles.amountText}>
-                {selectedInstallment !== null && installments[selectedInstallment] 
+                {selectedInstallment !== null && installments[selectedInstallment]
                   ? formatAmount(installments[selectedInstallment].instAmount)
                   : 'Rs. 0'
                 }
               </Text>
             </View>
 
-            <TouchableOpacity style={styles.payButton} onPress={handleRefill}>
-              <Text style={styles.payButtonText}>Pay Now</Text>
+            <TouchableOpacity
+              style={[
+                styles.payButton,
+                (paymentOptions.length === 0 || paymentLoading) && styles.payButtonDisabled
+              ]}
+              onPress={handleRefill}
+              disabled={paymentOptions.length === 0 || paymentLoading}
+            >
+              <Text style={styles.payButtonText}>
+                {paymentOptions.length === 0 ? 'No Payment Method' : 'Pay Now'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -449,8 +560,8 @@ const DetailsScreen = ({ route }: any) => {
 export default DetailsScreen;
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: "#fff"
   },
   header: {
@@ -459,16 +570,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
   },
-  backButton: { 
+  backButton: {
     marginRight: 16,
     padding: 4,
   },
-  headerTitle: { 
-    fontSize: 18, 
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "500",
     color: 'rgba(32, 34, 46, 1)',
   },
-  
+
   // New styles for fixed and scrollable content
   fixedContent: {
     padding: 20,
@@ -478,20 +589,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
-  
+
   // Summary Card
   summaryCard: {
     backgroundColor: "#FFFFFF",
   },
-  loanAmount: { 
-    fontSize: 24, 
+  loanAmount: {
+    fontSize: 24,
     fontWeight: "600",
     color: 'rgba(32, 34, 46, 1)',
     marginBottom: 4,
   },
-  loanDate: { 
-    fontSize: 14, 
-    color: "#666", 
+  loanDate: {
+    fontSize: 14,
+    color: "#666",
     marginBottom: 24,
   },
   summaryRow: {
@@ -500,12 +611,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  summaryLabel: { 
-    fontSize: 14, 
+  summaryLabel: {
+    fontSize: 14,
     color: "#666",
   },
-  summaryValue: { 
-    fontSize: 14, 
+  summaryValue: {
+    fontSize: 14,
     color: 'rgba(32, 34, 46, 1)',
     fontWeight: "500",
   },
@@ -536,28 +647,26 @@ const styles = StyleSheet.create({
   timelineCircle: {
     width: 20,
     height: 20,
-    borderRadius: 12,
-    borderWidth: 3,
+    borderRadius: 10,
+    borderWidth: 2,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2, // Ensure circle is above the line
+    zIndex: 2,
   },
-  timelineCirclePaid: {
-    borderColor: '#2D5016',
-    backgroundColor: '#2D5016',
-  },
-  timelineCirclePending: {
-    borderColor: '#E8E8E8',
-    backgroundColor: '#FFFFFF',
-  },
-  timelineCircleOverdue: {
-    borderColor: '#fa828eff',
+  timelineCircleCompleted: {
+    borderColor: '#000000',
     backgroundColor: '#FFFFFF',
   },
   timelineCircleDefault: {
     borderColor: '#E8E8E8',
     backgroundColor: '#FFFFFF',
+  },
+  innerCircle: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#000000',
   },
   timelineLine: {
     position: 'absolute',
@@ -565,6 +674,9 @@ const styles = StyleSheet.create({
     height: '120%',
     backgroundColor: '#E8E8E8',
     zIndex: 1,
+  },
+  timelineLineCompleted: {
+    backgroundColor: '#000000',
   },
 
   // Installment Cards
@@ -582,8 +694,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  installmentTitle: { 
-    fontSize: 14, 
+  installmentTitle: {
+    fontSize: 14,
     fontWeight: "500",
     color: 'rgba(32, 34, 46, 1)',
     marginRight: 8,
@@ -592,8 +704,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
   },
-  installmentAmount: { 
-    fontSize: 18, 
+  installmentAmount: {
+    fontSize: 18,
     fontWeight: "600",
     color: 'rgba(32, 34, 46, 1)',
     marginBottom: 12,
@@ -604,12 +716,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  dateLabel: { 
-    fontSize: 12, 
+  dateLabel: {
+    fontSize: 12,
     color: "#666",
   },
-  settledDate: { 
-    fontSize: 12, 
+  settledDate: {
+    fontSize: 12,
     color: 'rgba(32, 34, 46, 1)',
   },
 
@@ -630,15 +742,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E8E8E8",
   },
-  actionButtonText: { 
-    fontSize: 13, 
-    fontWeight: "500", 
-    color: "#fff" 
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#fff"
   },
-  rescheduleButtonText: { 
-    fontSize: 13, 
-    fontWeight: "500", 
-    color: "rgba(32, 34, 46, 1)" 
+  rescheduleButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(32, 34, 46, 1)"
   },
   // Updated Status Tags - matching ProfileScreen style
   statusTag: {
@@ -719,8 +831,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
   },
-  modalTitle: { 
-    fontSize: 16, 
+  modalTitle: {
+    fontSize: 16,
     fontWeight: "500",
     color: 'rgba(32, 34, 46, 1)',
     marginBottom: 20,
@@ -741,27 +853,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderColor: "#E8E8E8",
   },
-  paymentIcon: { 
-    width: 24, 
-    alignItems: "center" 
+  paymentIcon: {
+    width: 24,
+    alignItems: "center"
   },
-  paymentText: { 
+  paymentText: {
     fontSize: 14,
     marginLeft: 12,
     color: 'rgba(32, 34, 46, 1)',
   },
-  amountSection: { 
+  amountSection: {
     marginTop: 20,
     marginBottom: 20,
     alignItems: 'center',
   },
-  amountLabel: { 
-    fontSize: 12, 
+  amountLabel: {
+    fontSize: 12,
     color: "#666",
     marginBottom: 4,
   },
-  amountText: { 
-    fontSize: 20, 
+  amountText: {
+    fontSize: 20,
     fontWeight: "600",
     color: 'rgba(32, 34, 46, 1)',
   },
@@ -772,10 +884,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  payButtonText: { 
-    color: "#fff", 
-    fontSize: 14, 
-    fontWeight: "500" 
+  payButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500"
   },
   cancelButton: {
     backgroundColor: "transparent",
@@ -783,7 +895,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignItems: "center",
   },
-  cancelButtonText: { 
+  cancelButtonText: {
     color: "#666",
     fontSize: 14,
   },
@@ -843,5 +955,46 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8E8E8",
     marginTop: 16,
     marginBottom: 16,
+  },
+
+  // New styles for payment loading and no payment methods
+  paymentLoadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  paymentLoadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+  },
+  noPaymentMethodsContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  noPaymentMethodsText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+    marginTop: 12,
+  },
+  noPaymentMethodsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  cardHolderText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  defaultCardText: {
+    fontSize: 11,
+    color: '#2C2C2E',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  payButtonDisabled: {
+    backgroundColor: '#E8E8E8',
   },
 });

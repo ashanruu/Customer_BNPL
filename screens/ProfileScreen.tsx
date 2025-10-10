@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument } from '../scripts/api';
+import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument, fetchCustomerDocApproveStatus } from '../scripts/api';
 import CustomButton from "../components/CustomButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from 'expo-document-picker';
@@ -71,12 +71,13 @@ const ProfileScreen: React.FC = () => {
   const [removingCard, setRemovingCard] = useState(false);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
 
-  const [documents, setDocuments] = useState([
-    { id: "nic_front", name: "NIC Front Side", date: "", status: "To Upload", type: "nic_front" },
-    { id: "nic_back", name: "NIC Back Side", date: "", status: "To Upload", type: "nic_back" },
-    { id: "address_proof", name: "Address Proof Document", date: "", status: "To Upload", type: "address_proof" },
-    { id: "salary_slip", name: "Salary Slip", date: "", status: "To Upload", type: "salary_slip" },
-  ]);
+const [documents, setDocuments] = useState([
+  { id: "nic_front", name: "NIC Front Side", date: "", status: "To Upload", type: "nic_front", fileType: 1 },
+  { id: "nic_back", name: "NIC Back Side", date: "", status: "To Upload", type: "nic_back", fileType: 2 },
+  { id: "address_proof", name: "Address Proof Document", date: "", status: "To Upload", type: "address_proof", fileType: 3 },
+  { id: "salary_slip", name: "Salary Slip", date: "", status: "To Upload", type: "salary_slip", fileType: 4 },
+]);
+const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
   // Fetch customer details when component mounts
   useEffect(() => {
@@ -204,7 +205,80 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  // Handle payment method onboarding
+  // Fetch document approval status
+  const fetchDocumentApprovalStatus = async () => {
+    try {
+      console.log("Fetching document approval status...");
+
+      const response = await fetchCustomerDocApproveStatus();
+
+      if (response.statusCode === 200 && response.data) {
+        setDocApprovalStatus(response.data);
+        console.log("Document approval status loaded successfully");
+        
+        // Update documents array with the latest status
+        updateDocumentsWithApprovalStatus(response.data);
+      } else {
+        console.warn("Failed to fetch document approval status:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching document approval status:", error);
+    }
+  };
+
+  // Update documents array with approval status
+  const updateDocumentsWithApprovalStatus = (approvalData: any[]) => {
+    setDocuments(prevDocs => 
+      prevDocs.map(doc => {
+        // Map document types to backend document strings
+        const documentStringMap: { [key: string]: string } = {
+          'nic_front': 'cus_NID_FE',
+          'nic_back': 'cus_NID_BE',
+          'address_proof': 'cus_Ubill',
+          'salary_slip': 'cus_SallarySlip'
+        };
+
+        const documentString = documentStringMap[doc.type];
+        
+        // Find the latest approval status for this document type
+        const approvalInfo = approvalData
+          .filter(item => item.documentString === documentString)
+          .sort((a, b) => b.doc_Id - a.doc_Id)[0]; // Get the latest one by doc_Id
+
+        if (approvalInfo) {
+          const statusMap: { [key: string]: string } = {
+            'approved': 'Approved',
+            'pending': 'Pending',
+            'rejected': 'Rejected'
+          };
+
+          return {
+            ...doc,
+            status: statusMap[approvalInfo.docApproveStatus] || 'To Upload',
+            date: doc.date || new Date().toLocaleDateString()
+          };
+        }
+
+        return doc;
+      })
+    );
+  };
+
+  // Fetch customer details when component mounts
+  useEffect(() => {
+    fetchCustomerDetails();
+    // Remove fetchCustomerPlan() from here
+  }, []);
+
+  // Fetch card data when customer details are loaded
+  useEffect(() => {
+    if (customerDetails && (customerDetails.customerId || customerDetails.id)) {
+      fetchCardData();
+      fetchCustomerPlan(); // Move this here so it has access to customer ID
+      fetchDocumentApprovalStatus(); // Add this line
+    }
+  }, [customerDetails]);
+
   const handleAddPaymentMethod = async () => {
     try {
       setOnboardingLoading(true);
@@ -396,32 +470,30 @@ const ProfileScreen: React.FC = () => {
       const mimeType = type === 'pdf' ? 'application/pdf' : 'image/jpeg';
       const documentBase64 = `data:${mimeType};base64,${base64}`;
 
-      // Find document type from documents array
+      // Find document from documents array to get both type and fileType
       const documentItem = documents.find(doc => doc.id === documentId);
       const documentType = documentItem?.type || documentId;
+      const fileType = documentItem?.fileType || 1;
 
       // Generate filename based on document type and file type
       const fileExtension = type === 'pdf' ? 'pdf' : 'jpg';
       const fileName = `${documentType}.${fileExtension}`;
 
-      // Call the upload API
-      const response = await uploadDocument(documentBase64, documentType, fileName);
+      // Call the upload API with the specific file type
+      const response = await uploadDocument(documentBase64, documentType, fileName, fileType);
 
       if (response.statusCode === 200) {
-        // Update document status locally
-        setDocuments(prevDocs => 
-          prevDocs.map(doc => 
-            doc.id === documentId 
-              ? { ...doc, status: "Submitted", date: new Date().toLocaleDateString() }
-              : doc
-          )
-        );
-
         Alert.alert(
           "Success", 
           `${documentName} uploaded successfully!`
         );
-        console.log(`Document ${documentId} uploaded successfully`);
+        console.log(`Document ${documentId} uploaded successfully with fileType: ${fileType}`);
+        
+        // Refresh document approval status after successful upload
+        setTimeout(() => {
+          fetchDocumentApprovalStatus();
+        }, 1000); // Small delay to allow backend processing
+
       } else {
         throw new Error(response.message || 'Upload failed');
       }
@@ -445,17 +517,12 @@ const ProfileScreen: React.FC = () => {
     return "N/A"; // fallback
   };
 
-  // Helper function to get customer email
-  const getCustomerEmail = () => {
-    return customerDetails?.email || "N/A"; // fallback
-  };
-
   // Helper function to get plan name
   const getPlanName = () => {
     if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan && customerPlan.customer.customerPlan.planName) {
       return customerPlan.customer.customerPlan.planName;
     }
-    return customerDetails?.planName || "Premium Plan";
+    return customerDetails?.planName ;
   };
 
   // Helper function to get plan status
@@ -463,24 +530,7 @@ const ProfileScreen: React.FC = () => {
     if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan && typeof customerPlan.customer.customerPlan.planIsActive !== 'undefined') {
       return customerPlan.customer.customerPlan.planIsActive ? "Active" : "Inactive";
     }
-    return "Active";
   };
-
-  // Helper function to get plan details
-  // const getPlanDetails = () => {
-  //   if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan) {
-  //     const details = [];
-      
-  //     // Add plan creation date if available
-  //     if (customerPlan.customer.customerPlan.planCreatedDate) {
-  //       const createdDate = new Date(customerPlan.customer.customerPlan.planCreatedDate).toLocaleDateString();
-  //       details.push(`Created: ${createdDate}`);
-  //     }
-
-  //     return details.length > 0 ? details.join(' • ') : "Base plan features included";
-  //   }
-  //   return customerDetails?.planDetails || "Premium features included";
-  // };
 
   // Helper function to get plan price - updated to use correct baseCreditLimit path
   const getPlanPrice = () => {
@@ -503,7 +553,7 @@ const ProfileScreen: React.FC = () => {
       console.log("customerPlan is null/undefined");
     }
     
-    const fallbackPrice = customerDetails?.planPrice || customerDetails?.creditLimit || "Rs. 300,000";
+    const fallbackPrice = customerDetails?.planPrice || customerDetails?.creditLimit;
     console.log("Using fallback price:", fallbackPrice);
     return fallbackPrice;
   };
@@ -519,12 +569,21 @@ const ProfileScreen: React.FC = () => {
       return null;
     }
 
+    // Check if we have valid card data before mapping
+    const hasValidCardData = cardData.maskedCardNumber || cardData.cardNumber || 
+                            cardData.cardDate || cardData.expiryDate || cardData.cardExpiry ||
+                            cardData.brand || cardData.cardType;
+
+    if (!hasValidCardData) {
+      return null;
+    }
+
     // Map API response to expected format
     return {
-      cardNumber: cardData.maskedCardNumber || cardData.cardNumber || "**** **** **** ****",
-      cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || "**/**",
-      cardType: cardData.brand || cardData.cardType || "CARD",
-      isActive: cardData.isActive || cardData.status === 'active' || true,
+      cardNumber: cardData.maskedCardNumber || cardData.cardNumber || "No card",
+      cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || "N/A",
+      cardType: cardData.brand || cardData.cardType || "Unknown",
+      isActive: cardData.isActive || cardData.status === 'active',
       jobId: cardData.jobId // Use jobId instead of cardId
     };
   };
@@ -560,12 +619,6 @@ const ProfileScreen: React.FC = () => {
             variant="outline"
             onPress={() => navigation.navigate("UserProfileScreen")}
           />
-          {/* <TouchableOpacity
-            style={styles.editProfileBtn}
-            onPress={() => navigation.navigate("UserProfileScreen")}
-          >
-            <Text style={styles.editProfileText}>Edit Profile</Text>
-          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -720,24 +773,31 @@ const ProfileScreen: React.FC = () => {
               <View>
                 {item.status === "To Upload" ? (
                   <TouchableOpacity
-                    style={[styles.statusBadge, styles.toUpload, styles.uploadButton]}
+                    style={[styles.statusContainer, styles.toUploadContainer, uploadingDocId === item.id && styles.disabledBtn]}
                     onPress={() => handleDocumentUpload(item.id, item.name)}
                     disabled={uploadingDocId === item.id}
                   >
                     {uploadingDocId === item.id ? (
                       <ActivityIndicator size="small" color="#8B4513" />
                     ) : (
-                      <Text style={styles.uploadButtonText}>
+                      <Text style={[styles.statusBadge, styles.toUpload]}>
                         {item.status}
                       </Text>
                     )}
                   </TouchableOpacity>
                 ) : (
-                  <Text
-                    style={[styles.statusBadge, styles.submitted]}
-                  >
-                    {item.status}
-                  </Text>
+                  <View style={styles.statusContainer}>
+                    <Text
+                      style={[styles.statusBadge, 
+                        item.status === "Approved" ? styles.approved :
+                        item.status === "Pending" ? styles.pending :
+                        item.status === "Rejected" ? styles.rejected :
+                        styles.submitted
+                      ]}
+                    >
+                      {item.status}
+                    </Text>
+                  </View>
                 )}
               </View>
             </View>
@@ -1014,6 +1074,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#777",
   },
+  statusContainer: {
+    alignSelf: "flex-start",
+  },
+  
+  toUploadContainer: {
+    borderWidth: 1,
+    borderColor: '#8B4513',
+    borderStyle: 'dashed',
+    borderRadius: 6,
+    backgroundColor: '#FFF8F0',
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
   statusBadge: {
     fontSize: 11,
     fontWeight: "500",
@@ -1022,7 +1095,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: "hidden",
     textAlign: "center",
-    alignSelf: "flex-start",
+    width: 80,
+    minWidth: 80,
   },
   submitted: {
     backgroundColor: "#E8F5E8",
@@ -1031,6 +1105,18 @@ const styles = StyleSheet.create({
   toUpload: {
     backgroundColor: "#FFF4E6",
     color: "#8B4513",
+  },
+  approved: {
+    backgroundColor: "#E8F5E8",
+    color: "#2D5016",
+  },
+  pending: {
+    backgroundColor: "#FEF3C7",
+    color: "#92400E",
+  },
+  rejected: {
+    backgroundColor: "#FDECEA",
+    color: "#C0392B",
   },
   removeBtn: {
     alignSelf: 'flex-end',
@@ -1059,20 +1145,5 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#666',
-  },
-  uploadButton: {
-    // Make it look more clickable
-    borderWidth: 1,
-    borderColor: '#8B4513',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  uploadButtonText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#8B4513",
   },
 });

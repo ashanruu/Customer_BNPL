@@ -128,41 +128,68 @@ const OrdersScreen: React.FC = () => {
         
         {/* Card Content */}
         <View style={styles.cardContent}>
-          {/* Order Name and Status Row */}
-          <View style={styles.orderHeader}>
-            <Text style={styles.orderName}>
-              {`LOAN #${item.loanId || 'UNKNOWN'}`}
+          {/* Loan Value with Status Dot */}
+          <View style={styles.loanAmountRow}>
+            <Text style={styles.loanAmount}>
+              Rs. {item.totLoanValue?.toLocaleString() || '0'}
             </Text>
-            <View style={[styles.loanStatusTag, getStatusTagStyle(item.loanStatus)]}>
-              <Text style={[styles.loanStatusText, getStatusTextStyle(item.loanStatus)]}>
-                {item.loanStatus || 'Status Unknown'}
-              </Text>
-            </View>
+            <View style={[styles.statusDot, getStatusDotStyle(item.loanStatus)]} />
           </View>
           
-          {/* Loan Value */}
-          <Text style={styles.loanAmount}>
-            Rs. {item.totLoanValue?.toLocaleString() || '0'}
-          </Text>
-          
+          {/* Product Name with Plan Tag */}
+          <View style={styles.productNameMainContainer}>
+            <View style={styles.productNameWithTag}>
+              <Text style={styles.productNameMain}>
+                {item.productName || 'iPhone 15 Pro'}
+              </Text>
+              <View style={styles.planTag}>
+                <Text style={styles.planTagText}>
+                  {item.planType || 'Premium'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* Credit and Installments Info */}
           <View style={styles.loanDetailsRow}>
             <Text style={styles.creditInfo}>
-              Credit: Rs. {item.totCreditValue?.toLocaleString() || '0'}
+              Due Amount : Rs. {item.totCreditValue?.toLocaleString() || '0'}
             </Text>
             <Text style={styles.installmentInfo}>
-              {item.noOfInstallments || 0} Installments
+              {(() => {
+                const totalInstallments = item.noOfInstallments || 0;
+                // Dummy logic for completed installments based on status
+                let completedInstallments = 0;
+                completedInstallments = 2;
+                
+                return `( ${completedInstallments}/${totalInstallments} )`;
+              })()}
             </Text>
           </View>
         </View>
 
-        {/* Right Side - Down Payment moved to top */}
+        {/* Right Side - Next Payment and Arrow */}
         <View style={styles.rightSection}>
           <View style={styles.downPaymentContainer}>
-            <Text style={styles.downPaymentLabel}>Down Payment</Text>
+            <Text style={styles.downPaymentLabel}>Next Payment</Text>
             <Text style={styles.downPaymentAmount}>
-              Rs. {item.downPaymentet?.toLocaleString() || '0'}
+              {(() => {
+                // Dummy next payment date logic
+                const today = new Date();
+                const nextPaymentDate = new Date(today);
+                nextPaymentDate.setDate(today.getDate() + 30); // 30 days from today
+                return nextPaymentDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+              })()}
             </Text>
+          </View>
+          
+          {/* Arrow indicator */}
+          <View style={styles.arrowContainer}>
+            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
           </View>
         </View>
       </TouchableOpacity>
@@ -183,17 +210,17 @@ const OrdersScreen: React.FC = () => {
     }
   };
 
-  // Add helper functions for status styling
-  const getStatusTagStyle = (status: string) => {
+  // Add helper function for status dot styling
+  const getStatusDotStyle = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'active':
-        return styles.activeStatusTag;
+        return styles.activeStatusDot;
       case 'completed':
-        return styles.completedStatusTag;
+        return styles.completedStatusDot;
       case 'returned':
-        return styles.returnedStatusTag;
+        return styles.returnedStatusDot;
       default:
-        return styles.defaultStatusTag;
+        return styles.defaultStatusDot;
     }
   };
 
@@ -335,12 +362,12 @@ export default OrdersScreen;
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.95)", // lowered opacity
     paddingTop: 10,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.95)", // lowered opacity
     paddingHorizontal: 20,
   },
   header: {
@@ -379,7 +406,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    //backgroundColor: "rgba(242,242,247,0.25)",
     paddingVertical: 0,
     paddingHorizontal: 0,
     borderRadius: 12,
@@ -394,7 +421,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0F0F0",
     overflow: 'hidden',
-    position: 'relative', // Add this for absolute positioning
+    position: 'relative',
   },
 
   // Left border line styles
@@ -410,22 +437,21 @@ const styles = StyleSheet.create({
 
   // Border colors for different statuses
   activeBorderLine: {
-    backgroundColor: '#000000', // Black for active
+    backgroundColor: '#000000',
   },
   
   completedBorderLine: {
-    backgroundColor: '#2196F3', // Blue for completed
+    backgroundColor: '#2196F3',
   },
   
   returnedBorderLine: {
-    backgroundColor: '#F44336', // Red for returned/cancelled
+    backgroundColor: '#F44336',
   },
   
   defaultBorderLine: {
-    backgroundColor: '#9E9E9E', // Gray for default
+    backgroundColor: '#9E9E9E',
   },
 
-  // Update cardContent style
   cardContent: {
     flex: 1,
     paddingVertical: 18,
@@ -433,66 +459,132 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
 
-  // Update orderHeader style - remove justifyContent: 'space-between'
-  orderHeader: {
+  // New style for loan amount row with status dot
+  loanAmountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
 
-  // Update orderName style - remove flex: 1 and add marginRight
-  orderName: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#666",
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginRight: 8,
-  },
-
-  // New style for loan amount (main amount)
   loanAmount: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1a1a1a",
+    marginRight: 8,
+  },
+
+  // Product name as main element - more prominent
+  productNameMainContainer: {
     marginBottom: 8,
   },
 
-  // New style for loan details row
-  loanDetailsRow: {
+  // New styles for product name with tag
+  productNameWithTag: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
 
-  // Update credit info style
+  productNameMain: {
+    fontSize: 16,
+    color: "#1a1a1a",
+    fontWeight: "600",
+    lineHeight: 20,
+    marginRight: 8,
+  },
+
+  planTag: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+
+  planTagText: {
+    fontSize: 11,
+    color: '#2C2C2E',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Status dot styles
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+
+  // Status dot colors
+  activeStatusDot: {
+    backgroundColor: '#4CAF50',
+  },
+  
+  completedStatusDot: {
+    backgroundColor: '#2196F3',
+  },
+  
+  returnedStatusDot: {
+    backgroundColor: '#F44336',
+  },
+  
+  defaultStatusDot: {
+    backgroundColor: '#9E9E9E',
+  },
+
+  // Status text colors
+  activeStatusText: {
+    color: '#4CAF50',
+  },
+  
+  completedStatusText: {
+    color: '#2196F3',
+  },
+  
+  returnedStatusText: {
+    color: '#F44336',
+  },
+  
+  defaultStatusText: {
+    color: '#9E9E9E',
+  },
+
+  loanDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+
   creditInfo: {
     fontSize: 13,
     color: "#666",
     fontWeight: "500",
   },
 
-  // New style for installment info
   installmentInfo: {
     fontSize: 13,
     color: "#888",
     fontWeight: "500",
+    marginLeft: 12,
   },
 
-  // Update right section style to align to top
   rightSection: {
     paddingRight: 16,
     paddingLeft: 8,
-    paddingTop: 18, // Add top padding to align with card content
-    alignSelf: 'flex-start', // Align to top
-  },
-
-  // Update down payment container to align to top right
-  downPaymentContainer: {
+    paddingTop: 18,
+    alignSelf: 'flex-start',
     alignItems: 'flex-end',
   },
 
-  // New down payment label style
+  downPaymentContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+
   downPaymentLabel: {
     fontSize: 11,
     color: "#888",
@@ -501,7 +593,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // New down payment amount style
   downPaymentAmount: {
     fontSize: 14,
     fontWeight: "600",
@@ -579,48 +670,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Update loanStatus style to be a container
-  loanStatusTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  arrowContainer: {
+    marginTop: 0,
+    alignItems: 'center',
   },
 
-  loanStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
+  // Remove these old styles as they're no longer needed:
+  // planProductRow, planTypeContainer, planTypeLabel, planTypeValue
+  // productNameContainer, productNameLabel, productNameValue
 
-  // Active status (green)
-  activeStatusTag: {
-    backgroundColor: '#E8F5E8',
-  },
-  activeStatusText: {
-    color: '#2D5016',
-  },
-
-  // Completed status (blue)
-  completedStatusTag: {
-    backgroundColor: '#E3F2FD',
-  },
-  completedStatusText: {
-    color: '#1565C0',
-  },
-
-  // Returned/Cancelled status (red)
-  returnedStatusTag: {
-    backgroundColor: '#FFEBEE',
-  },
-  returnedStatusText: {
-    color: '#C62828',
-  },
-
-  // Default status (gray)
-  defaultStatusTag: {
-    backgroundColor: '#F5F5F5',
-  },
-  defaultStatusText: {
-    color: '#616161',
-  },
+  // ...rest of existing styles...
 });
