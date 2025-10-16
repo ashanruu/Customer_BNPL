@@ -12,6 +12,9 @@ import {
   Modal,
   Animated,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -47,6 +50,10 @@ const SalesScreen: React.FC = () => {
   const [note, setNote] = useState('');
   const [shopQRLoading, setShopQRLoading] = useState(false);
   const shopQRSlideAnim = useState(new Animated.Value(height))[0];
+
+  // Add keyboard state
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const progressSteps = [
     { title: 'Validating Code', subtitle: 'Checking QR code authenticity...', duration: 1500 },
@@ -137,6 +144,30 @@ const SalesScreen: React.FC = () => {
       }).start();
     }
   }, [showShopQRModal]);
+
+  // Add keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        setIsKeyboardVisible(true);
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        setIsKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const resetModalState = () => {
     setShowProgressModal(false);
@@ -575,72 +606,84 @@ const SalesScreen: React.FC = () => {
         onRequestClose={closeShopQRModal}
       >
         <View style={styles.modalOverlay}>
-          <Animated.View 
-            style={[
-              styles.shopQRModalContainer,
-              {
-                transform: [{ translateY: shopQRSlideAnim }],
-              },
-            ]}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
           >
-            {/* Modal Header */}
-            <View style={styles.shopQRModalHeader}>
-              <View style={styles.modalHandle} />
-              <TouchableOpacity style={styles.closeButton} onPress={closeShopQRModal}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-
-              <View style={styles.shopQRTitleSection}>
-                <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
-                <Text style={styles.shopQRSubText}>Enter sale details to proceed</Text>
-              </View>
-            </View>
-
-            {/* Temp Content */}
-            <View style={styles.shopQRContent}>
-              {/* Input Fields */}
-              <View style={styles.shopQRInputSection}>
-                <Text style={styles.shopQRLabel}>Sale Value *</Text>
-                <View style={styles.shopQRInputWrapper}>
-                  <Ionicons name="cash-outline" size={20} color="#bdbdbd" style={styles.shopQRInputIcon} />
-                  <TextInput
-                    style={styles.shopQRInput}
-                    placeholder="Enter sale amount"
-                    value={saleValue}
-                    onChangeText={setSaleValue}
-                    keyboardType="numeric"
-                    placeholderTextColor="#bdbdbd"
-                  />
-                </View>
-
-                <Text style={styles.shopQRLabel}>Note (Optional)</Text>
-                <View style={styles.shopQRInputWrapper}>
-                  <TextInput
-                    style={[styles.shopQRInput, styles.shopQRNoteInput]}
-                    placeholder="Add a note about this sale..."
-                    value={note}
-                    onChangeText={setNote}
-                    multiline
-                    textAlignVertical="top"
-                    placeholderTextColor="#bdbdbd"
-                  />
-                </View>
-
-                {/* Action Button - Moved here */}
-                <TouchableOpacity 
-                  style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]} 
-                  onPress={handleShopQRProceed}
-                  disabled={shopQRLoading}
-                >
-                  {shopQRLoading ? (
-                    <Text style={styles.shopQRActionButtonText}>Processing...</Text>
-                  ) : (
-                    <Text style={styles.shopQRActionButtonText}>Proceed</Text>
-                  )}
+            <Animated.View 
+              style={[
+                styles.shopQRModalContainer,
+                {
+                  transform: [{ translateY: shopQRSlideAnim }],
+                },
+              ]}
+            >
+              {/* Modal Header */}
+              <View style={styles.shopQRModalHeader}>
+                <View style={styles.modalHandle} />
+                <TouchableOpacity style={styles.closeButton} onPress={closeShopQRModal}>
+                  <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
+
+                <View style={styles.shopQRTitleSection}>
+                  <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
+                  <Text style={styles.shopQRSubText}>Enter sale details to proceed</Text>
+                </View>
               </View>
-            </View>
-          </Animated.View>
+
+              {/* Content - Static Layout */}
+              <View style={styles.shopQRContent}>
+                {/* Input Fields */}
+                <View style={styles.shopQRInputSection}>
+                  <Text style={styles.shopQRLabel}>Sale Value *</Text>
+                  <View style={styles.shopQRInputWrapper}>
+                    <Ionicons name="cash-outline" size={20} color="#bdbdbd" style={styles.shopQRInputIcon} />
+                    <TextInput
+                      style={styles.shopQRInput}
+                      placeholder="Enter sale amount"
+                      value={saleValue}
+                      onChangeText={setSaleValue}
+                      keyboardType="numeric"
+                      placeholderTextColor="#bdbdbd"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => {
+                        // Focus next input or dismiss keyboard
+                      }}
+                    />
+                  </View>
+
+                  <Text style={styles.shopQRLabel}>Note (Optional)</Text>
+                  <View style={styles.shopQRInputWrapper}>
+                    <TextInput
+                      style={[styles.shopQRInput, styles.shopQRNoteInput]}
+                      placeholder="Add a note about this sale..."
+                      value={note}
+                      onChangeText={setNote}
+                      multiline
+                      textAlignVertical="top"
+                      placeholderTextColor="#bdbdbd"
+                      returnKeyType="done"
+                      blurOnSubmit={true}
+                    />
+                  </View>
+
+                  {/* Action Button */}
+                  <TouchableOpacity 
+                    style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]} 
+                    onPress={handleShopQRProceed}
+                    disabled={shopQRLoading}
+                  >
+                    {shopQRLoading ? (
+                      <Text style={styles.shopQRActionButtonText}>Processing...</Text>
+                    ) : (
+                      <Text style={styles.shopQRActionButtonText}>Proceed</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
@@ -1103,13 +1146,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
 
-  // Shop QR Modal Styles
+  // Shop QR Modal Styles - Updated
   shopQRModalContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     paddingBottom: 34,
-    minHeight: height * 0.7,
+    height: height * 0.55, // Fixed height instead of max/min
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1122,7 +1164,7 @@ const styles = StyleSheet.create({
   shopQRModalHeader: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 20,
+    paddingBottom: 24, // Increased padding
   },
   shopQRTitleSection: {
     alignItems: 'center',
@@ -1144,10 +1186,11 @@ const styles = StyleSheet.create({
   shopQRContent: {
     flex: 1,
     paddingHorizontal: 20,
+    justifyContent: 'space-between', // Distribute content evenly
   },
   shopQRInputSection: {
     flex: 1,
-    paddingTop: 20,
+    justifyContent: 'flex-start',
   },
   shopQRLabel: {
     fontSize: 13,
@@ -1165,7 +1208,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     elevation: 2,
-    marginBottom: 8,
+    marginBottom: 20, // Consistent spacing
     minHeight: 48,
   },
   shopQRInputIcon: {
@@ -1180,8 +1223,12 @@ const styles = StyleSheet.create({
   },
   shopQRNoteInput: {
     minHeight: 80,
-    maxHeight: 120,
+    maxHeight: 100, // Reduced max height
     paddingTop: 12,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   shopQRActionButton: {
     backgroundColor: '#20222E',
@@ -1196,7 +1243,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginTop: 20, // Add margin top instead of bottom
+    marginTop: 'auto', // Push to bottom
+    marginBottom: 10,
   },
   shopQRDisabledButton: {
     backgroundColor: '#8E8E93',
