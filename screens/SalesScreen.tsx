@@ -41,6 +41,13 @@ const SalesScreen: React.FC = () => {
   const [responseMessage, setResponseMessage] = useState('');
   const slideAnim = useState(new Animated.Value(height))[0];
 
+  // Shop QR Modal States
+  const [showShopQRModal, setShowShopQRModal] = useState(false);
+  const [saleValue, setSaleValue] = useState('');
+  const [note, setNote] = useState('');
+  const [shopQRLoading, setShopQRLoading] = useState(false);
+  const shopQRSlideAnim = useState(new Animated.Value(height))[0];
+
   const progressSteps = [
     { title: 'Validating Code', subtitle: 'Checking QR code authenticity...', duration: 1500 },
     { title: 'Processing Request', subtitle: 'Connecting to payment gateway...', duration: 2000 },
@@ -119,6 +126,18 @@ const SalesScreen: React.FC = () => {
     }
   }, [showProgressModal, progressStep, responseStatus]);
 
+  // Temp Modal Animation Effect
+  useEffect(() => {
+    if (showShopQRModal) {
+      Animated.spring(shopQRSlideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }).start();
+    }
+  }, [showShopQRModal]);
+
   const resetModalState = () => {
     setShowProgressModal(false);
     setProgressStep(0);
@@ -185,6 +204,58 @@ const SalesScreen: React.FC = () => {
     }).start(() => {
       resetModalState();
     });
+  };
+
+  // Shop QR Modal Functions
+  const handleShopQRButtonPress = () => {
+    setShowShopQRModal(true);
+  };
+
+  const closeShopQRModal = () => {
+    Animated.timing(shopQRSlideAnim, {
+      toValue: height,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowShopQRModal(false);
+      setSaleValue('');
+      setNote('');
+      shopQRSlideAnim.setValue(height);
+    });
+  };
+
+  const handleShopQRProceed = () => {
+    // Basic validation
+    if (!saleValue.trim()) {
+      Alert.alert('Error', 'Please enter a sale value');
+      return;
+    }
+
+    // Validate if sale value is a number
+    const numericValue = parseFloat(saleValue);
+    if (isNaN(numericValue) || numericValue <= 0) {
+      Alert.alert('Error', 'Please enter a valid sale amount');
+      return;
+    }
+
+    setShopQRLoading(true);
+    
+    // Simulate processing
+    setTimeout(() => {
+      setShopQRLoading(false);
+      Alert.alert(
+        'Success',
+        `Sale processed successfully!\nAmount: $${numericValue.toFixed(2)}\nNote: ${note || 'No note provided'}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              closeShopQRModal();
+            }
+          }
+        ]
+      );
+    }, 1000);
   };
 
   const getStatusIcon = () => {
@@ -349,6 +420,14 @@ const SalesScreen: React.FC = () => {
               </Text>
             </View>
           )}
+
+          {/* Shop QR Button */}
+          {!showProgressModal && (
+            <TouchableOpacity style={styles.shopQRButton} onPress={handleShopQRButtonPress}>
+              <Ionicons name="construct-outline" size={20} color="#fff" style={styles.shopQRButtonIcon} />
+              <Text style={styles.shopQRButtonText}>Process Sale Manually</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
 
@@ -483,6 +562,83 @@ const SalesScreen: React.FC = () => {
                   </View>
                 </View>
               )}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Shop QR Modal */}
+      <Modal
+        visible={showShopQRModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeShopQRModal}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View 
+            style={[
+              styles.shopQRModalContainer,
+              {
+                transform: [{ translateY: shopQRSlideAnim }],
+              },
+            ]}
+          >
+            {/* Modal Header */}
+            <View style={styles.shopQRModalHeader}>
+              <View style={styles.modalHandle} />
+              <TouchableOpacity style={styles.closeButton} onPress={closeShopQRModal}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+
+              <View style={styles.shopQRTitleSection}>
+                <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
+                <Text style={styles.shopQRSubText}>Enter sale details to proceed</Text>
+              </View>
+            </View>
+
+            {/* Temp Content */}
+            <View style={styles.shopQRContent}>
+              {/* Input Fields */}
+              <View style={styles.shopQRInputSection}>
+                <Text style={styles.shopQRLabel}>Sale Value *</Text>
+                <View style={styles.shopQRInputWrapper}>
+                  <Ionicons name="cash-outline" size={20} color="#bdbdbd" style={styles.shopQRInputIcon} />
+                  <TextInput
+                    style={styles.shopQRInput}
+                    placeholder="Enter sale amount"
+                    value={saleValue}
+                    onChangeText={setSaleValue}
+                    keyboardType="numeric"
+                    placeholderTextColor="#bdbdbd"
+                  />
+                </View>
+
+                <Text style={styles.shopQRLabel}>Note (Optional)</Text>
+                <View style={styles.shopQRInputWrapper}>
+                  <TextInput
+                    style={[styles.shopQRInput, styles.shopQRNoteInput]}
+                    placeholder="Add a note about this sale..."
+                    value={note}
+                    onChangeText={setNote}
+                    multiline
+                    textAlignVertical="top"
+                    placeholderTextColor="#bdbdbd"
+                  />
+                </View>
+
+                {/* Action Button - Moved here */}
+                <TouchableOpacity 
+                  style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]} 
+                  onPress={handleShopQRProceed}
+                  disabled={shopQRLoading}
+                >
+                  {shopQRLoading ? (
+                    <Text style={styles.shopQRActionButtonText}>Processing...</Text>
+                  ) : (
+                    <Text style={styles.shopQRActionButtonText}>Proceed</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -773,7 +929,6 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: 'auto',
     marginTop: 8,
-    backgroundColor: 'rgba(32, 34, 46, 0.1)',
     borderRadius: 20,
   },
   progressContent: {
@@ -919,5 +1074,138 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  shopQRButton: {
+    backgroundColor: '#8B4513',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  shopQRButtonIcon: {
+    marginRight: 8,
+  },
+  shopQRButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
 
+  // Shop QR Modal Styles
+  shopQRModalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    minHeight: height * 0.7,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -5,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  shopQRModalHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  shopQRTitleSection: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  shopQRHeaderTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#1a1a1a",
+    letterSpacing: -0.3,
+    marginBottom: 6,
+  },
+  shopQRSubText: {
+    fontSize: 15,
+    color: "#666",
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  shopQRContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  shopQRInputSection: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  shopQRLabel: {
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 4,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  shopQRInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    elevation: 2,
+    marginBottom: 8,
+    minHeight: 48,
+  },
+  shopQRInputIcon: {
+    marginRight: 10,
+  },
+  shopQRInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+    color: '#000',
+    fontWeight: '500',
+  },
+  shopQRNoteInput: {
+    minHeight: 80,
+    maxHeight: 120,
+    paddingTop: 12,
+  },
+  shopQRActionButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 20, // Add margin top instead of bottom
+  },
+  shopQRDisabledButton: {
+    backgroundColor: '#8E8E93',
+  },
+  shopQRActionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+  },
 });
