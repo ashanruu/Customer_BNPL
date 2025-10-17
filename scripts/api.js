@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
  
 //const BASE_DOMAIN = "http://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.1.74:5111";
+const BASE_DOMAIN = "http://192.168.1.56:5111";
 const AUTH_DOMAIN = "http://auth.sing.hexdive.com";
 
 
@@ -418,6 +418,36 @@ export const fetchCustomerDocApproveStatus = async () => {
     return response;
   } catch (error) {
     console.error("Error fetching customer document approval status:", error);
+    throw error;
+  }
+};
+
+// Convenience method for paying an installment
+export const payInstallment = async (installmentId, saleId) => {
+  try {
+    console.log("Processing installment payment for installmentId:", installmentId, "saleId:", saleId);
+    console.log("Types - installmentId:", typeof installmentId, "saleId:", typeof saleId);
+    
+    // Ensure both parameters are integers
+    const payload = { 
+      installmentId: parseInt(installmentId),
+      saleId: parseInt(saleId)
+    };
+    
+    console.log("Final payload:", JSON.stringify(payload, null, 2));
+
+    const response = await callMobileApi(
+      'PayInstallment',
+      payload,
+      'mobile-app-pay-installment',
+      '',
+      'customer'
+    );
+
+    console.log("PayInstallment response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error processing installment payment:", error);
     throw error;
   }
 };

@@ -13,7 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { callMobileApi, fetchCustomerCard } from '../scripts/api';
+import { callMobileApi, fetchCustomerCard, payInstallment } from '../scripts/api';
 
 const DetailsScreen = ({ route }: any) => {
   const navigation = useNavigation();
@@ -28,6 +28,7 @@ const DetailsScreen = ({ route }: any) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<number | null>(0);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState(new Date());
@@ -143,14 +144,70 @@ const DetailsScreen = ({ route }: any) => {
     setSelectedPayment(index);
   };
 
-  const handleRefill = () => {
-    // Handle refill/payment action here
-    if (paymentOptions.length > 0 && selectedPayment !== null) {
-      const selectedCard = paymentOptions[selectedPayment];
-      console.log("Processing payment with card:", selectedCard);
-      // Add your payment processing logic here
+  const handleRefill = async () => {
+    if (selectedInstallment === null || !loanData) {
+      Alert.alert('Error', 'Invalid installment selection');
+      return;
     }
-    setModalVisible(false);
+
+    if (paymentOptions.length === 0 || selectedPayment === null) {
+      Alert.alert('Error', 'Please select a payment method');
+      return;
+    }
+
+    try {
+      setPaymentProcessing(true);
+      
+      const installment = installments[selectedInstallment];
+      const selectedCard = paymentOptions[selectedPayment];
+      
+      console.log("Processing payment for installment:", installment.installId);
+      console.log("Using payment method:", selectedCard);
+      console.log("=== LOAN DATA DEBUG ===");
+      console.log("Full loanData:", JSON.stringify(loanData, null, 2));
+      console.log("loanData.fK_SaleId:", loanData.fK_SaleId);
+      console.log("Type of loanData.fK_SaleId:", typeof loanData.fK_SaleId);
+      console.log("=== END LOAN DATA DEBUG ===");
+
+      // Use the correct property name from the API response
+      const saleId = loanData.fK_SaleId;
+      
+      if (!saleId) {
+        Alert.alert('Error', 'Sale ID not found in loan data');
+        return;
+      }
+
+      console.log("Using saleId:", saleId, "Type:", typeof saleId);
+
+      const response = await payInstallment(installment.installId, saleId);
+
+      if (response.statusCode === 200) {
+        Alert.alert(
+          'Payment Successful',
+          'Your installment payment has been processed successfully.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setModalVisible(false);
+                // Refresh loan details to show updated payment status
+                fetchLoanDetails();
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Payment Failed', response.message || 'Unable to process payment. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Payment processing error:', error);
+      Alert.alert(
+        'Payment Error',
+        error.response?.data?.message || 'Failed to process payment. Please check your connection and try again.'
+      );
+    } finally {
+      setPaymentProcessing(false);
+    }
   };
 
 
@@ -269,7 +326,7 @@ const DetailsScreen = ({ route }: any) => {
   // Helper function to find the first active installment index
   const getFirstActiveInstallmentIndex = () => {
     return installments.findIndex(installment =>
-      installment.instStatus?.toLowerCase() === 'active'
+      installment.instStatus?.toLowerCase() === 'pending'
     );
   };
 
@@ -519,14 +576,21 @@ const DetailsScreen = ({ route }: any) => {
             <TouchableOpacity
               style={[
                 styles.payButton,
-                (paymentOptions.length === 0 || paymentLoading) && styles.payButtonDisabled
+                (paymentOptions.length === 0 || paymentLoading || paymentProcessing) && styles.payButtonDisabled
               ]}
               onPress={handleRefill}
-              disabled={paymentOptions.length === 0 || paymentLoading}
+              disabled={paymentOptions.length === 0 || paymentLoading || paymentProcessing}
             >
-              <Text style={styles.payButtonText}>
-                {paymentOptions.length === 0 ? 'No Payment Method' : 'Pay Now'}
-              </Text>
+              {paymentProcessing ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.payButtonText}>Processing...</Text>
+                </View>
+              ) : (
+                <Text style={styles.payButtonText}>
+                  {paymentOptions.length === 0 ? 'No Payment Method' : 'Pay Now'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
