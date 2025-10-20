@@ -45,7 +45,7 @@ const SalesScreen: React.FC = () => {
   const [showShopQRModal, setShowShopQRModal] = useState(false);
   const [saleValue, setSaleValue] = useState('');
   const [note, setNote] = useState('');
-  const [shopQRLoading, setShopQRLoading] = useState(false);
+  const [shopQRLoading, setShopQRLoading] = useState(true);
   const shopQRSlideAnim = useState(new Animated.Value(height))[0];
 
   const progressSteps = [
@@ -151,7 +151,14 @@ const SalesScreen: React.FC = () => {
     console.log('QR Code scanned:', data);
     setManualCode(data);
     
-    // Auto continue when QR code is detected
+    // Check if the scanned QR contains "shop" - if so, show the shop QR modal
+    if (data.toLowerCase().includes('shop')) {
+      console.log('Shop QR detected, showing Process Sale modal');
+      setShowShopQRModal(true);
+      return;
+    }
+    
+    // Auto continue when QR code is detected (for non-shop QRs)
     setTimeout(() => {
       setLoading(true);
       
@@ -168,6 +175,13 @@ const SalesScreen: React.FC = () => {
   const handleSubmit = () => {
     if (!manualCode.trim()) {
       Alert.alert('Missing Information', 'Please scan a QR code or enter a link manually');
+      return;
+    }
+
+    // Check if the manually entered code contains "shop" - if so, show the shop QR modal
+    if (manualCode.toLowerCase().includes('shop')) {
+      console.log('Shop URL detected in manual input, showing Process Sale modal');
+      setShowShopQRModal(true);
       return;
     }
 
@@ -592,7 +606,12 @@ const SalesScreen: React.FC = () => {
 
               <View style={styles.shopQRTitleSection}>
                 <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
-                <Text style={styles.shopQRSubText}>Enter sale details to proceed</Text>
+                <Text style={styles.shopQRSubText}>
+                  {manualCode.toLowerCase().includes('shop') 
+                    ? `Detected shop URL: ${manualCode.length > 50 ? manualCode.substring(0, 50) + '...' : manualCode}`
+                    : 'Enter sale details to proceed'
+                  }
+                </Text>
               </View>
             </View>
 

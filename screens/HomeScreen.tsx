@@ -228,7 +228,7 @@ const HomeScreen: React.FC = () => {
   // Helper function to format currency
   const formatCurrency = (amount: number | undefined): string => {
     if (!amount) return '';
-    return `Rs. ${amount.toLocaleString()}`;
+    return `Rs. ${amount.toFixed(2)}`;
   };
 
   interface Loan {
@@ -337,21 +337,21 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.label}>Your Credit Limit</Text>
               <Text style={styles.value}>
                 Rs. {creditLimits?.fullCredit
-                  ? creditLimits.fullCredit.toLocaleString()
-                  : '0'}
+                  ? creditLimits.fullCredit.toFixed(2)
+                  : '0.00'}
               </Text>
               <View style={styles.progressBarBackground}>
                 <View style={[styles.progressBar, {
-                  width: (creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined)
-                    ? `${Math.round(((creditLimits.fullCredit - creditLimits.totalConsumed) / creditLimits.fullCredit) * 100)}%`
+                  width: (creditLimits?.fullCredit && creditLimits?.availablePurchaseLimit !== undefined)
+                    ? `${Math.round((creditLimits.availablePurchaseLimit / creditLimits.fullCredit) * 100)}%`
                     : '0%'
                 }]} />
               </View>
               <Text style={styles.label}>You Can Spend</Text>
               <Text style={styles.value}>
-                Rs. {creditLimits?.fullCredit && creditLimits?.totalConsumed !== undefined
-                  ? (creditLimits.fullCredit - creditLimits.totalConsumed).toLocaleString()
-                  : '0'}
+                Rs. {creditLimits?.availablePurchaseLimit
+                  ? (creditLimits.availablePurchaseLimit).toFixed(2)
+                  : '0.00'}
               </Text>
             </View>
 

@@ -82,6 +82,16 @@ const OrdersScreen: React.FC = () => {
         console.log("- Active loans:", loans.activeLoans.length);
         console.log("- Completed loans:", loans.completedLoans.length);
         console.log("- Returned loans:", loans.returnedLoans.length);
+        
+        // Log loan statuses for debugging (Active, Clossed, Returned)
+        const allLoans = [...loans.activeLoans, ...loans.completedLoans, ...loans.returnedLoans];
+        const statusCounts = allLoans.reduce((acc, loan) => {
+          const status = loan.loanStatus || 'Unknown';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {});
+        console.log("Loan status distribution:", statusCounts);
+        console.log("Expected statuses: Active (Ongoing), Closed (History), Returned (Cancelled)");
       } else {
         console.error('Failed to fetch loan list:', response.message);
         Alert.alert('Error', 'Failed to load orders. Please try again.');
@@ -131,7 +141,7 @@ const OrdersScreen: React.FC = () => {
           {/* Loan Value with Status Dot */}
           <View style={styles.loanAmountRow}>
             <Text style={styles.loanAmount}>
-              Rs. {item.totLoanValue?.toLocaleString() || '0'}
+              Rs. {item.totLoanValue?.toFixed(2) || '0.00'}
             </Text>
             <View style={[styles.statusDot, getStatusDotStyle(item.loanStatus)]} />
           </View>
@@ -153,7 +163,7 @@ const OrdersScreen: React.FC = () => {
           {/* Credit and Installments Info */}
           <View style={styles.loanDetailsRow}>
             <Text style={styles.creditInfo}>
-              Due Amount : Rs. {item.totCreditValue?.toLocaleString() || '0'}
+              Due Amount : Rs. {item.totCreditValue?.toFixed(2) || '0.00'}
             </Text>
             <Text style={styles.installmentInfo}>
               {(() => {
@@ -201,8 +211,8 @@ const OrdersScreen: React.FC = () => {
     switch (status?.toLowerCase()) {
       case 'active':
         return styles.activeBorderLine;
-      case 'completed':
-        return styles.completedBorderLine;
+      case 'clossed':
+        return styles.closedBorderLine;
       case 'returned':
         return styles.returnedBorderLine;
       default:
@@ -215,8 +225,8 @@ const OrdersScreen: React.FC = () => {
     switch (status?.toLowerCase()) {
       case 'active':
         return styles.activeStatusDot;
-      case 'completed':
-        return styles.completedStatusDot;
+      case 'clossed':
+        return styles.closedStatusDot;
       case 'returned':
         return styles.returnedStatusDot;
       default:
@@ -228,8 +238,8 @@ const OrdersScreen: React.FC = () => {
     switch (status?.toLowerCase()) {
       case 'active':
         return styles.activeStatusText;
-      case 'completed':
-        return styles.completedStatusText;
+      case 'clossed':
+        return styles.closedStatusText;
       case 'returned':
         return styles.returnedStatusText;
       default:
@@ -253,7 +263,7 @@ const OrdersScreen: React.FC = () => {
         );
       case "history":
         return allLoans.filter(item =>
-          item.loanStatus === 'Completed'  // Shows Completed status loans
+          item.loanStatus === 'Clossed'  // Shows only Clossed status loans
         );
       case "cancelled":
         return allLoans.filter(item =>
@@ -444,6 +454,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
   },
   
+  closedBorderLine: {
+    backgroundColor: '#4CAF50',
+  },
+  
   returnedBorderLine: {
     backgroundColor: '#F44336',
   },
@@ -527,6 +541,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
   },
   
+  closedStatusDot: {
+    backgroundColor: '#4CAF50',
+  },
+  
   returnedStatusDot: {
     backgroundColor: '#F44336',
   },
@@ -542,6 +560,10 @@ const styles = StyleSheet.create({
   
   completedStatusText: {
     color: '#2196F3',
+  },
+  
+  closedStatusText: {
+    color: '#4CAF50',
   },
   
   returnedStatusText: {

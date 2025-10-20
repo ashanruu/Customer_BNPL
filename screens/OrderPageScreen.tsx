@@ -265,7 +265,7 @@ const OrderPageScreen: React.FC = () => {
                 <Text style={styles.label}>Sales Amount</Text>
                 <View style={styles.displayField}>
                   <Text style={styles.amountText}>
-                    LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toLocaleString() : 'Loading...'}
+                    LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : 'Loading...'}
                   </Text>
                 </View>
               </View>
@@ -325,7 +325,7 @@ const OrderPageScreen: React.FC = () => {
                       styles.paymentOptionAmount,
                       selectedPaymentOption === 'once' && styles.paymentOptionAmountSelected
                     ]}>
-                      LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toLocaleString() : '0'}
+                      LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : '0.00'}
                     </Text>
                   </TouchableOpacity>
 

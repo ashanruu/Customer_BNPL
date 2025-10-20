@@ -272,7 +272,7 @@ const DetailsScreen = ({ route }: any) => {
   };
 
   const formatAmount = (amount: number) => {
-    return `Rs. ${amount.toLocaleString()}`;
+    return `Rs. ${amount.toFixed(2)}`;
   };
 
   // Helper function for status styling

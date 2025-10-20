@@ -142,7 +142,7 @@ const UserProfileScreen: React.FC = () => {
 
   const formatSalary = (salary?: number) => {
     if (!salary) return "N/A";
-    return `$${salary.toLocaleString()}`;
+    return `$${salary.toFixed(2)}`;
   };
 
   const handleEditToggle = () => {

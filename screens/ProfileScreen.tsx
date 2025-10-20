@@ -542,7 +542,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
         const creditLimit = parseFloat(customerPlan.baseCreditLimit);
         
         if (!isNaN(creditLimit)) {
-          const formattedPrice = `Rs. ${creditLimit.toLocaleString()}`;
+          const formattedPrice = `Rs. ${creditLimit.toFixed(2)}`;
           console.log("Formatted price:", formattedPrice);
           return formattedPrice;
         } else {
