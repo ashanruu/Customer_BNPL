@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMobileApi, callMerchantApi } from '../scripts/api';
+import OptimizedImage from '../components/OptimizedImage';
+import ImageCacheManager from '../utils/ImageCacheManager';
 
 function NavButton({ label, icon, active, onPress }) {
   return (
@@ -109,9 +111,13 @@ const HomeScreen: React.FC = () => {
         if (Array.isArray(promotionsData)) {
           setPromotions(promotionsData);
           console.log('Promotions set successfully:', promotionsData.length, 'items');
+          // Preload promotion images for better performance
+          await ImageCacheManager.preloadPromotionImages(promotionsData);
         } else if (Array.isArray(promotionResponse)) {
           setPromotions(promotionResponse);
           console.log('Promotions set from direct array:', promotionResponse.length, 'items');
+          // Preload promotion images for better performance
+          await ImageCacheManager.preloadPromotionImages(promotionResponse);
         } else {
           console.error('Promotions data is not an array:', typeof promotionsData);
           setPromotions([]);
@@ -449,16 +455,15 @@ const HomeScreen: React.FC = () => {
               {promotions.map((promo, index) => (
                 <View key={promo.promotionId || index} style={[styles.slideItem, { width: screenWidth - 30 }]}>
                   {promo.promotionImageLink && (
-                    <Image
-                      source={
-                        typeof promo.promotionImageLink === 'string' && promo.promotionImageLink.startsWith('data:image')
-                          ? { uri: promo.promotionImageLink }
-                          : typeof promo.promotionImageLink === 'string'
-                            ? { uri: promo.promotionImageLink }
-                            : promo.promotionImageLink
-                      }
+                    <OptimizedImage
+                      source={{ uri: promo.promotionImageLink }}
                       style={styles.bannerImage}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      priority="high"
+                      showLoadingIndicator={true}
+                      fallbackIcon="megaphone-outline"
+                      fallbackText="Promotion"
                     />
                   )}
                 </View>
@@ -534,17 +539,16 @@ const HomeScreen: React.FC = () => {
           >
             {promotions.length > 0 ? promotions.map((promo) => (
               <TouchableOpacity key={promo.promotionId} style={styles.promoCard}>
-                {promo.promotionImageLink && typeof promo.promotionImageLink === 'string' && promo.promotionImageLink.startsWith('data:image') ? (
-                  <Image
+                {promo.promotionImageLink && (
+                  <OptimizedImage
                     source={{ uri: promo.promotionImageLink }}
                     style={styles.promoImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Image
-                    source={typeof promo.promotionImageLink === 'string' ? { uri: promo.promotionImageLink } : promo.promotionImageLink}
-                    style={styles.promoImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    priority="normal"
+                    showLoadingIndicator={true}
+                    fallbackIcon="megaphone-outline"
+                    fallbackText="Promotion"
                   />
                 )}
                 <LinearGradient
@@ -575,17 +579,16 @@ const HomeScreen: React.FC = () => {
           >
             {promotions.length > 0 ? promotions.map((promo, index) => (
               <TouchableOpacity key={`special-${promo.promotionId}-${index}`} style={styles.promoCard}>
-                {promo.promotionImageLink && typeof promo.promotionImageLink === 'string' && promo.promotionImageLink.startsWith('data:image') ? (
-                  <Image
+                {promo.promotionImageLink && (
+                  <OptimizedImage
                     source={{ uri: promo.promotionImageLink }}
                     style={styles.promoImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Image
-                    source={typeof promo.promotionImageLink === 'string' ? { uri: promo.promotionImageLink } : promo.promotionImageLink}
-                    style={styles.promoImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    priority="normal"
+                    showLoadingIndicator={true}
+                    fallbackIcon="pricetag-outline"
+                    fallbackText="Special Offer"
                   />
                 )}
                 <LinearGradient

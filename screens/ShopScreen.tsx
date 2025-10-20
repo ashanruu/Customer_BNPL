@@ -6,12 +6,13 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMerchantApi } from '../scripts/api';
+import OptimizedImage from '../components/OptimizedImage';
+import ImageCacheManager from '../utils/ImageCacheManager';
 
 // NavButton Component
 interface NavButtonProps {
@@ -63,10 +64,13 @@ const ShopScreen: React.FC = () => {
         const promotionsData = response.data || [];
         setPromotions(Array.isArray(promotionsData) ? promotionsData : []);
         
+        // Preload promotion images for better performance
+        await ImageCacheManager.preloadPromotionImages(promotionsData);
+        
         // Use promotions data for featured shops and new arrivals
         if (promotionsData.length > 0) {
           // Convert promotions to shop-like items
-          const shopItems = promotionsData.map((promo, index) => ({
+          const shopItems = promotionsData.map((promo: any, index: number) => ({
             id: `promo_${promo.promotionId}`,
             name: promo.promotionName,
             imageUrl: promo.promotionImageLink,
@@ -182,10 +186,13 @@ const ShopScreen: React.FC = () => {
         {/* Promo Banner - Show latest promotion with text overlay */}
         {promotions.length > 0 && promotions[0].promotionImageLink ? (
           <View style={styles.bannerContainer}>
-            <Image
+            <OptimizedImage
               source={{ uri: promotions[0].promotionImageLink }}
               style={styles.bannerImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              showLoadingIndicator={true}
             />
             <View style={styles.bannerOverlay}>
               <Text style={styles.bannerTitle}>{promotions[0].promotionName}</Text>
@@ -207,9 +214,14 @@ const ShopScreen: React.FC = () => {
           {featuredShops.length > 0 ? featuredShops.map((shop, index) => (
             <TouchableOpacity key={shop.id || index} style={styles.shopCard}>
               {shop.imageUrl ? (
-                <Image 
+                <OptimizedImage 
                   source={{ uri: shop.imageUrl }} 
-                  style={styles.shopImage} 
+                  style={styles.shopImage}
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  showLoadingIndicator={true}
+                  fallbackIcon="storefront-outline"
+                  fallbackText="Shop Image"
                 />
               ) : (
                 <View style={styles.noImagePlaceholder}>
@@ -244,9 +256,14 @@ const ShopScreen: React.FC = () => {
           {newArrivals.length > 0 ? newArrivals.map((item, index) => (
             <TouchableOpacity key={item.id || index} style={styles.shopCard}>
               {item.imageUrl ? (
-                <Image 
+                <OptimizedImage 
                   source={{ uri: item.imageUrl }} 
-                  style={styles.shopImage} 
+                  style={styles.shopImage}
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  showLoadingIndicator={true}
+                  fallbackIcon="bag-outline"
+                  fallbackText="Product Image"
                 />
               ) : (
                 <View style={styles.noImagePlaceholder}>
