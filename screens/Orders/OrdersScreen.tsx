@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { callMobileApi } from "../scripts/api";
+import { callMobileApi } from "../../scripts/api";
 
 const OrdersScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history" | "cancelled">("ongoing");
@@ -24,7 +24,71 @@ const OrdersScreen: React.FC = () => {
     returnedLoans: []
   });
   const [loading, setLoading] = useState(false);
+  const [enrichedLoans, setEnrichedLoans] = useState<{
+    activeLoans: any[];
+    completedLoans: any[];
+    returnedLoans: any[];
+  }>({
+    activeLoans: [],
+    completedLoans: [],
+    returnedLoans: []
+  });
   const navigation = useNavigation<any>();
+
+  // Fetch detailed loan information for a single loan
+  const fetchLoanDetail = async (loanId: number) => {
+    try {
+      const response = await callMobileApi(
+        'GetLoanDetail',
+        { loanId },
+        'mobile-app-loan-detail',
+        '',
+        'payment'
+      );
+
+      if (response.statusCode === 200) {
+        // Find the next unpaid installment
+        const installments = response.data.installments || [];
+        const nextUnpaidInstallment = installments.find(
+          (installment: any) => installment.instStatus === 'Pending' && installment.instType === 'Installment'
+        );
+
+        return {
+          numOfPaidInstallments: response.data.numOfPaidInstallments || 0,
+          totalPaidAmount: response.data.totalPaidAmount || 0,
+          nextPaymentDate: nextUnpaidInstallment ? nextUnpaidInstallment.dueDate : null
+        };
+      }
+      return {
+        numOfPaidInstallments: 0,
+        totalPaidAmount: 0,
+        nextPaymentDate: null
+      };
+    } catch (error) {
+      console.error(`Error fetching detail for loan ${loanId}:`, error);
+      return {
+        numOfPaidInstallments: 0,
+        totalPaidAmount: 0,
+        nextPaymentDate: null
+      };
+    }
+  };
+
+  // Enrich loans with detailed information
+  const enrichLoansWithDetails = async (loans: any[]) => {
+    const enrichedLoans = await Promise.all(
+      loans.map(async (loan) => {
+        const details = await fetchLoanDetail(loan.loanId);
+        return {
+          ...loan,
+          numOfPaidInstallments: details.numOfPaidInstallments,
+          totalPaidAmount: details.totalPaidAmount,
+          nextPaymentDate: details.nextPaymentDate
+        };
+      })
+    );
+    return enrichedLoans;
+  };
 
   // Fetch loan list data
   const fetchLoanList = async () => {
@@ -44,31 +108,6 @@ const OrdersScreen: React.FC = () => {
       console.log(JSON.stringify(response, null, 2));
       console.log("=== END RESPONSE ===");
 
-      // Log response structure details
-      console.log("Response keys:", Object.keys(response));
-      console.log("Response statusCode:", response.statusCode);
-      console.log("Response message:", response.message);
-
-      if (response.data) {
-        console.log("Response.data keys:", Object.keys(response.data));
-        console.log("Response.data:", JSON.stringify(response.data, null, 2));
-
-        if (response.data.activeLoans) {
-          console.log("Active loans count:", response.data.activeLoans.length);
-          console.log("Active loans structure:", JSON.stringify(response.data.activeLoans, null, 2));
-        }
-
-        if (response.data.completedLoans) {
-          console.log("Completed loans count:", response.data.completedLoans.length);
-          console.log("Completed loans structure:", JSON.stringify(response.data.completedLoans, null, 2));
-        }
-
-        if (response.data.returnedLoans) {
-          console.log("Returned loans count:", response.data.returnedLoans.length);
-          console.log("Returned loans structure:", JSON.stringify(response.data.returnedLoans, null, 2));
-        }
-      }
-
       if (response.statusCode === 200) {
         const responseData = response.data || {};
         const loans = {
@@ -82,16 +121,35 @@ const OrdersScreen: React.FC = () => {
         console.log("- Active loans:", loans.activeLoans.length);
         console.log("- Completed loans:", loans.completedLoans.length);
         console.log("- Returned loans:", loans.returnedLoans.length);
+
+        // Enrich each category with detailed information
+        console.log("Enriching loans with detailed information...");
+        const [enrichedActiveLoans, enrichedCompletedLoans, enrichedReturnedLoans] = await Promise.all([
+          enrichLoansWithDetails(loans.activeLoans),
+          enrichLoansWithDetails(loans.completedLoans),
+          enrichLoansWithDetails(loans.returnedLoans)
+        ]);
+
+        const enrichedData = {
+          activeLoans: enrichedActiveLoans,
+          completedLoans: enrichedCompletedLoans,
+          returnedLoans: enrichedReturnedLoans
+        };
+
+        setEnrichedLoans(enrichedData);
+        console.log("Loans enriched with details successfully");
       } else {
         console.error('Failed to fetch loan list:', response.message);
         Alert.alert('Error', 'Failed to load orders. Please try again.');
         setLoanData({ activeLoans: [], completedLoans: [], returnedLoans: [] });
+        setEnrichedLoans({ activeLoans: [], completedLoans: [], returnedLoans: [] });
       }
     } catch (error: any) {
       console.error('GetLoanList error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
       Alert.alert('Error', 'Failed to load orders. Please try again.');
       setLoanData({ activeLoans: [], completedLoans: [], returnedLoans: [] });
+      setEnrichedLoans({ activeLoans: [], completedLoans: [], returnedLoans: [] });
     } finally {
       setLoading(false);
     }
@@ -109,11 +167,20 @@ const OrdersScreen: React.FC = () => {
 
   const handlePress = (item: any) => {
     if (activeTab === "ongoing") {
-      navigation.navigate("DetailsScreen", { order: item });
+      navigation.navigate("OrderDetailsScreen", {
+        order: item,
+        screenType: 'ongoing'
+      });
     } else if (activeTab === "history") {
-      navigation.navigate("HistoryDetails", { order: item });
+      navigation.navigate("OrderDetailsScreen", {
+        order: item,
+        screenType: 'history'
+      });
     } else {
-      navigation.navigate("CancelledDetails", { order: item });
+      navigation.navigate("OrderDetailsScreen", {
+        order: item,
+        screenType: 'cancelled'
+      });
     }
   };
 
@@ -125,7 +192,7 @@ const OrdersScreen: React.FC = () => {
       <TouchableOpacity style={styles.card} onPress={() => handlePress(item)} activeOpacity={0.7}>
         {/* Left Border Line */}
         <View style={[styles.leftBorderLine, getLeftBorderStyle(item.loanStatus)]} />
-        
+
         {/* Card Content */}
         <View style={styles.cardContent}>
           {/* Loan Value with Status Dot */}
@@ -135,58 +202,62 @@ const OrdersScreen: React.FC = () => {
             </Text>
             <View style={[styles.statusDot, getStatusDotStyle(item.loanStatus)]} />
           </View>
-          
+
           {/* Product Name with Plan Tag */}
           <View style={styles.productNameMainContainer}>
             <View style={styles.productNameWithTag}>
               <Text style={styles.productNameMain}>
-                {item.productName || 'iPhone 15 Pro'}
+                {item.productName || 'Product N/A'}
               </Text>
               <View style={styles.planTag}>
                 <Text style={styles.planTagText}>
-                  {item.planType || 'Premium'}
+                  {item.planType || 'Plan N/A'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Credit and Installments Info */}
-          <View style={styles.loanDetailsRow}>
-            <Text style={styles.creditInfo}>
-              Due Amount : Rs. {item.totCreditValue?.toLocaleString() || '0'}
-            </Text>
-            <Text style={styles.installmentInfo}>
-              {(() => {
-                const totalInstallments = item.noOfInstallments || 0;
-                // Dummy logic for completed installments based on status
-                let completedInstallments = 0;
-                completedInstallments = 2;
-                
-                return `( ${completedInstallments}/${totalInstallments} )`;
-              })()}
-            </Text>
-          </View>
+          {/* Credit and Installments Info - Only show for ongoing tab */}
+          {activeTab === "ongoing" && (
+            <View style={styles.loanDetailsRow}>
+              <Text style={styles.creditInfo}>
+                Due Amount : Rs. {item.totCreditValue?.toLocaleString() || '0'}
+              </Text>
+              <Text style={styles.installmentInfo}>
+                {(() => {
+                  const totalInstallments = item.noOfInstallments || 0;
+                  // Use the numOfPaidInstallments from enriched data
+                  const completedInstallments = item.numOfPaidInstallments || 0;
+
+                  return `( ${completedInstallments}/${totalInstallments} )`;
+                })()}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Right Side - Next Payment and Arrow */}
+        {/* Right Side - Next Payment and Arrow - Only show for ongoing tab */}
         <View style={styles.rightSection}>
-          <View style={styles.downPaymentContainer}>
-            <Text style={styles.downPaymentLabel}>Next Payment</Text>
-            <Text style={styles.downPaymentAmount}>
-              {(() => {
-                // Dummy next payment date logic
-                const today = new Date();
-                const nextPaymentDate = new Date(today);
-                nextPaymentDate.setDate(today.getDate() + 30); // 30 days from today
-                return nextPaymentDate.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                });
-              })()}
-            </Text>
-          </View>
-          
+          {activeTab === "ongoing" && (
+            <View style={styles.downPaymentContainer}>
+              <Text style={styles.downPaymentLabel}>Next Payment</Text>
+              <Text style={styles.downPaymentAmount}>
+                {(() => {
+                  if (item.nextPaymentDate) {
+                    const nextPaymentDate = new Date(item.nextPaymentDate);
+                    return nextPaymentDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                  } else {
+                    return 'No pending payments';
+                  }
+                })()}
+              </Text>
+            </View>
+          )}
+
           {/* Arrow indicator */}
           <View style={styles.arrowContainer}>
             <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
@@ -198,67 +269,32 @@ const OrdersScreen: React.FC = () => {
 
   // Add helper function for left border styling
   const getLeftBorderStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return styles.activeBorderLine;
-      case 'completed':
-        return styles.completedBorderLine;
-      case 'returned':
-        return styles.returnedBorderLine;
-      default:
-        return styles.defaultBorderLine;
-    }
+    return styles.defaultBorderLine;
   };
 
   // Add helper function for status dot styling
   const getStatusDotStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return styles.activeStatusDot;
-      case 'completed':
-        return styles.completedStatusDot;
-      case 'returned':
-        return styles.returnedStatusDot;
-      default:
-        return styles.defaultStatusDot;
+
+    if (activeTab === "history") {
+      return styles.completedStatusDot;
+    } else if (activeTab === "ongoing") {
+      return styles.activeStatusDot;
     }
+
   };
 
-  const getStatusTextStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return styles.activeStatusText;
-      case 'completed':
-        return styles.completedStatusText;
-      case 'returned':
-        return styles.returnedStatusText;
-      default:
-        return styles.defaultStatusText;
-    }
-  };
-
-  // Filter data based on active tab and loan status
+  // Filter data based on active tab and loan status - use enriched data
   const getFilteredData = () => {
-    // Combine all loans from all categories
-    const allLoans = [
-      ...(loanData.activeLoans || []),
-      ...(loanData.completedLoans || []),
-      ...(loanData.returnedLoans || [])
-    ];
+    // Use enriched loans data instead of original loan data
+    if (!enrichedLoans) return [];
 
     switch (activeTab) {
       case "ongoing":
-        return allLoans.filter(item =>
-          item.loanStatus === 'Active'  // Shows Active status loans
-        );
+        return Array.isArray(enrichedLoans.activeLoans) ? enrichedLoans.activeLoans : [];
       case "history":
-        return allLoans.filter(item =>
-          item.loanStatus === 'Completed'  // Shows Completed status loans
-        );
+        return Array.isArray(enrichedLoans.completedLoans) ? enrichedLoans.completedLoans : [];
       case "cancelled":
-        return allLoans.filter(item =>
-          item.loanStatus === 'Returned'  // Shows Returned status loans
-        );
+        return Array.isArray(enrichedLoans.returnedLoans) ? enrichedLoans.returnedLoans : [];
       default:
         return [];
     }
@@ -271,7 +307,6 @@ const OrdersScreen: React.FC = () => {
       <View style={styles.container}>
         {/* Header Section */}
         <View style={styles.header}>
-
           <View style={styles.titleSection}>
             <Text style={styles.headerTitle}>My Orders</Text>
             <Text style={styles.subText}>Track your loans and payment history</Text>
@@ -435,19 +470,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // Border colors for different statuses
-  activeBorderLine: {
-    backgroundColor: '#000000',
-  },
-  
-  completedBorderLine: {
-    backgroundColor: '#2196F3',
-  },
-  
-  returnedBorderLine: {
-    backgroundColor: '#F44336',
-  },
-  
   defaultBorderLine: {
     backgroundColor: '#9E9E9E',
   },
@@ -522,34 +544,17 @@ const styles = StyleSheet.create({
   activeStatusDot: {
     backgroundColor: '#4CAF50',
   },
-  
+
   completedStatusDot: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#8B4513',
   },
-  
+
   returnedStatusDot: {
     backgroundColor: '#F44336',
   },
-  
+
   defaultStatusDot: {
     backgroundColor: '#9E9E9E',
-  },
-
-  // Status text colors
-  activeStatusText: {
-    color: '#4CAF50',
-  },
-  
-  completedStatusText: {
-    color: '#2196F3',
-  },
-  
-  returnedStatusText: {
-    color: '#F44336',
-  },
-  
-  defaultStatusText: {
-    color: '#9E9E9E',
   },
 
   loanDetailsRow: {
@@ -675,9 +680,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Remove these old styles as they're no longer needed:
-  // planProductRow, planTypeContainer, planTypeLabel, planTypeValue
-  // productNameContainer, productNameLabel, productNameValue
-
-  // ...rest of existing styles...
 });

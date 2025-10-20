@@ -19,9 +19,6 @@ import AddressDetailsScreen from "../screens/SignUp/AddressDetailsScreen";
 import SecuritySetupScreen from "../screens/SignUp/SecuritySetupScreen";
 
 // Other Screens
-import DetailsScreen from "../screens/DetailsScreen";
-import HistoryDetails from "../screens/HistoryDetails";
-import CancelledDetails from "../screens/CancelledDetails";
 import PlansScreen from "../screens/PlansScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import TermsScreen from "../screens/TermsScreen";
@@ -38,6 +35,7 @@ import HomeScreen from "../screens/HomeScreen";
 
 //Web View Screen
 import WebViewScreen from "../screens/WebViewScreen";
+import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 
 const Stack = createStackNavigator();
 
@@ -71,9 +69,6 @@ const AppNavigator = () => {
       <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
 
       {/* Other Screens */}
-      <Stack.Screen name="DetailsScreen" component={DetailsScreen} />
-      <Stack.Screen name="HistoryDetails" component={HistoryDetails} options={{ gestureEnabled: false }} />
-      <Stack.Screen name="CancelledDetails" component={CancelledDetails} options={{ gestureEnabled: false }} />
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
@@ -83,7 +78,10 @@ const AppNavigator = () => {
       <Stack.Screen name="TicketsDetails" component={TicketsDetailsScreen} />
       <Stack.Screen name="UserProfileScreen" component={UserProfileScreen} />
       <Stack.Screen name="SalesScreen" component={SalesScreen} options={{ gestureEnabled: false }} />
+
       <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} options={{ gestureEnabled: false }} />
+      
       <Stack.Screen name="PaymentProcessScreen" component={PaymentProcessScreen} options={{ gestureEnabled: false }}  />
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
