@@ -172,3 +172,107 @@ export const saveLoginSuccess = async (method: 'pin' | 'biometric' | 'password')
     console.error('Error saving login success:', error);
   }
 };
+
+/**
+ * Validate PIN strength and format
+ */
+export const validatePin = (pin: string): { isValid: boolean; message?: string } => {
+  if (!pin) {
+    return { isValid: false, message: 'PIN is required' };
+  }
+
+  if (pin.length !== 4) {
+    return { isValid: false, message: 'PIN must be exactly 4 digits' };
+  }
+
+  if (!/^\d{4}$/.test(pin)) {
+    return { isValid: false, message: 'PIN must contain only numbers' };
+  }
+
+  // Check for simple patterns
+  const repeatingDigits = /^(\d)\1{3}$/.test(pin); // 1111, 2222, etc.
+  const sequentialUp = pin === '0123' || pin === '1234' || pin === '2345' || 
+                       pin === '3456' || pin === '4567' || pin === '5678' || 
+                       pin === '6789';
+  const sequentialDown = pin === '9876' || pin === '8765' || pin === '7654' || 
+                         pin === '6543' || pin === '5432' || pin === '4321' || 
+                         pin === '3210';
+
+  if (repeatingDigits) {
+    return { isValid: false, message: 'PIN should not have all same digits' };
+  }
+
+  if (sequentialUp || sequentialDown) {
+    return { isValid: false, message: 'PIN should not be sequential numbers' };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Change user PIN
+ */
+export const changePin = async (currentPin: string, newPin: string): Promise<{ success: boolean; message?: string }> => {
+  try {
+    // Validate new PIN
+    const validation = validatePin(newPin);
+    if (!validation.isValid) {
+      return { success: false, message: validation.message };
+    }
+
+    // If PIN is currently enabled, verify current PIN
+    const settings = await getSecuritySettings();
+    if (settings.pinEnabled) {
+      const isCurrentPinValid = await verifyPin(currentPin);
+      if (!isCurrentPinValid) {
+        return { success: false, message: 'Current PIN is incorrect' };
+      }
+    }
+
+    // Save new PIN
+    await saveSecuritySettings({
+      userPin: newPin,
+      pinEnabled: true,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error changing PIN:', error);
+    return { success: false, message: 'Failed to change PIN. Please try again.' };
+  }
+};
+
+/**
+ * Disable PIN authentication
+ */
+export const disablePin = async (): Promise<void> => {
+  try {
+    await saveSecuritySettings({
+      pinEnabled: false,
+      userPin: undefined,
+    });
+  } catch (error) {
+    console.error('Error disabling PIN:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get last login information
+ */
+export const getLastLoginInfo = async (): Promise<{ method?: string; time?: string }> => {
+  try {
+    const [method, time] = await Promise.all([
+      AsyncStorage.getItem('lastLoginMethod'),
+      AsyncStorage.getItem('lastLoginTime'),
+    ]);
+
+    return {
+      method: method || undefined,
+      time: time || undefined,
+    };
+  } catch (error) {
+    console.error('Error getting last login info:', error);
+    return {};
+  }
+};

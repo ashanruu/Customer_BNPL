@@ -23,6 +23,7 @@ import PlansScreen from "../screens/PlansScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import TermsScreen from "../screens/TermsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import ChangePinScreen from "../screens/ChangePinScreen";
 import MyTicketsScreen from "../screens/MyTicketsScreen";
 import RaiseTicketsScreen from "../screens/RaiseTicketsScreen";
 import TicketsDetailsScreen from "../screens/TicketsDetailsScreen";
@@ -73,11 +74,13 @@ const AppNavigator = () => {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
       <Stack.Screen name="RaiseTickets" component={RaiseTicketsScreen} />
       <Stack.Screen name="TicketsDetails" component={TicketsDetailsScreen} />
       <Stack.Screen name="UserProfileScreen" component={UserProfileScreen} />
       <Stack.Screen name="SalesScreen" component={SalesScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SettingScreen" component={SettingsScreen}/>
 
       <Stack.Screen name="OrderPageScreen" component={OrderPageScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="OrderDetailsScreen" component={OrderDetailsScreen} options={{ gestureEnabled: false }} />

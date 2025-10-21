@@ -102,7 +102,7 @@ const BiometricPinLoginScreen: React.FC = () => {
   };
 
   const handlePinInput = (digit: string) => {
-    if (pin.length < 6) {
+    if (pin.length < 4) {
       setPin(pin + digit);
     }
   };
@@ -112,7 +112,7 @@ const BiometricPinLoginScreen: React.FC = () => {
   };
 
   const handlePinSubmit = async () => {
-    if (pin.length !== 6) {
+    if (pin.length !== 4) {
       Alert.alert('Error', 'Please enter your complete PIN');
       return;
     }
@@ -199,7 +199,7 @@ const BiometricPinLoginScreen: React.FC = () => {
   const renderPinDots = () => {
     return (
       <View style={styles.pinDotsContainer}>
-        {Array.from({ length: 6 }).map((_, index) => (
+        {Array.from({ length: 4 }).map((_, index) => (
           <View
             key={index}
             style={[
@@ -243,7 +243,7 @@ const BiometricPinLoginScreen: React.FC = () => {
                 {renderPinDots()}
                 {renderPinPad()}
 
-                {pin.length === 6 && (
+                {pin.length === 4 && (
                   <TouchableOpacity
                     style={styles.submitButton}
                     onPress={handlePinSubmit}
@@ -310,7 +310,7 @@ const BiometricPinLoginScreen: React.FC = () => {
                   disabled={loading}
                 >
                   <MaterialCommunityIcons name="fingerprint" size={32} color="#fff" />
-                  <Text style={styles.biometricButtonText}>
+                  <Text style={styles.biometricButtonText}> 
                     {loading ? 'Authenticating...' : 'Use Biometric'}
                   </Text>
                 </TouchableOpacity>
