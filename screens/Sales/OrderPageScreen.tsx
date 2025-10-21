@@ -373,6 +373,12 @@ const OrderPageScreen: React.FC = () => {
                 ]}>
                   Split payment into 3 equal parts
                 </Text>
+                <Text style={[
+                  styles.paymentOptionAmount,
+                  selectedPaymentOption === 'installments' && styles.paymentOptionAmountSelected
+                ]}>
+                  LKR {orderDetails.amount ? (parseFloat(orderDetails.amount) / 3).toFixed(2) : '0.00'} per installment
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

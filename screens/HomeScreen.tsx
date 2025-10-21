@@ -353,8 +353,8 @@ const HomeScreen: React.FC = () => {
                     : '0%'
                 }]} />
               </View>
-              <Text style={styles.label}>You Can Spend</Text>
-              <Text style={styles.value}>
+              <Text style={styles.highlightedLabel}>You Can Spend</Text>
+              <Text style={styles.highlightedValue}>
                 Rs. {creditLimits?.availablePurchaseLimit
                   ? (creditLimits.availablePurchaseLimit).toFixed(2)
                   : '0.00'}
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   slideItem: {
-    height: 160, // Increased height for better visibility
+    height: 120, 
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -697,24 +697,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
   },
-  // cardBox: {
-  //   backgroundColor: '#fff',
-  //   borderRadius: 12,
-  //   borderWidth: 1,
-  //   borderColor: '#E5E5E5',
-  //   padding: 12, // Reduced from 15
-  //   elevation: 4,
-  // },
-
   // Updated section styling
   section: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#333',
     marginBottom: 15,
   },
@@ -809,7 +799,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  // Updated promotions styling
+  // Updated promotions styling - Made smaller
   promoScrollView: {
     marginHorizontal: -15,
   },
@@ -818,8 +808,8 @@ const styles = StyleSheet.create({
     paddingRight: 30,
   },
   promoCard: {
-    width: 150,
-    height: 180,
+    width: 140,  // Reduced from 150
+    height: 160, // Reduced from 180
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#fff",
@@ -845,19 +835,19 @@ const styles = StyleSheet.create({
     height: '50%', // Increased to cover more area for better gradient effect
     justifyContent: "center",
     alignItems: "center",
-    padding: 8,
+    padding: 6, // Reduced from 8
   },
   promoText: {
-    fontSize: 12,
+    fontSize: 11, // Reduced from 12
     color: "#fff",
     textAlign: 'center',
     fontWeight: '500',
   },
   promoBold: {
-    fontSize: 18,
+    fontSize: 16, // Reduced from 18
     fontWeight: "700",
     color: "#fff",
-    marginVertical: 4,
+    marginVertical: 3, // Reduced from 4
   },
   noPromotionsContainer: {
     flex: 1,
@@ -900,17 +890,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  label: { color: '#ccc', fontSize: 12 },
-  value: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  label: { color: '#ccc', fontSize: 11 },
+  value: { color: '#fff', fontSize: 16, fontWeight: '500' },
+  highlightedLabel: { color: '#ccc', fontSize: 13, fontWeight: '500' },
+  highlightedValue: { color: '#fff', fontSize: 23, fontWeight: 'bold', marginTop: 2 },
   progressBarBackground: {
-    width: 200,
-    height: 5,
+    width: 150,
+    height: 2,
     backgroundColor: '#333',
     borderRadius: 4,
     marginVertical: 10
   },
   progressBar: {
-    height: 3,
+    height: 1,
     backgroundColor: '#fff',
     borderRadius: 4
   },

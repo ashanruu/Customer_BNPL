@@ -10,12 +10,10 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument, fetchCustomerDocApproveStatus } from '../scripts/api';
 import CustomButton from "../components/CustomButton";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
