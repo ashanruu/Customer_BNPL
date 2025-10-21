@@ -20,7 +20,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import SalesScreen from '../screens/SalesScreen';
+import SalesScreen from '../screens/Sales/SalesScreen';
 // import TermsScreen from '../screens/TermsScreen';
 // import SettingsScreen from '../screens/SettingsScreen';
 // import LoginScreen from '../screens/LoginScreen';

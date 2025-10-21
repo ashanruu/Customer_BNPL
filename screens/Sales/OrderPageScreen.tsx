@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   ScrollView,
@@ -11,31 +10,30 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import CustomButton from '../components/CustomButton';
-import { fetchOrderDetails, createLoan } from '../scripts/api';
+import CustomButton from '../../components/CustomButton';
+import { fetchOrderDetails, createLoan } from '../../scripts/api';
 
 const OrderPageScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  
+
   // Get order ID from route params (could come from QR code scan)
   const qrData = (route.params as any)?.qrData || '';
   const orderId = (route.params as any)?.orderId || extractOrderIdFromQR(qrData);
-  
+
   // State for order details and loading
   const [orderDetails, setOrderDetails] = useState({
     merchantName: '',
     orderId: '',
-    saleId: 0, // Add numeric saleId
+    saleId: 0,
     amount: '',
     note: '',
-    instalments: 3,
     status: '',
     createdDate: '',
     merchantId: '',
     customerId: '',
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [creatingLoan, setCreatingLoan] = useState(false);
@@ -44,35 +42,30 @@ const OrderPageScreen: React.FC = () => {
   // Extract order ID from QR code data
   function extractOrderIdFromQR(qrString: string): string {
     try {
-  
       if (qrString.startsWith('{')) {
         const qrJson = JSON.parse(qrString);
         return qrJson.orderId || qrJson.id || qrJson.orderNumber || qrJson.saleId || '';
       }
-      
+
       if (qrString.includes('/sale/')) {
         const match = qrString.match(/\/sale\/([^\/\?&]+)/);
         return match ? match[1] : '';
       }
-      
-    
+
       if (qrString.includes('orderId=')) {
         const match = qrString.match(/orderId=([^&]+)/);
         return match ? match[1] : '';
       }
-      
-    
+
       if (qrString.includes('id=')) {
         const match = qrString.match(/id=([^&]+)/);
         return match ? match[1] : '';
       }
-      
-  
+
       if (qrString.includes('saleId=')) {
         const match = qrString.match(/saleId=([^&]+)/);
         return match ? match[1] : '';
       }
-      
 
       return qrString;
     } catch (error) {
@@ -99,18 +92,17 @@ const OrderPageScreen: React.FC = () => {
 
       if (response.statusCode === 200 && response.data) {
         const orderData = response.data;
-        
+
         setOrderDetails({
           merchantName: orderData.provider || 'N/A',
-          orderId: orderData.saleCode || orderIdToFetch, 
-          saleId: orderData.saleId || 0, // Add the numeric saleId
-          amount: orderData.salesAmount?.toString() || '0', 
+          orderId: orderData.saleCode || orderIdToFetch,
+          saleId: orderData.saleId || 0,
+          amount: orderData.salesAmount?.toString() || '0',
           note: orderData.productName || 'No product information',
-          instalments: orderData.noOfInstallments || 0,
-          status: orderData.paymentStatus || 'Unknown', 
-          createdDate: orderData.saleDate || new Date().toISOString(), 
-          merchantId: orderData.fK_MerchantId?.toString() || '', 
-          customerId: orderData.fK_CusId?.toString() || '', 
+          status: orderData.paymentStatus || 'Unknown',
+          createdDate: orderData.saleDate || new Date().toISOString(),
+          merchantId: orderData.fK_MerchantId?.toString() || '',
+          customerId: orderData.fK_CusId?.toString() || '',
         });
       } else {
         setError(response.message || 'Failed to fetch order details');
@@ -132,7 +124,6 @@ const OrderPageScreen: React.FC = () => {
       fetchOrderDetailsData(orderId);
     } else {
       setError('No order ID found in QR code or parameters');
-      
     }
   }, [orderId]);
 
@@ -158,15 +149,15 @@ const OrderPageScreen: React.FC = () => {
 
       if (loanResponse.statusCode === 200) {
         console.log('Loan created successfully');
-        
+
         // Navigate to PaymentProcessScreen with order data and loan response
         (navigation as any).navigate('PaymentProcessScreen', {
           orderDetails: orderDetails,
           orderId: orderDetails.orderId,
           saleId: orderDetails.saleId,
           loanData: loanResponse.data,
-          paymentOption: selectedPaymentOption, // Pass the selected payment option
-          installments: noOfInstallment, // Pass the actual number of installments
+          paymentOption: selectedPaymentOption,
+          installments: noOfInstallment,
         });
       } else {
         Alert.alert('Error', loanResponse.message || 'Failed to create loan');
@@ -229,164 +220,160 @@ const OrderPageScreen: React.FC = () => {
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Order Details Display */}
             <View style={styles.inputSection}>
-
               {/* Order Status Badge */}
               {orderDetails.status && (
                 <View style={styles.statusContainer}>
-                  <View style={[styles.statusBadge, 
-                    orderDetails.status.toLowerCase() === 'active' ? styles.statusActive :
+                  <View style={[styles.statusBadge,
+                  orderDetails.status.toLowerCase() === 'active' ? styles.statusActive :
                     orderDetails.status.toLowerCase() === 'completed' ? styles.statusCompleted :
-                    orderDetails.status.toLowerCase() === 'pending' ? styles.statusPending :
-                    styles.statusDefault
+                      orderDetails.status.toLowerCase() === 'pending' ? styles.statusPending :
+                        styles.statusDefault
                   ]}>
                     <Text style={styles.statusText}>{orderDetails.status.toUpperCase()}</Text>
                   </View>
                 </View>
               )}
 
-              {/* Provider/Merchant Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Provider</Text>
-                <View style={styles.displayField}>
-                  <Text style={styles.displayText}>{orderDetails.merchantName || 'Loading...'}</Text>
+              {/* Order Details */}
+              <View>
+                <View style={styles.detailRow}>
+                  <View style={styles.detailIconLabel}>
+                    <Ionicons name="storefront-outline" size={16} color="#666" />
+                    <Text style={styles.detailLabel}>Provider</Text>
+                  </View>
+                  <Text style={styles.detailValue}>
+                    {orderDetails.merchantName || 'N/A'}
+                  </Text>
                 </View>
-              </View>
 
-              {/* Sale Code */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Sale Code</Text>
-                <View style={styles.displayField}>
-                  <Text style={styles.displayText}>{orderDetails.orderId || 'Loading...'}</Text>
+                <View style={styles.detailRow}>
+                  <View style={styles.detailIconLabel}>
+                    <Ionicons name="barcode-outline" size={16} color="#666" />
+                    <Text style={styles.detailLabel}>Sales Code</Text>
+                  </View>
+                  <Text style={styles.detailValue}>
+                    {orderDetails.orderId || 'N/A'}
+                  </Text>
                 </View>
-              </View>
 
-              {/* Sales Amount */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Sales Amount</Text>
-                <View style={styles.displayField}>
-                  <Text style={styles.amountText}>
-                    LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : 'Loading...'}
+                <View style={styles.detailRow}>
+                  <View style={styles.detailIconLabel}>
+                    <Ionicons name="calendar-outline" size={16} color="#666" />
+                    <Text style={styles.detailLabel}>Order Date</Text>
+                  </View>
+                  <Text style={styles.detailValue}>
+                    {orderDetails.createdDate ? new Date(orderDetails.createdDate).toLocaleDateString() : 'N/A'}
+                  </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <View style={styles.detailIconLabel}>
+                    <Ionicons name="cube-outline" size={16} color="#666" />
+                    <Text style={styles.detailLabel}>Product</Text>
+                  </View>
+                  <Text style={styles.detailValue} numberOfLines={2}>
+                    {orderDetails.note || 'No product info'}
                   </Text>
                 </View>
               </View>
 
-              {/* Product Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Product Name</Text>
-                <View style={[styles.displayField, styles.noteField]}>
-                  <Text style={styles.displayText}>{orderDetails.note || 'No product information'}</Text>
-                </View>
+              {/* Amount Card */}
+              <View style={styles.amountCard}>
+                <Text style={styles.amountLabel}>Total Amount</Text>
+                <Text style={styles.amountValue}>
+                  LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : '0.00'}
+                </Text>
               </View>
+            </View>
 
-              {/* Number of Installments */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Payment Options</Text>
-                
-                {/* Payment Option Selection */}
-                <View style={styles.paymentOptionsContainer}>
-                  {/* Pay Once Option */}
-                  <TouchableOpacity
-                    style={[
-                      styles.paymentOption,
-                      selectedPaymentOption === 'once' && styles.paymentOptionSelected
-                    ]}
-                    onPress={() => setSelectedPaymentOption('once')}
-                  >
-                    <View style={styles.paymentOptionHeader}>
-                      <View style={styles.paymentOptionTitleRow}>
-                        <Ionicons 
-                          name="wallet-outline" 
-                          size={20} 
-                          color={selectedPaymentOption === 'once' ? '#4CAF50' : '#666'} 
-                        />
-                        <Text style={[
-                          styles.paymentOptionTitle,
-                          selectedPaymentOption === 'once' && styles.paymentOptionTitleSelected
-                        ]}>
-                          Pay Once
-                        </Text>
-                      </View>
-                      <View style={[
-                        styles.radioButton,
-                        selectedPaymentOption === 'once' && styles.radioButtonSelected
-                      ]}>
-                        {selectedPaymentOption === 'once' && (
-                          <View style={styles.radioButtonInner} />
-                        )}
-                      </View>
-                    </View>
-                    <Text style={[
-                      styles.paymentOptionDescription,
-                      selectedPaymentOption === 'once' && styles.paymentOptionDescriptionSelected
-                    ]}>
-                      Complete payment in full now
-                    </Text>
-                    <Text style={[
-                      styles.paymentOptionAmount,
-                      selectedPaymentOption === 'once' && styles.paymentOptionAmountSelected
-                    ]}>
-                      LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : '0.00'}
-                    </Text>
-                  </TouchableOpacity>
+            {/* Payment Options Section Title */}
+            <Text style={styles.detailLabel}>Payment Options</Text>
 
-                  {/* Installments Option */}
-                  <TouchableOpacity
-                    style={[
-                      styles.paymentOption,
-                      selectedPaymentOption === 'installments' && styles.paymentOptionSelected
-                    ]}
-                    onPress={() => setSelectedPaymentOption('installments')}
-                  >
-                    <View style={styles.paymentOptionHeader}>
-                      <View style={styles.paymentOptionTitleRow}>
-                        <Ionicons 
-                          name="calendar-outline" 
-                          size={20} 
-                          color={selectedPaymentOption === 'installments' ? '#4CAF50' : '#666'} 
-                        />
-                        <Text style={[
-                          styles.paymentOptionTitle,
-                          selectedPaymentOption === 'installments' && styles.paymentOptionTitleSelected
-                        ]}>
-                          3 Installments
-                        </Text>
-                      </View>
-                      <View style={[
-                        styles.radioButton,
-                        selectedPaymentOption === 'installments' && styles.radioButtonSelected
-                      ]}>
-                        {selectedPaymentOption === 'installments' && (
-                          <View style={styles.radioButtonInner} />
-                        )}
-                      </View>
-                    </View>
+            {/* Payment Option Selection */}
+            <View style={styles.paymentOptionsContainer}>
+              {/* Pay Once Option */}
+              <TouchableOpacity
+                style={[
+                  styles.paymentOption,
+                  selectedPaymentOption === 'once' && styles.paymentOptionSelected
+                ]}
+                onPress={() => setSelectedPaymentOption('once')}
+              >
+                <View style={styles.paymentOptionHeader}>
+                  <View style={styles.paymentOptionTitleRow}>
+                    <Ionicons
+                      name="wallet-outline"
+                      size={20}
+                      color={selectedPaymentOption === 'once' ? '#4CAF50' : '#666'}
+                    />
                     <Text style={[
-                      styles.paymentOptionDescription,
-                      selectedPaymentOption === 'installments' && styles.paymentOptionDescriptionSelected
+                      styles.paymentOptionTitle,
+                      selectedPaymentOption === 'once' && styles.paymentOptionTitleSelected
                     ]}>
-                      Split payment into 3 equal parts
-                    </Text>
-                    <Text style={[
-                      styles.paymentOptionAmount,
-                      selectedPaymentOption === 'installments' && styles.paymentOptionAmountSelected
-                    ]}>
-                      {/* LKR {orderDetails.amount ? (parseFloat(orderDetails.amount) / 3).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0'} × 3 */}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Sale Date */}
-              {orderDetails.createdDate && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Sale Date</Text>
-                  <View style={styles.displayField}>
-                    <Text style={styles.displayText}>
-                      {new Date(orderDetails.createdDate).toLocaleDateString()}
+                      Pay Once
                     </Text>
                   </View>
+                  <View style={[
+                    styles.radioButton,
+                    selectedPaymentOption === 'once' && styles.radioButtonSelected
+                  ]}>
+                    {selectedPaymentOption === 'once' && (
+                      <View style={styles.radioButtonInner} />
+                    )}
+                  </View>
                 </View>
-              )}
+                <Text style={[
+                  styles.paymentOptionDescription,
+                  selectedPaymentOption === 'once' && styles.paymentOptionDescriptionSelected
+                ]}>
+                  Complete payment in full now
+                </Text>
+                <Text style={[
+                  styles.paymentOptionAmount,
+                  selectedPaymentOption === 'once' && styles.paymentOptionAmountSelected
+                ]}>
+                  LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : '0.00'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Installments Option */}
+              <TouchableOpacity
+                style={[
+                  styles.paymentOption,
+                  selectedPaymentOption === 'installments' && styles.paymentOptionSelected
+                ]}
+                onPress={() => setSelectedPaymentOption('installments')}
+              >
+                <View style={styles.paymentOptionHeader}>
+                  <View style={styles.paymentOptionTitleRow}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color={selectedPaymentOption === 'installments' ? '#4CAF50' : '#666'}
+                    />
+                    <Text style={[
+                      styles.paymentOptionTitle,
+                      selectedPaymentOption === 'installments' && styles.paymentOptionTitleSelected
+                    ]}>
+                      3 Installments
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.radioButton,
+                    selectedPaymentOption === 'installments' && styles.radioButtonSelected
+                  ]}>
+                    {selectedPaymentOption === 'installments' && (
+                      <View style={styles.radioButtonInner} />
+                    )}
+                  </View>
+                </View>
+                <Text style={[
+                  styles.paymentOptionDescription,
+                  selectedPaymentOption === 'installments' && styles.paymentOptionDescriptionSelected
+                ]}>
+                  Split payment into 3 equal parts
+                </Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         )}
@@ -395,7 +382,7 @@ const OrderPageScreen: React.FC = () => {
         {!loading && !error && orderDetails.orderId && (
           <View style={styles.submitButtonContainer}>
             <CustomButton
-              title={creatingLoan ? "Creating Loan..." : 
+              title={creatingLoan ? "Creating Loan..." :
                 selectedPaymentOption === 'once' ? "Pay Full Amount" : "Continue to Installments"}
               size="medium"
               variant="primary"
@@ -420,7 +407,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 52,
-    paddingBottom: 12,
+    paddingBottom: 20,
   },
   backButton: {
     position: 'absolute',
@@ -435,14 +422,13 @@ const styles = StyleSheet.create({
   titleSection: {
     alignItems: 'center',
     paddingTop: 8,
-    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: "600",
     color: "#1a1a1a",
     letterSpacing: -0.3,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   subText: {
     fontSize: 15,
@@ -457,69 +443,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
+    paddingBottom: 20,
   },
   inputSection: {
     flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 12,
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  inputContainer: {
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 13,
-    color: '#999',
-    marginLeft: 4,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  displayField: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderColor: '#E5E5E5',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    elevation: 2,
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  displayText: {
-    fontSize: 15,
-    color: '#000',
-    fontWeight: '500',
-  },
-  amountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  noteField: {
-    minHeight: 80,
-    alignItems: 'flex-start',
-    paddingTop: 12,
-  },
-  instalmentContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   submitButtonContainer: {
-    alignSelf: 'center',
-    width: '75%',
-    paddingBottom: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
+    paddingVertical: 80,
   },
   loadingText: {
     fontSize: 16,
@@ -531,29 +472,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 20,
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   errorTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#FF6B6B',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 12,
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginBottom: 32,
   },
   retryButton: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    elevation: 2,
   },
   retryButtonText: {
     color: '#fff',
@@ -562,13 +504,13 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
+    marginTop: 4,
   },
   statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
   },
   statusActive: {
     backgroundColor: '#E8F5E8',
@@ -583,26 +525,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#333',
+    letterSpacing: 0.5,
   },
-
-  // Payment Options Styles
   paymentOptionsContainer: {
-    gap: 12,
+    marginTop: 12,
+    marginBottom: 24,
+    gap: 16,
   },
   paymentOption: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     borderColor: '#E5E5E5',
     borderWidth: 2,
-    padding: 16,
+    padding: 20,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 4,
   },
   paymentOptionSelected: {
     borderColor: '#4CAF50',
@@ -614,15 +557,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   paymentOptionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   paymentOptionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: '#333',
   },
@@ -632,14 +575,14 @@ const styles = StyleSheet.create({
   paymentOptionDescription: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 8,
-    lineHeight: 18,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   paymentOptionDescriptionSelected: {
     color: '#333',
   },
   paymentOptionAmount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#333',
   },
@@ -647,9 +590,9 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: '#E5E5E5',
     backgroundColor: '#fff',
@@ -660,9 +603,53 @@ const styles = StyleSheet.create({
     borderColor: '#4CAF50',
   },
   radioButtonInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#4CAF50',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  detailIconLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 20,
+  },
+  amountCard: {
+    padding: 18,
+    marginTop: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  amountLabel: {
+    fontSize: 15,
+    color: '#666',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  amountValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4CAF50',
+    letterSpacing: -0.5,
   },
 });
