@@ -28,8 +28,8 @@ import MyTicketsScreen from "../screens/MyTicketsScreen";
 import RaiseTicketsScreen from "../screens/RaiseTicketsScreen";
 import TicketsDetailsScreen from "../screens/TicketsDetailsScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
-import SalesScreen from "../screens/SalesScreen";
-import OrderPageScreen from "../screens/OrderPageScreen";
+import SalesScreen from "../screens/Sales/SalesScreen";
+import OrderPageScreen from "../screens/Sales/OrderPageScreen";
 import PaymentProcessScreen from "../screens/PaymentProcessScreen";
 
 import HomeScreen from "../screens/HomeScreen";

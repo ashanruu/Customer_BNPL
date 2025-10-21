@@ -17,7 +17,7 @@ import { CameraView, Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import CustomButton from '../components/CustomButton';
+import CustomButton from '../../components/CustomButton';
 
 type RootStackParamList = {
   OrderPageScreen: { qrData: string };
@@ -36,7 +36,6 @@ const SalesScreen: React.FC = () => {
   const [manualCode, setManualCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
-  const [progressStep, setProgressStep] = useState(0);
   const [responseStatus, setResponseStatus] = useState<ResponseStatus>('processing');
   const [responseMessage, setResponseMessage] = useState('');
   const slideAnim = useState(new Animated.Value(height))[0];
@@ -48,13 +47,6 @@ const SalesScreen: React.FC = () => {
   const [shopQRLoading, setShopQRLoading] = useState(true);
   const shopQRSlideAnim = useState(new Animated.Value(height))[0];
 
-  const progressSteps = [
-    { title: 'Validating Code', subtitle: 'Checking QR code authenticity...', duration: 1500 },
-    { title: 'Processing Request', subtitle: 'Connecting to payment gateway...', duration: 2000 },
-    { title: 'Setting up Order', subtitle: 'Preparing your order details...', duration: 1500 },
-    { title: 'Finalizing', subtitle: 'Almost ready...', duration: 1000 },
-  ];
-
   // Simulate API response
   const simulateAPIResponse = (): { success: boolean; message: string } => {
     const responses = [
@@ -62,7 +54,7 @@ const SalesScreen: React.FC = () => {
       { success: true, message: 'QR code verified successfully! Order is ready to proceed.' },
       { success: true, message: 'Payment gateway connected. Everything looks good!' },
       { success: true, message: 'Customer verified. Welcome to BNPL service!' },
-      
+
       // Error responses
       { success: false, message: 'Invalid QR code format. Please check and try again.' },
       { success: false, message: 'This QR code has already been used. Please scan a new one.' },
@@ -70,12 +62,12 @@ const SalesScreen: React.FC = () => {
       { success: false, message: 'Network error. Please check your connection and retry.' },
       { success: false, message: 'Server temporarily unavailable. Please try again later.' },
     ];
-    
+
     // 70% success rate for demo
     const isSuccess = Math.random() > 0.3;
     const successResponses = responses.filter(r => r.success);
     const errorResponses = responses.filter(r => !r.success);
-    
+
     if (isSuccess) {
       return successResponses[Math.floor(Math.random() * successResponses.length)];
     } else {
@@ -100,31 +92,24 @@ const SalesScreen: React.FC = () => {
         friction: 8,
       }).start();
 
-      // Progress through steps
+      // Simple loading simulation (2 seconds)
       const timer = setTimeout(() => {
-        if (progressStep < progressSteps.length - 1) {
-          setProgressStep(progressStep + 1);
+        const response = simulateAPIResponse();
+
+        if (response.success) {
+          // Directly navigate without showing success stage
+          resetModalState();
+          navigation.navigate('OrderPageScreen', { qrData: manualCode });
         } else {
-          // All steps complete, simulate API response
-          const response = simulateAPIResponse();
+          // Only show error stage
           setResponseMessage(response.message);
-          
-          if (response.success) {
-            setResponseStatus('success');
-            // Navigate after showing success for 2 seconds
-            setTimeout(() => {
-              resetModalState();
-              navigation.navigate('OrderPageScreen', { qrData: manualCode });
-            }, 2500);
-          } else {
-            setResponseStatus('error');
-          }
+          setResponseStatus('error');
         }
-      }, progressSteps[progressStep]?.duration || 1500);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [showProgressModal, progressStep, responseStatus]);
+  }, [showProgressModal, responseStatus]);
 
   // Temp Modal Animation Effect
   useEffect(() => {
@@ -140,7 +125,6 @@ const SalesScreen: React.FC = () => {
 
   const resetModalState = () => {
     setShowProgressModal(false);
-    setProgressStep(0);
     setResponseStatus('processing');
     setResponseMessage('');
     slideAnim.setValue(height);
@@ -150,23 +134,22 @@ const SalesScreen: React.FC = () => {
     setScanned(true);
     console.log('QR Code scanned:', data);
     setManualCode(data);
-    
+
     // Check if the scanned QR contains "shop" - if so, show the shop QR modal
     if (data.toLowerCase().includes('shop')) {
       console.log('Shop QR detected, showing Process Sale modal');
       setShowShopQRModal(true);
       return;
     }
-    
+
     // Auto continue when QR code is detected (for non-shop QRs)
     setTimeout(() => {
       setLoading(true);
-      
+
       // Simulate brief loading then show progress modal
       setTimeout(() => {
         setLoading(false);
         setShowProgressModal(true);
-        setProgressStep(0);
         setResponseStatus('processing');
       }, 500);
     }, 100); // Small delay to update UI state
@@ -186,12 +169,11 @@ const SalesScreen: React.FC = () => {
     }
 
     setLoading(true);
-    
+
     // Simulate brief loading then show progress modal
     setTimeout(() => {
       setLoading(false);
       setShowProgressModal(true);
-      setProgressStep(0);
       setResponseStatus('processing');
     }, 500);
   };
@@ -205,7 +187,6 @@ const SalesScreen: React.FC = () => {
 
   const handleTryAgain = () => {
     // Retry with the same QR code
-    setProgressStep(0);
     setResponseStatus('processing');
     setResponseMessage('');
   };
@@ -253,7 +234,7 @@ const SalesScreen: React.FC = () => {
     }
 
     setShopQRLoading(true);
-    
+
     // Simulate processing
     setTimeout(() => {
       setShopQRLoading(false);
@@ -334,7 +315,7 @@ const SalesScreen: React.FC = () => {
       <View style={styles.headerSection}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Sales</Text>
-          <Text style={styles.headerSubtitle}>Scan QR codes or enter manually</Text>
+          <Text style={styles.headerSubtitle}>Scan QR codes or enter Sales Code</Text>
         </View>
       </View>
 
@@ -342,10 +323,7 @@ const SalesScreen: React.FC = () => {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Main Input Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Scan or Enter Link</Text>
-            
-            {/* QR Scanner - Hide when modal is shown */}
-            {!showProgressModal && (
+
               <View style={styles.scannerContainer}>
                 <CameraView
                   style={styles.scanner}
@@ -363,7 +341,7 @@ const SalesScreen: React.FC = () => {
 
                 {/* Scanner Status */}
                 <View style={styles.scannerStatus}>
-                  
+
                   {scanned && (
                     <TouchableOpacity
                       style={styles.rescanButton}
@@ -374,57 +352,57 @@ const SalesScreen: React.FC = () => {
                   )}
                 </View>
               </View>
-            )}
+            
 
             {/* Divider */}
-            {!showProgressModal && (
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>OR</Text>
                 <View style={styles.dividerLine} />
               </View>
-            )}
 
-            {/* Manual Input */}
-            {!showProgressModal && (
+            <Text style={styles.helperText}>
+              {manualCode.length > 0
+                ? `✓ Ready to process (${manualCode.length} characters)`
+                : 'No camera? No problem! Just paste your link above'}
+            </Text>
+
+            {/* Manual Input with Inline Go Button */}
               <View style={styles.manualInputContainer}>
-                <Text style={styles.inputLabel}>Enter link manually</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="link" size={20} color="#8E8E93" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Paste or type your link here..."
-                    placeholderTextColor="#8E8E93"
-                    value={manualCode}
-                    onChangeText={setManualCode}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                  />
+                <View style={styles.inputWithButtonWrapper}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="link" size={20} color="#8E8E93" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder=" Enter Your Sales Code here..."
+                      placeholderTextColor="#8E8E93"
+                      value={manualCode}
+                      onChangeText={setManualCode}
+                      textAlignVertical="center"
+                    />
+                  </View>
+                  
+                  {/* Inline Go Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.inlineGoButton,
+                      (!manualCode.trim() || loading) && styles.inlineGoButtonDisabled
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={!manualCode.trim() || loading}
+                  >
+                    <Text style={[
+                      styles.inlineGoButtonText,
+                      (!manualCode.trim() || loading) && styles.inlineGoButtonTextDisabled
+                    ]}>
+                      {loading ? "..." : "Go"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-
-                <Text style={styles.helperText}>
-                  {manualCode.length > 0 
-                    ? `✓ Ready to process (${manualCode.length} characters)` 
-                    : 'No camera? No problem! Just paste your link above'}
-                </Text>
               </View>
-            )}
           </View>
 
-          {/* Action Button */}
-          {!showProgressModal && (
-            <CustomButton
-              title={loading ? "Processing..." : "Continue"}
-              size="medium"
-              variant="primary"
-              onPress={handleSubmit}
-              disabled={!manualCode.trim() || loading}
-            />
-          )}
-
           {/* Help Text */}
-          {!showProgressModal && (
             <View style={styles.helpSection}>
               <Text style={styles.helpTitle}>Need help?</Text>
               <Text style={styles.helpText}>
@@ -433,151 +411,53 @@ const SalesScreen: React.FC = () => {
                 • Both methods work the same way
               </Text>
             </View>
-          )}
 
           {/* Shop QR Button */}
-          {!showProgressModal && (
             <TouchableOpacity style={styles.shopQRButton} onPress={handleShopQRButtonPress}>
               <Ionicons name="construct-outline" size={20} color="#fff" style={styles.shopQRButtonIcon} />
               <Text style={styles.shopQRButtonText}>Process Sale Manually</Text>
             </TouchableOpacity>
-          )}
         </ScrollView>
       </View>
 
-      {/* Progress Modal */}
+      {/* Simplified Progress Modal */}
       <Modal
         visible={showProgressModal}
         transparent={true}
-        animationType="none"
-        onRequestClose={closeModal}
+        animationType="fade"
+        onRequestClose={responseStatus !== 'processing' ? closeModal : undefined}
       >
-        <View style={styles.modalOverlay}>
-          <Animated.View 
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHandle} />
-              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Progress Content */}
-            <View style={styles.progressContent}>
-              {/* Status Animation */}
-              <View style={styles.progressAnimationContainer}>
-                <View style={[styles.progressCircle, { backgroundColor: statusColors.background, borderColor: statusColors.border }]}>
-                  {getStatusIcon()}
+        <View style={styles.simpleModalOverlay}>
+          {responseStatus === 'processing' ? (
+            // Processing State - Only loading indicator
+            <ActivityIndicator size="large" color="#ffffffff" />
+          ) : (
+            // Error State with modal container
+            <View style={styles.simpleModalContainer}>
+              <View style={styles.errorContent}>
+                <View style={styles.errorRow}>
+                  <Ionicons name="alert-circle-outline" size={32} color="#DC3545" />
+                  <Text style={styles.errorMessage}>{responseMessage}</Text>
                 </View>
                 
-                {/* Step Indicators - Only show during processing */}
-                {responseStatus === 'processing' && (
-                  <View style={styles.stepIndicators}>
-                    {progressSteps.map((_, index) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.stepDot,
-                          {
-                            backgroundColor: index <= progressStep ? '#20222E' : '#E5E5E5',
-                            transform: [{ scale: index === progressStep ? 1.2 : 1 }],
-                          },
-                        ]}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Progress Info */}
-              <View style={styles.progressInfo}>
-                {responseStatus === 'processing' ? (
-                  <>
-                    <Text style={styles.progressTitle}>
-                      {progressSteps[progressStep]?.title || 'Processing...'}
-                    </Text>
-                    <Text style={styles.progressSubtitle}>
-                      {progressSteps[progressStep]?.subtitle || 'Please wait...'}
-                    </Text>
-                    
-                    {/* Progress Bar */}
-                    <View style={styles.progressBarContainer}>
-                      <View style={styles.progressBarBackground}>
-                        <Animated.View 
-                          style={[
-                            styles.progressBarFill,
-                            { width: `${((progressStep + 1) / progressSteps.length) * 100}%` }
-                          ]} 
-                        />
-                      </View>
-                      <Text style={styles.progressPercentage}>
-                        {Math.round(((progressStep + 1) / progressSteps.length) * 100)}%
-                      </Text>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={[styles.statusTitle, { color: statusColors.primary }]}>
-                      {responseStatus === 'success' ? 'Success!' : 'Error'}
-                    </Text>
-                    
-                    {/* Response Message */}
-                    <Text style={[styles.responseMessage, { color: statusColors.primary }]}>
-                      {responseMessage}
-                    </Text>
-
-                    {/* Action Buttons */}
-                    <View style={styles.actionButtons}>
-                      {responseStatus === 'error' ? (
-                        <>
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.secondaryButton]}
-                            onPress={handleRetry}
-                          >
-                            <Text style={styles.secondaryButtonText}>Scan New QR</Text>
-                          </TouchableOpacity>
-                          
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.primaryButton]}
-                            onPress={handleTryAgain}
-                          >
-                            <Text style={styles.primaryButtonText}>Try Again</Text>
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <Text style={styles.successNote}>Redirecting to order page...</Text>
-                      )}
-                    </View>
-                  </>
-                )}
-              </View>
-
-              {/* QR Code Info - Only show during processing */}
-              {responseStatus === 'processing' && (
-                <View style={styles.qrInfo}>
-                  <View style={styles.qrInfoItem}>
-                    <Ionicons name="qr-code-outline" size={20} color="#20222E" />
-                    <Text style={styles.qrInfoText}>
-                      Code: {manualCode.length > 30 ? `${manualCode.substring(0, 30)}...` : manualCode}
-                    </Text>
-                  </View>
-                  <View style={styles.qrInfoItem}>
-                    <Ionicons name="time-outline" size={20} color="#666" />
-                    <Text style={styles.qrInfoText}>
-                      Est. time: {Math.ceil((progressSteps.length - progressStep) * 2)} seconds
-                    </Text>
-                  </View>
+                <View style={styles.simpleActionButtons}>
+                  <TouchableOpacity
+                    style={styles.simpleRetryButton}
+                    onPress={handleRetry}
+                  >
+                    <Text style={styles.simpleRetryText}>Scan New</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.simpleTryAgainButton}
+                    onPress={handleTryAgain}
+                  >
+                    <Text style={styles.simpleTryAgainText}>Retry</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
             </View>
-          </Animated.View>
+          )}
         </View>
       </Modal>
 
@@ -589,7 +469,7 @@ const SalesScreen: React.FC = () => {
         onRequestClose={closeShopQRModal}
       >
         <View style={styles.modalOverlay}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.shopQRModalContainer,
               {
@@ -607,7 +487,7 @@ const SalesScreen: React.FC = () => {
               <View style={styles.shopQRTitleSection}>
                 <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
                 <Text style={styles.shopQRSubText}>
-                  {manualCode.toLowerCase().includes('shop') 
+                  {manualCode.toLowerCase().includes('shop')
                     ? `Detected shop URL: ${manualCode.length > 50 ? manualCode.substring(0, 50) + '...' : manualCode}`
                     : 'Enter sale details to proceed'
                   }
@@ -646,8 +526,8 @@ const SalesScreen: React.FC = () => {
                 </View>
 
                 {/* Action Button - Moved here */}
-                <TouchableOpacity 
-                  style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]} 
+                <TouchableOpacity
+                  style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]}
                   onPress={handleShopQRProceed}
                   disabled={shopQRLoading}
                 >
@@ -676,8 +556,6 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     paddingHorizontal: 20,
-    paddingBottom: 22,
-    marginBottom: 20,
   },
   headerContent: {
     alignItems: 'flex-start',
@@ -704,24 +582,8 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: "#20222E",
-    marginBottom: 20,
-    letterSpacing: -0.3,
-    textAlign: 'center',
   },
   scannerContainer: {
     height: height * 0.3,
@@ -730,7 +592,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     backgroundColor: '#F8F8F8',
     borderWidth: 2,
-    marginBottom: 20,
   },
   scanner: {
     flex: 1,
@@ -818,44 +679,77 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   manualInputContainer: {
-    marginBottom: 20,
+    marginTop: 8,
   },
-  inputLabel: {
-    fontSize: 16,
-    color: '#20222E',
-    marginLeft: 4,
-    marginBottom: 12,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  inputWrapper: {
+  inputWithButtonWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    borderRadius: 12,
-    borderColor: '#20222E',
-    borderWidth: 2,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    marginBottom: 12,
-    minHeight: 80,
-    backgroundColor: '#FAFAFA',
+    gap: 12,
+    marginTop: 8,
   },
-  inputIcon: {
-    marginTop: 12,
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E5E5E5',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    elevation: 2,
+    minHeight: 48, // Set same height as button
+    maxHeight: 48, // Limit height to match button
+  },
+    inputIcon: {
+    marginTop: 14, // Adjusted for better vertical alignment
     marginRight: 8,
-    color: '#20222E',
+    color: '#8E8E93',
   },
   textInput: {
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 12,
-    color: '#20222E',
+    fontSize: 13, // Reduced from 15
+    paddingVertical: 14, // Adjusted for better centering
+    color: '#000',
     fontWeight: '500',
-    minHeight: 60,
-    textAlignVertical: 'top',
+    minHeight: 48, // Match container height
+    maxHeight: 48, // Prevent expansion
+    textAlignVertical: 'center', // Center the text vertically
+  },
+  inlineGoButton: {
+    backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 60,
+    height: 48, // Fixed height instead of maxHeight
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  inlineGoButtonDisabled: {
+    backgroundColor: '#8E8E93',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  inlineGoButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  inlineGoButtonTextDisabled: {
+    color: '#fff',
+    opacity: 0.7,
   },
   helperText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#666",
     letterSpacing: -0.1,
     fontWeight: '500',
@@ -864,7 +758,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(32, 34, 46, 0.05)',
     borderRadius: 12,
     padding: 16,
-    marginTop: 16,
     marginBottom: 30,
     borderWidth: 1,
     borderColor: 'rgba(32, 34, 46, 0.1)',
@@ -1040,59 +933,95 @@ const styles = StyleSheet.create({
   },
 
   // Simplified Modal Styles
-  statusTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  responseMessage: {
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-    paddingHorizontal: 16,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 12,
+  simpleModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  actionButton: {
+  simpleModalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    minWidth: 280,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 24,
+  },
+  processingContent: {
+    alignItems: 'center',
+  },
+  processingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#20222E',
+    marginTop: 16,
+  },
+  errorContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  errorMessage: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    marginLeft: 12,
+    textAlign: 'left',
+  },
+  simpleActionButtons: {
+        flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  simpleRetryButton: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    maxWidth: 120,
+    minHeight: 44,
   },
-  primaryButton: {
+  simpleTryAgainButton: {
     backgroundColor: '#20222E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  secondaryButtonText: {
+  simpleRetryText: {
     color: '#333',
     fontSize: 14,
     fontWeight: '500',
   },
-  successNote: {
-    color: '#666',
+  simpleTryAgainText: {
+    color: '#fff',
     fontSize: 14,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontWeight: '500',
   },
+
+
   shopQRButton: {
     backgroundColor: '#8B4513',
     flexDirection: 'row',
