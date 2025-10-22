@@ -35,6 +35,7 @@ import HomeScreen from "../screens/HomeScreen";
 //Web View Screen
 import WebViewScreen from "../screens/Profile/WebViewScreen";
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
+import ChangePasswordScreen from "../screens/Settings/ChangePasswordScreen";
 
 const Stack = createStackNavigator();
 
@@ -67,11 +68,14 @@ const AppNavigator = () => {
       <Stack.Screen name="AddressDetails" component={AddressDetailsScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
 
+      {/* Settings */}
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
+      <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
+
       {/* Other Screens */}
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
       <Stack.Screen name="RaiseTickets" component={RaiseTicketsScreen} />
       <Stack.Screen name="TicketsDetails" component={TicketsDetailsScreen} />

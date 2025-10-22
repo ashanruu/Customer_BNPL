@@ -291,6 +291,14 @@ const SettingsScreen: React.FC = () => {
                 />
               }
             />
+
+            <SettingItem
+              title="Change Password"
+              subtitle="Update your account password"
+              icon="lock-closed-outline"
+              onPress={() => navigation.navigate('ChangePasswordScreen' as any)}
+            />
+
           </View>
         </View>
 
