@@ -12,6 +12,7 @@ import {
   Modal,
   Animated,
   ActivityIndicator,
+  GestureResponderEvent,
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -309,6 +310,10 @@ const SalesScreen: React.FC = () => {
 
   const statusColors = getStatusColors();
 
+  function handleClose(event: GestureResponderEvent): void {
+    closeModal();
+  }
+
   return (
     <View style={styles.screenContainer}>
       {/* Header Section with Dark Theme */}
@@ -364,7 +369,7 @@ const SalesScreen: React.FC = () => {
             <Text style={styles.helperText}>
               {manualCode.length > 0
                 ? `✓ Ready to process (${manualCode.length} characters)`
-                : 'No camera? No problem! Just paste your link above'}
+                : 'No camera? No problem! Just paste your link below'}
             </Text>
 
             {/* Manual Input with Inline Go Button */}
@@ -449,10 +454,10 @@ const SalesScreen: React.FC = () => {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={styles.simpleTryAgainButton}
-                    onPress={handleTryAgain}
+                    style={styles.simpleCloseButton}
+                    onPress={handleClose}
                   >
-                    <Text style={styles.simpleTryAgainText}>Retry</Text>
+                    <Text style={styles.simpleCloseText}>Close</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1000,8 +1005,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 44,
   },
-  simpleTryAgainButton: {
-    backgroundColor: '#20222E',
+  simpleCloseButton: {
+    backgroundColor: '#000000ff',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1015,7 +1020,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  simpleTryAgainText: {
+  simpleCloseText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',

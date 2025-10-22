@@ -288,16 +288,27 @@ const OrdersScreen: React.FC = () => {
     // Use enriched loans data instead of original loan data
     if (!enrichedLoans) return [];
 
+    let filteredData = [];
     switch (activeTab) {
       case "ongoing":
-        return Array.isArray(enrichedLoans.activeLoans) ? enrichedLoans.activeLoans : [];
+        filteredData = Array.isArray(enrichedLoans.activeLoans) ? enrichedLoans.activeLoans : [];
+        break;
       case "history":
-        return Array.isArray(enrichedLoans.completedLoans) ? enrichedLoans.completedLoans : [];
+        filteredData = Array.isArray(enrichedLoans.completedLoans) ? enrichedLoans.completedLoans : [];
+        break;
       case "cancelled":
-        return Array.isArray(enrichedLoans.returnedLoans) ? enrichedLoans.returnedLoans : [];
+        filteredData = Array.isArray(enrichedLoans.returnedLoans) ? enrichedLoans.returnedLoans : [];
+        break;
       default:
-        return [];
+        filteredData = [];
     }
+
+    // Sort by createdOn date in descending order (most recent first)
+    return filteredData.sort((a, b) => {
+      const dateA = a.createdOn ? new Date(a.createdOn).getTime() : 0;
+      const dateB = b.createdOn ? new Date(b.createdOn).getTime() : 0;
+      return dateB - dateA; // Descending order (most recent first)
+    });
   };
 
   const data = getFilteredData();

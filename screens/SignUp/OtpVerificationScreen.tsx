@@ -70,7 +70,6 @@ const OtpVerificationScreen: React.FC = ({ navigation, route }: any) => {
 
             // Handle successful verification
             if (response.statusCode === 200) {
-                showSuccess('OTP verified successfully!');
                 setTimeout(() => {
                     navigation.navigate('PersonalInfo', { 
                         phoneNumber: phoneNumber 

@@ -35,7 +35,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
-  const { notification, showSuccess, showError, hideNotification } = useNotification();
+  const { notification, showError, hideNotification } = useNotification();
 
   useEffect(() => {
     checkSecuritySetup();
@@ -118,10 +118,8 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
           }
         }
 
-        showSuccess('Login successful!');
-        setTimeout(() => {
-          navigation.navigate('Main');
-        }, 1500);
+        // Navigate immediately without showing success notification
+        navigation.navigate('Main');
       } else {
         showError(response.message || 'Login failed');
       }
@@ -138,10 +136,11 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Only show notification for errors */}
       <CustomNotification
         message={notification.message}
         type={notification.type}
-        visible={notification.visible}
+        visible={notification.visible && notification.type === 'error'}
         duration={notification.duration}
         onHide={hideNotification}
       />
@@ -152,13 +151,16 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
         style={styles.topBackground}
         resizeMode="cover"
       >
-        <View style={styles.logoContainer}>
-          <MainText size="xlarge" weight="bold" align="center" color="#fff">
-            Welcome Back
-          </MainText>
-          <SubText size="medium" align="center" color="#eee" style={{ marginTop: 0 }}>
-            Hello there, sign in to continue!
-          </SubText>
+        {/* Dark blue overlay */}
+        <View style={styles.overlayContainer}>
+          <View style={styles.logoContainer}>
+            <MainText size="xlarge" weight="bold" align="center" color="#fff">
+              Welcome Back
+            </MainText>
+            <SubText size="medium" align="center" color="#eee" style={{ marginTop: 0 }}>
+              Hello there, sign in to continue!
+            </SubText>
+          </View>
         </View>
       </ImageBackground>
 
@@ -272,20 +274,44 @@ const styles = StyleSheet.create({
   },
   topBackground: {
     width: '100%',
-    height: 250, // Reduced height to ensure it fits above keyboard
+    height: 250,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 80,
     overflow: 'hidden',
     paddingTop: 20,
-    position: 'relative', // Ensures it stays in place
+    position: 'relative',
+    // Add shadow to the entire background
+    shadowColor: '#0a0c29ff', // Dark blue shadow
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 15, // For Android
+  },
+  overlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(26, 35, 126, 0.2)', // Dark blue overlay with transparency
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoContainer: {
     alignItems: "flex-start",
     paddingHorizontal: 20,
     right: 50,
-    paddingTop: 150, // Adjusted for new height
+    paddingTop: 150,
+    // Add shadow to text container
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   scrollView: {
     marginTop: 20,

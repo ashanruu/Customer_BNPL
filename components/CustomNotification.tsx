@@ -17,7 +17,7 @@ interface NotificationProps {
   visible: boolean;
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const CustomNotification: React.FC<NotificationProps> = ({
   message,
@@ -26,21 +26,22 @@ const CustomNotification: React.FC<NotificationProps> = ({
   onHide,
   visible,
 }) => {
-  const slideAnim = useRef(new Animated.Value(width)).current;
+  const slideAnim = useRef(new Animated.Value(-width)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      // Slide in from right and fade in
+      // Slide in from top right with fade in animation
       Animated.parallel([
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration: 300,
+          tension: 100,
+          friction: 8,
           useNativeDriver: true,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]).start();
@@ -56,9 +57,10 @@ const CustomNotification: React.FC<NotificationProps> = ({
 
   const hideNotification = () => {
     Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: width,
-        duration: 300,
+      Animated.spring(slideAnim, {
+        toValue: -width,
+        tension: 150,
+        friction: 8,
         useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
@@ -71,29 +73,17 @@ const CustomNotification: React.FC<NotificationProps> = ({
     });
   };
 
-  const getNotificationStyle = () => {
+  const getIconColor = () => {
     switch (type) {
       case 'success':
-        return {
-          backgroundColor: '#4CAF50',
-          borderLeftColor: '#2E7D32',
-        };
+        return '#10B981';
       case 'error':
-        return {
-          backgroundColor: '#F44336',
-          borderLeftColor: '#C62828',
-        };
+        return '#EF4444';
       case 'warning':
-        return {
-          backgroundColor: '#FF9800',
-          borderLeftColor: '#E65100',
-        };
+        return '#F59E0B';
       case 'info':
       default:
-        return {
-          backgroundColor: '#2196F3',
-          borderLeftColor: '#1565C0',
-        };
+        return '#3B82F6';
     }
   };
 
@@ -124,19 +114,20 @@ const CustomNotification: React.FC<NotificationProps> = ({
       ]}
     >
       <TouchableOpacity
-        style={[styles.notification, getNotificationStyle()]}
+        style={styles.notification}
         onPress={hideNotification}
-        activeOpacity={0.9}
+        activeOpacity={0.95}
       >
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>{getIcon()}</Text>
+        <View style={styles.content}>
+          <View style={[styles.iconContainer, { backgroundColor: getIconColor() }]}>
+            <Text style={styles.icon}>{getIcon()}</Text>
+          </View>
+          <View style={styles.messageContainer}>
+            <Text style={styles.message} numberOfLines={3}>
+              {message}
+            </Text>
+          </View>
         </View>
-        <View style={styles.messageContainer}>
-          <Text style={styles.message} numberOfLines={3}>
-            {message}
-          </Text>
-        </View>
-        
       </TouchableOpacity>
     </Animated.View>
   );
@@ -146,33 +137,39 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     top: 60,
-    right: 10,
-    left: 10,
+    right: 0,
+    left: 0,
     zIndex: 9999,
     elevation: 9999,
   },
   notification: {
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    minHeight: 60,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    minHeight: 56,
   },
   iconContainer: {
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   icon: {
     color: 'white',
@@ -181,24 +178,12 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flex: 1,
-    marginRight: 8,
   },
   message: {
-    color: 'white',
-    fontSize: 14,
+    color: '#6b727eff',
+    fontSize: 15,
     fontWeight: '500',
-    lineHeight: 18,
-  },
-  closeButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-  },
-  closeText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    lineHeight: 20,
   },
 });
 
