@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import HomeScreen from './HomeScreen';
 
 // Define your stack param list according to your navigator setup
 type RootStackParamList = {

@@ -239,7 +239,7 @@ const OrderPageScreen: React.FC = () => {
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconLabel}>
                     <Ionicons name="storefront-outline" size={16} color="#666" />
-                    <Text style={styles.detailLabel}>Provider</Text>
+                    <Text style={styles.detailLabel}>Merchant Name</Text>
                   </View>
                   <Text style={styles.detailValue}>
                     {orderDetails.merchantName || 'N/A'}

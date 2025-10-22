@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/ShopScreen';
 import OrdersScreen from '../screens/Orders/OrdersScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen from '../screens/Profile/ProfileScreen';
 import SalesScreen from '../screens/Sales/SalesScreen';
 // import TermsScreen from '../screens/TermsScreen';
 // import SettingsScreen from '../screens/SettingsScreen';

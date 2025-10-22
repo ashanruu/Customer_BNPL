@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument, fetchCustomerDocApproveStatus } from '../scripts/api';
-import CustomButton from "../components/CustomButton";
+import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument, fetchCustomerDocApproveStatus } from '../../scripts/api';
+import CustomButton from "../../components/CustomButton";
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';

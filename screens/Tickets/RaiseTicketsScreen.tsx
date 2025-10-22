@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { callMobileApi } from "../scripts/api";
-import CustomButton from "../components/CustomButton";
+import { callMobileApi } from "../../scripts/api";
+import CustomButton from "../../components/CustomButton";
 
 const RaiseTicketsScreen = () => {
   const navigation = useNavigation();

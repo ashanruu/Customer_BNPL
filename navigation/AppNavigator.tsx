@@ -1,6 +1,6 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import SplashScreen from "../screens/SplashScreen";
+import SplashScreen from "../screens/LogIn/SplashScreen";
 import ManualTabNavigator from "../components/ManualTabNavigator";
 
 // LogIn
@@ -20,22 +20,20 @@ import SecuritySetupScreen from "../screens/SignUp/SecuritySetupScreen";
 
 // Other Screens
 import PlansScreen from "../screens/PlansScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import TermsScreen from "../screens/TermsScreen";
-import SettingsScreen from "../screens/SettingsScreen";
-import ChangePinScreen from "../screens/ChangePinScreen";
-import MyTicketsScreen from "../screens/MyTicketsScreen";
-import RaiseTicketsScreen from "../screens/RaiseTicketsScreen";
-import TicketsDetailsScreen from "../screens/TicketsDetailsScreen";
-import UserProfileScreen from "../screens/UserProfileScreen";
+import ProfileScreen from "../screens/Profile/ProfileScreen";
+import SettingsScreen from "../screens/Settings/SettingsScreen";
+import ChangePinScreen from "../screens/Settings/ChangePinScreen";
+import MyTicketsScreen from "../screens/Tickets/MyTicketsScreen";
+import RaiseTicketsScreen from "../screens/Tickets/RaiseTicketsScreen";
+import TicketsDetailsScreen from "../screens/Tickets/TicketsDetailsScreen";
+import UserProfileScreen from "../screens/Profile/UserProfileScreen";
 import SalesScreen from "../screens/Sales/SalesScreen";
 import OrderPageScreen from "../screens/Sales/OrderPageScreen";
-import PaymentProcessScreen from "../screens/PaymentProcessScreen";
-
+import PaymentProcessScreen from "../screens/Sales/PaymentProcessScreen";
 import HomeScreen from "../screens/HomeScreen";
 
 //Web View Screen
-import WebViewScreen from "../screens/WebViewScreen";
+import WebViewScreen from "../screens/Profile/WebViewScreen";
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 
 const Stack = createStackNavigator();
@@ -72,7 +70,6 @@ const AppNavigator = () => {
       {/* Other Screens */}
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
