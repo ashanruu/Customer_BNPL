@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useNavigation, RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import HamburgerMenu from "../components/HamburgerMenu";
+import HamburgerMenu from "../../components/HamburgerMenu";
 
 type Message = {
   id: string;

@@ -12,8 +12,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import HamburgerMenu from "../components/HamburgerMenu";
-import { callMobileApi } from "../scripts/api";
+import HamburgerMenu from "../../components/HamburgerMenu";
+import { callMobileApi } from "../../scripts/api";
 
 const MyTicketsScreen = () => {
   const navigation = useNavigation();

@@ -180,7 +180,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
               <TextInput
                 ref={emailInputRef}
                 style={styles.input}
-                placeholder="Enter your email here"
+                placeholder="Email"
                 placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={(text) => {
