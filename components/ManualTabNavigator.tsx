@@ -17,7 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useNavigation } from '@react-navigation/native';
 
 import HomeScreen from '../screens/HomeScreen';
-import ShopScreen from '../screens/ShopScreen';
+import ShopScreen from '../screens/Shop/ShopScreen';
 import OrdersScreen from '../screens/Orders/OrdersScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import SalesScreen from '../screens/Sales/SalesScreen';

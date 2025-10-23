@@ -16,7 +16,6 @@ import {
   getSecuritySettings,
   checkBiometricCapability,
   authenticateWithBiometrics,
-  verifyPin,
   saveLoginSuccess,
 } from '../../utils/authUtils';
 
@@ -102,7 +101,8 @@ const BiometricPinLoginScreen: React.FC = () => {
   };
 
   const handlePinInput = (digit: string) => {
-    if (pin.length < 4) {
+    // Changed from 4 to 6 digits
+    if (pin.length < 6) {
       setPin(pin + digit);
     }
   };
@@ -112,16 +112,17 @@ const BiometricPinLoginScreen: React.FC = () => {
   };
 
   const handlePinSubmit = async () => {
-    if (pin.length !== 4) {
-      Alert.alert('Error', 'Please enter your complete PIN');
+    // Changed from 4 to 6 digits
+    if (pin.length !== 6) {
+      Alert.alert('Error', 'Please enter your complete 6-digit PIN');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Verify PIN against stored PIN
-      const isValidPin = await verifyPin(pin);
+      // Direct comparison with stored PIN instead of using verifyPin function
+      const isValidPin = securitySettings.userPin === pin;
 
       if (isValidPin) {
         await handleSuccessfulLogin('pin');
@@ -132,6 +133,7 @@ const BiometricPinLoginScreen: React.FC = () => {
     } catch (error) {
       console.error('PIN verification error:', error);
       Alert.alert('Error', 'PIN verification failed');
+      setPin('');
     } finally {
       setLoading(false);
     }
@@ -158,6 +160,7 @@ const BiometricPinLoginScreen: React.FC = () => {
     if (showPinEntry) {
       // If we're in PIN entry mode, go back to biometric screen
       setShowPinEntry(false);
+      setPin(''); // Clear PIN when going back
     } else {
       // If we're on the main biometric screen, go back to previous screen
       navigation.goBack();
@@ -184,6 +187,7 @@ const BiometricPinLoginScreen: React.FC = () => {
               }
             }}
             disabled={digit === '' || loading}
+            activeOpacity={0.6}
           >
             {digit === 'delete' ? (
               <MaterialCommunityIcons name="backspace" size={24} color="#fff" />
@@ -199,7 +203,8 @@ const BiometricPinLoginScreen: React.FC = () => {
   const renderPinDots = () => {
     return (
       <View style={styles.pinDotsContainer}>
-        {Array.from({ length: 4 }).map((_, index) => (
+        {/* Changed from 4 to 6 dots */}
+        {Array.from({ length: 6 }).map((_, index) => (
           <View
             key={index}
             style={[
@@ -211,6 +216,18 @@ const BiometricPinLoginScreen: React.FC = () => {
       </View>
     );
   };
+
+  // Auto-submit when PIN is complete
+  useEffect(() => {
+    if (pin.length === 6 && !loading) {
+      // Small delay to show the complete PIN before verification
+      const timer = setTimeout(() => {
+        handlePinSubmit();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pin]);
 
   if (showPinEntry || !securitySettings.biometricEnabled || !biometricAvailable) {
     // Show PIN entry screen
@@ -243,16 +260,11 @@ const BiometricPinLoginScreen: React.FC = () => {
                 {renderPinDots()}
                 {renderPinPad()}
 
-                {pin.length === 4 && (
-                  <TouchableOpacity
-                    style={styles.submitButton}
-                    onPress={handlePinSubmit}
-                    disabled={loading}
-                  >
-                    <Text style={styles.submitButtonText}>
-                      {loading ? 'Verifying...' : 'Verify PIN'}
-                    </Text>
-                  </TouchableOpacity>
+                {/* Removed manual submit button since we auto-submit now */}
+                {loading && (
+                  <View style={styles.loadingContainer}>
+                    <Text style={styles.loadingText}>Verifying...</Text>
+                  </View>
                 )}
               </View>
 
@@ -454,15 +466,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   pinPadContainer: {
+    width: 250,
+    alignSelf: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
-    width: width * 0.8,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   pinButton: {
-    width: (width * 0.8) / 3 - 20,
+    width: 60,
     height: 60,
-    margin: 10,
+    marginVertical: 8,
+    marginHorizontal: 5,
     borderRadius: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
@@ -479,30 +495,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  submitButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white like your other elements
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 30,
-    minWidth: 220,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4.65,
-    elevation: 8,
+  loadingContainer: {
     marginTop: 20,
+    alignItems: 'center',
   },
-  submitButtonText: {
-    color: '#333', // Dark text on light background
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   fallbackButton: {
     backgroundColor: 'transparent',

@@ -36,6 +36,7 @@ import HomeScreen from "../screens/HomeScreen";
 import WebViewScreen from "../screens/Profile/WebViewScreen";
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 import ChangePasswordScreen from "../screens/Settings/ChangePasswordScreen";
+import ShopDetailsScreen from "../screens/Shop/ShopDetailsScreen";
 
 const Stack = createStackNavigator();
 
@@ -72,6 +73,9 @@ const AppNavigator = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
       <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
+
+      {/* Shop Screen */}
+      <Stack.Screen name="ShopDetailsScreen" component={ShopDetailsScreen} />
 
       {/* Other Screens */}
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
