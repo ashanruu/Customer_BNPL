@@ -17,10 +17,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../../constants/Colors';
 import {
   getSecuritySettings,
-  verifyPin,
-  validatePin,
-  changePin,
+  saveSecuritySettings,
 } from '../../utils/authUtils';
+import { callAuthApi, callMobileApi } from '../../scripts/api';
 import CustomButton from '../../components/CustomButton';
 
 type RootStackParamList = {
@@ -44,6 +43,7 @@ const ChangePinScreen: React.FC = () => {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userIdentifier, setUserIdentifier] = useState('');
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     pinEnabled: false,
     biometricEnabled: false,
@@ -51,7 +51,45 @@ const ChangePinScreen: React.FC = () => {
 
   useEffect(() => {
     loadSecuritySettings();
+    getUserIdentifier();
   }, []);
+
+  const getUserIdentifier = async () => {
+    try {
+      console.log("Fetching customer details for identifier...");
+
+      const response = await callMobileApi(
+        'GetCustomerDetails',
+        {},
+        'mobile-app-customer-details',
+        '',
+        'customer'
+      );
+
+      console.log("GetCustomerDetails response for identifier:", response);
+
+      if (response.statusCode === 200 && response.data) {
+        // Try to get email first, then phone as fallback
+        const email = response.data.email;
+        const phone = response.data.phoneNumber || response.data.phone;
+        const identifier = email || phone || '';
+        
+        setUserIdentifier(identifier);
+        console.log('User identifier for PIN change:', identifier);
+        
+        if (!identifier) {
+          console.warn('No email or phone found in customer details');
+          Alert.alert('Error', 'User information not found. Please try again later.');
+        }
+      } else {
+        console.error('Failed to fetch customer details:', response.message);
+        Alert.alert('Error', 'Failed to load user information. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error getting user identifier:', error);
+      Alert.alert('Error', 'Failed to load user information. Please try again.');
+    }
+  };
 
   const loadSecuritySettings = async () => {
     try {
@@ -63,17 +101,47 @@ const ChangePinScreen: React.FC = () => {
     }
   };
 
+  const verifyPasswordWithBackend = async (password: string) => {
+    try {
+      console.log("Verifying password for user:", userIdentifier);
+
+      const response = await callAuthApi(
+        'CheckPassword',
+        { 
+          identifier: userIdentifier,
+          password: password
+        },
+        'mobile-app-check-password'
+      );
+
+      console.log("CheckPassword response:", response);
+      
+      if (response.statusCode === 200 && response.payload) {
+        return response.payload.isValid;
+      } else {
+        console.error('Password verification failed:', response.message);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      throw error;
+    }
+  };
+
   const handlePasswordVerification = async () => {
     if (!password.trim()) {
       Alert.alert('Error', 'Please enter your password');
       return;
     }
 
+    if (!userIdentifier) {
+      Alert.alert('Error', 'User information not found. Please try again later.');
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Replace with actual backend verification when available
-      // const isValid = await verifyPassword(password);
-      const isValid = true; // Temporary: accept any password
+      const isValid = await verifyPasswordWithBackend(password);
       
       if (isValid) {
         if (!securitySettings.pinEnabled) {
@@ -87,11 +155,56 @@ const ChangePinScreen: React.FC = () => {
         ]);
       }
     } catch (error) {
-      console.error('Password verification error:', error);
-      Alert.alert('Error', 'Failed to verify password');
+      const err: any = error;
+      console.error('Password verification error:', err);
+      
+      // Handle specific error cases
+      if (err?.response?.status === 401) {
+        Alert.alert('Error', 'Incorrect password.');
+      } else if (err?.response?.status === 404) {
+        Alert.alert('Error', 'User not found. Please login again.');
+      } else if (err?.response?.status === 400) {
+        Alert.alert('Error', 'Invalid request. Please check your input and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to verify password. Please try again.');
+      }
+      setPassword('');
     } finally {
       setLoading(false);
     }
+  };
+
+  const verifyCurrentPin = (pin: string) => {
+    // Compare with stored PIN
+    return securitySettings.userPin === pin;
+  };
+
+  const validateNewPin = (pin: string) => {
+    // Simple validation - you can make this more complex if needed
+    if (pin.length !== 6) {
+      return { isValid: false, message: 'PIN must be 6 digits' };
+    }
+    
+    // Check if all digits are the same (weak PIN)
+    if (new Set(pin).size === 1) {
+      return { isValid: false, message: 'PIN cannot have all same digits' };
+    }
+    
+    // Check for sequential numbers
+    const isSequential = (str: string) => {
+      for (let i = 1; i < str.length; i++) {
+        if (parseInt(str[i]) !== parseInt(str[i-1]) + 1) {
+          return false;
+        }
+      }
+      return true;
+    };
+    
+    if (isSequential(pin) || isSequential(pin.split('').reverse().join(''))) {
+      return { isValid: false, message: 'PIN cannot be sequential numbers' };
+    }
+
+    return { isValid: true, message: '' };
   };
 
   const handlePinInput = (digit: string) => {
@@ -131,9 +244,7 @@ const ChangePinScreen: React.FC = () => {
   const handleCurrentPinComplete = async (pin: string) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual PIN verification when available
-      // const isValid = await verifyPin(pin);
-      const isValid = true; // Temporary: accept any PIN
+      const isValid = verifyCurrentPin(pin);
       
       if (isValid) {
         setStep('new');
@@ -151,12 +262,18 @@ const ChangePinScreen: React.FC = () => {
   };
 
   const handleNewPinComplete = (pin: string) => {
-    // TODO: Replace with actual PIN validation when available
-    // const validation = validatePin(pin);
-    const validation = { isValid: true, message: '' }; // Temporary: accept any PIN
+    const validation = validateNewPin(pin);
     
     if (!validation.isValid) {
       Alert.alert('Invalid PIN', validation.message, [
+        { text: 'OK', onPress: () => setNewPin('') }
+      ]);
+      return;
+    }
+
+    // Check if new PIN is same as current PIN
+    if (securitySettings.pinEnabled && securitySettings.userPin === pin) {
+      Alert.alert('Error', 'New PIN must be different from current PIN', [
         { text: 'OK', onPress: () => setNewPin('') }
       ]);
       return;
@@ -183,24 +300,25 @@ const ChangePinScreen: React.FC = () => {
   const saveNewPin = async (pin: string) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual changePin function when available
-      // const result = await changePin(currentPin, pin);
-      const result = { success: true, message: 'PIN saved successfully' }; // Temporary: always succeed
+      // Save PIN to local storage using the same method as SecuritySetupScreen
+      await saveSecuritySettings({
+        pinEnabled: true,
+        userPin: pin,
+        biometricEnabled: securitySettings.biometricEnabled, // Preserve existing biometric setting
+      });
       
-      if (result.success) {
-        Alert.alert(
-          'Success',
-          securitySettings.pinEnabled ? 'PIN changed successfully!' : 'PIN set successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Error', result.message || 'Failed to save PIN. Please try again.');
-      }
+      console.log('PIN saved successfully to local storage');
+      
+      Alert.alert(
+        'Success',
+        securitySettings.pinEnabled ? 'PIN changed successfully!' : 'PIN set successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error saving PIN:', error);
       Alert.alert('Error', 'Failed to save PIN. Please try again.');

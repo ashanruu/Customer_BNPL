@@ -10,9 +10,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { callMerchantApi } from '../scripts/api';
-import OptimizedImage from '../components/OptimizedImage';
-import ImageCacheManager from '../utils/ImageCacheManager';
+import { callMerchantApi } from '../../scripts/api';
+import OptimizedImage from '../../components/OptimizedImage';
+import ImageCacheManager from '../../utils/ImageCacheManager';
 
 // NavButton Component
 interface NavButtonProps {
@@ -145,6 +145,10 @@ const ShopScreen: React.FC = () => {
     }
   };
 
+  const handleShopPress = (shop: any) => {
+    navigation.navigate('ShopDetailsScreen', { shop });
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
@@ -212,7 +216,11 @@ const ShopScreen: React.FC = () => {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
           {featuredShops.length > 0 ? featuredShops.map((shop, index) => (
-            <TouchableOpacity key={shop.id || index} style={styles.shopCard}>
+            <TouchableOpacity 
+              key={shop.id || index} 
+              style={styles.shopCard}
+              onPress={() => handleShopPress(shop)}
+            >
               {shop.imageUrl ? (
                 <OptimizedImage 
                   source={{ uri: shop.imageUrl }} 
@@ -254,7 +262,11 @@ const ShopScreen: React.FC = () => {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
           {newArrivals.length > 0 ? newArrivals.map((item, index) => (
-            <TouchableOpacity key={item.id || index} style={styles.shopCard}>
+            <TouchableOpacity 
+              key={item.id || index} 
+              style={styles.shopCard}
+              onPress={() => handleShopPress(item)}
+            >
               {item.imageUrl ? (
                 <OptimizedImage 
                   source={{ uri: item.imageUrl }} 

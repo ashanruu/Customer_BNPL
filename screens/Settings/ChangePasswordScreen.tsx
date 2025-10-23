@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
 import CustomButton from '../../components/CustomButton';
+import { callAuthApi, callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
   Settings: undefined;
@@ -26,7 +27,6 @@ type RootStackParamList = {
 const ChangePasswordScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  const [step, setStep] = useState<'current' | 'new'>('current');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,6 +34,49 @@ const ChangePasswordScreen: React.FC = () => {
   const [newPasswordVisible, setNewPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userIdentifier, setUserIdentifier] = useState('');
+
+  // Get user identifier from profile data on component mount
+  React.useEffect(() => {
+    const getUserIdentifier = async () => {
+      try {
+        console.log("Fetching customer details for identifier...");
+
+        const response = await callMobileApi(
+          'GetCustomerDetails',
+          {},
+          'mobile-app-customer-details',
+          '',
+          'customer'
+        );
+
+        console.log("GetCustomerDetails response for identifier:", response);
+
+        if (response.statusCode === 200 && response.data) {
+          // Try to get email first, then phone as fallback
+          const email = response.data.email;
+          const phone = response.data.phoneNumber || response.data.phone;
+          const identifier = email || phone || '';
+          
+          setUserIdentifier(identifier);
+          console.log('User identifier for password change:', identifier);
+          
+          if (!identifier) {
+            console.warn('No email or phone found in customer details');
+            Alert.alert('Error', 'User information not found. Please try again later.');
+          }
+        } else {
+          console.error('Failed to fetch customer details:', response.message);
+          Alert.alert('Error', 'Failed to load user information. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error getting user identifier:', error);
+        Alert.alert('Error', 'Failed to load user information. Please try again.');
+      }
+    };
+
+    getUserIdentifier();
+  }, []);
 
   const validatePassword = (password: string) => {
     const minLength = 8;
@@ -61,34 +104,35 @@ const ChangePasswordScreen: React.FC = () => {
     return { isValid: true, message: '' };
   };
 
-  const handleCurrentPasswordVerification = async () => {
+  // Change password using backend API
+  const changePasswordAPI = async (identifier: string, oldPassword: string, newPassword: string) => {
+    try {
+      console.log("Changing password for user:", identifier);
+
+      const response = await callAuthApi(
+        'ChangePassword',
+        { 
+          identifier: identifier,
+          oldPassword: oldPassword,
+          newPassword: newPassword
+        },
+        'mobile-app-change-password'
+      );
+
+      console.log("ChangePassword response:", response);
+      return response;
+    } catch (error) {
+      console.error("Error changing password:", error);
+      throw error;
+    }
+  };
+
+  const handlePasswordChange = async () => {
     if (!currentPassword.trim()) {
       Alert.alert('Error', 'Please enter your current password');
       return;
     }
 
-    setLoading(true);
-    try {
-      // TODO: Replace with actual backend verification when available
-      // const isValid = await verifyCurrentPassword(currentPassword);
-      const isValid = true; // Temporary: accept any password
-      
-      if (isValid) {
-        setStep('new');
-      } else {
-        Alert.alert('Error', 'Current password is incorrect. Please try again.', [
-          { text: 'OK', onPress: () => setCurrentPassword('') }
-        ]);
-      }
-    } catch (error) {
-      console.error('Password verification error:', error);
-      Alert.alert('Error', 'Failed to verify current password');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
     if (!newPassword.trim()) {
       Alert.alert('Error', 'Please enter a new password');
       return;
@@ -119,13 +163,16 @@ const ChangePasswordScreen: React.FC = () => {
       return;
     }
 
+    if (!userIdentifier) {
+      Alert.alert('Error', 'User information not found. Please try again later.');
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Replace with actual backend API call when available
-      // const result = await changePassword(currentPassword, newPassword);
-      const result = { success: true, message: 'Password changed successfully' }; // Temporary: always succeed
+      const result = await changePasswordAPI(userIdentifier, currentPassword, newPassword);
       
-      if (result.success) {
+      if (result.statusCode === 200) {
         Alert.alert(
           'Success',
           'Password changed successfully!',
@@ -140,64 +187,21 @@ const ChangePasswordScreen: React.FC = () => {
         Alert.alert('Error', result.message || 'Failed to change password. Please try again.');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
-      Alert.alert('Error', 'Failed to change password. Please try again.');
+      const err: any = error;
+      console.error('Error changing password:', err);
+      
+      // Handle specific error cases
+      if (err?.response?.status === 401) {
+        Alert.alert('Error', 'Current password is incorrect or account is deactivated.');
+      } else if (err?.response?.status === 404) {
+        Alert.alert('Error', 'User not found. Please login again.');
+      } else if (err?.response?.status === 400) {
+        Alert.alert('Error', 'Invalid request. Please check your input and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to change password. Please try again.');
+      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleBackNavigation = () => {
-    if (step === 'current') {
-      navigation.goBack();
-    } else if (step === 'new') {
-      setStep('current');
-      setNewPassword('');
-      setConfirmPassword('');
-    }
-  };
-
-  const handleSubmit = () => {
-    switch (step) {
-      case 'current':
-        handleCurrentPasswordVerification();
-        break;
-      case 'new':
-        handlePasswordChange();
-        break;
-    }
-  };
-
-  const getStepTitle = () => {
-    switch (step) {
-      case 'current':
-        return 'Enter Current Password';
-      case 'new':
-        return 'Set New Password';
-      default:
-        return '';
-    }
-  };
-
-  const getStepSubtitle = () => {
-    switch (step) {
-      case 'current':
-        return 'Please enter your current password to continue';
-      case 'new':
-        return 'Create a strong password and confirm it below';
-      default:
-        return '';
-    }
-  };
-
-  const getStepIcon = () => {
-    switch (step) {
-      case 'current':
-        return 'lock-closed-outline';
-      case 'new':
-        return 'create-outline';
-      default:
-        return 'lock-closed-outline';
     }
   };
 
@@ -243,8 +247,6 @@ const ChangePasswordScreen: React.FC = () => {
   };
 
   const renderPasswordRequirements = () => {
-    if (step !== 'new') return null;
-
     return (
       <View style={styles.requirementsContainer}>
         <Text style={styles.requirementsTitle}>Password Requirements</Text>
@@ -255,73 +257,6 @@ const ChangePasswordScreen: React.FC = () => {
           • Include at least one number (0-9){'\n'}
           • Include at least one special character (!@#$%^&*)
         </Text>
-      </View>
-    );
-  };
-
-  const renderStepContent = () => {
-    return (
-      <View style={styles.stepContainer}>
-        <View style={styles.instructionContainer}>
-          <View style={styles.stepIconContainer}>
-            <Ionicons 
-              name={getStepIcon() as any} 
-              size={48} 
-              color="#374151" 
-              style={styles.stepIcon}
-            />
-          </View>
-          <Text style={styles.stepTitle}>{getStepTitle()}</Text>
-          <Text style={styles.stepSubtitle}>{getStepSubtitle()}</Text>
-        </View>
-        
-        <View style={styles.inputSection}>
-          {step === 'current' && renderPasswordInput(
-            currentPassword,
-            setCurrentPassword,
-            'Enter current password',
-            currentPasswordVisible,
-            () => setCurrentPasswordVisible(!currentPasswordVisible),
-            'lock-outline'
-          )}
-          
-          {step === 'new' && (
-            <>
-              {renderPasswordInput(
-                newPassword,
-                setNewPassword,
-                'Enter new password',
-                newPasswordVisible,
-                () => setNewPasswordVisible(!newPasswordVisible),
-                'lock-plus-outline'
-              )}
-              
-              <View style={styles.inputSpacing} />
-              
-              {renderPasswordInput(
-                confirmPassword,
-                setConfirmPassword,
-                'Confirm new password',
-                confirmPasswordVisible,
-                () => setConfirmPasswordVisible(!confirmPasswordVisible),
-                'lock-check-outline'
-              )}
-            </>
-          )}
-        </View>
-
-        {renderPasswordRequirements()}
-
-        <CustomButton
-          title={loading ? 'Processing...' : step === 'new' ? 'Change Password' : 'Continue'}
-          onPress={handleSubmit}
-          disabled={
-            loading || 
-            (step === 'current' && !currentPassword.trim()) ||
-            (step === 'new' && (!newPassword.trim() || !confirmPassword.trim()))
-          }
-          style={styles.primaryButton}
-        />
       </View>
     );
   };
@@ -339,7 +274,7 @@ const ChangePasswordScreen: React.FC = () => {
               {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity
-                  onPress={handleBackNavigation}
+                  onPress={() => navigation.goBack()}
                   style={styles.backButton}
                   hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
                 >
@@ -353,7 +288,67 @@ const ChangePasswordScreen: React.FC = () => {
 
               {/* Content Area */}
               <View style={styles.centeredBox}>
-                {renderStepContent()}
+                <View style={styles.stepContainer}>
+                  <View style={styles.instructionContainer}>
+                    <View style={styles.stepIconContainer}>
+                      <Ionicons 
+                        name="lock-closed-outline" 
+                        size={48} 
+                        color="#374151" 
+                        style={styles.stepIcon}
+                      />
+                    </View>
+                    <Text style={styles.stepTitle}>Change Your Password</Text>
+                    <Text style={styles.stepSubtitle}>Enter your current password and create a new secure password</Text>
+                  </View>
+                  
+                  <View style={styles.inputSection}>
+                    {renderPasswordInput(
+                      currentPassword,
+                      setCurrentPassword,
+                      'Enter current password',
+                      currentPasswordVisible,
+                      () => setCurrentPasswordVisible(!currentPasswordVisible),
+                      'lock-outline'
+                    )}
+                    
+                    <View style={styles.inputSpacing} />
+                    
+                    {renderPasswordInput(
+                      newPassword,
+                      setNewPassword,
+                      'Enter new password',
+                      newPasswordVisible,
+                      () => setNewPasswordVisible(!newPasswordVisible),
+                      'lock-plus-outline'
+                    )}
+                    
+                    <View style={styles.inputSpacing} />
+                    
+                    {renderPasswordInput(
+                      confirmPassword,
+                      setConfirmPassword,
+                      'Confirm new password',
+                      confirmPasswordVisible,
+                      () => setConfirmPasswordVisible(!confirmPasswordVisible),
+                      'lock-check-outline'
+                    )}
+                  </View>
+
+                  {renderPasswordRequirements()}
+
+                  <CustomButton
+                    title={loading ? 'Processing...' : 'Change Password'}
+                    onPress={handlePasswordChange}
+                    disabled={
+                      loading || 
+                      !currentPassword.trim() ||
+                      !newPassword.trim() ||
+                      !confirmPassword.trim()
+                    }
+                    style={styles.primaryButton}
+                  />
+                </View>
               </View>
             </View>
           </ScrollView>
