@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Dimensions, SafeAreaView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Splash: undefined;
@@ -17,33 +17,21 @@ interface Props {
   navigation: SplashScreenNavigationProp;
 }
 
-const { width } = Dimensions.get('window');
-
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Logo scale animation
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 4,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-
-    // Text fade in
+    // Simple fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1500,
-      easing: Easing.inOut(Easing.ease),
+      duration: 800,
+      easing: Easing.ease,
       useNativeDriver: true,
     }).start();
 
     // Check authentication status and navigate after 2 seconds
     const timeout = setTimeout(async () => {
       try {
-        // Check if user has security setup (PIN or biometric)
         const [pinEnabled, biometricEnabled, hasUserToken] = await Promise.all([
           AsyncStorage.getItem('pinEnabled'),
           AsyncStorage.getItem('biometricEnabled'),
@@ -123,33 +111,41 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF', // white background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logo: {
-    fontSize: 60,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#020c1dff', // dark blue text
+    marginLeft: 12,
+    letterSpacing: 2,
   },
-  text: {
-    fontSize: 22,
-    color: '#fff',
-    fontWeight: '500',
-    marginBottom: 30,
+  tagline: {
+    fontSize: 16,
+    color: '#6B7280', // gray text
+    fontWeight: '300',
+    marginTop: 8,
+    letterSpacing: 1,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
+  versionContainer: {
+    position: 'absolute',
+    bottom: 50,
+    alignItems: 'center',
   },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    marginHorizontal: 5,
+  version: {
+    fontSize: 12,
+    color: '#6B7280', // gray text
+    fontWeight: '400',
   },
 });
