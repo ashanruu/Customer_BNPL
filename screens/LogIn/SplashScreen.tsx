@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Splash: undefined;
@@ -17,33 +17,21 @@ interface Props {
   navigation: SplashScreenNavigationProp;
 }
 
-const { width } = Dimensions.get('window');
-
 const SplashScreen: React.FC<Props> = ({ navigation }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Logo scale animation
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 4,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-
-    // Text fade in
+    // Simple fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1500,
-      easing: Easing.inOut(Easing.ease),
+      duration: 800,
+      easing: Easing.ease,
       useNativeDriver: true,
     }).start();
 
     // Check authentication status and navigate after 2 seconds
     const timeout = setTimeout(async () => {
       try {
-        // Check if user has security setup (PIN or biometric)
         const [pinEnabled, biometricEnabled, hasUserToken] = await Promise.all([
           AsyncStorage.getItem('pinEnabled'),
           AsyncStorage.getItem('biometricEnabled'),
@@ -63,53 +51,19 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   return (
-    <LinearGradient
-      colors={['#20222E', '#090B1A']}
-      style={styles.container}
-    >
-      <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
-        <Text style={styles.logo}>BNPL</Text>
+    <View style={styles.container}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="wallet" size={50} color="#020c1dff" />
+          <Text style={styles.logo}>BNPL</Text>
+        </View>
+        <Text style={styles.tagline}>Buy Now Pay Later</Text>
       </Animated.View>
-      <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
-        Shop Today, Pay Your Way.
-      </Animated.Text>
-      <View style={styles.dotsContainer}>
-        <AnimatedDot delay={0} />
-        <AnimatedDot delay={300} />
-        <AnimatedDot delay={600} />
-      </View>
-    </LinearGradient>
-  );
-};
-
-const AnimatedDot: React.FC<{ delay: number }> = ({ delay }) => {
-  const scale = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 500,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.dot,
-        { transform: [{ scale }] },
-      ]}
-    />
+      
+      <Animated.View style={[styles.versionContainer, { opacity: fadeAnim }]}>
+        <Text style={styles.version}>Version 1.0.0</Text>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -118,33 +72,41 @@ export default SplashScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF', // white background
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoContainer: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logo: {
-    fontSize: 60,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#020c1dff', // dark blue text
+    marginLeft: 12,
+    letterSpacing: 2,
   },
-  text: {
-    fontSize: 22,
-    color: '#fff',
-    fontWeight: '500',
-    marginBottom: 30,
+  tagline: {
+    fontSize: 16,
+    color: '#6B7280', // gray text
+    fontWeight: '300',
+    marginTop: 8,
+    letterSpacing: 1,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
+  versionContainer: {
+    position: 'absolute',
+    bottom: 50,
+    alignItems: 'center',
   },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    marginHorizontal: 5,
+  version: {
+    fontSize: 12,
+    color: '#6B7280', // gray text
+    fontWeight: '400',
   },
 });
