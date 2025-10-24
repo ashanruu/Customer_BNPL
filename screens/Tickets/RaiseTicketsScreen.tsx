@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,36 +24,52 @@ const RaiseTicketsScreen = () => {
   const [loading, setLoading] = useState(false);
   const [document, setDocument] = useState(""); // For uploaded documents
 
+  // Create ticket function directly in the component
+  const createTicket = async (payload: {
+      Subject: string; MainReason: string; 
+      transactionId: string | null; message: string; document: string | null;
+    }) => {
+    try {
+      console.log('Creating ticket with payload:', payload);
+      
+      const response = await callMobileApi(
+        'CreateTicket',
+        payload,
+        `create-ticket-${Date.now()}`,
+        '',
+        'ticket'
+      );
+
+      console.log('CreateTicket response:', response);
+      return response;
+    } catch (error) {
+      console.error('CreateTicket error:', error);
+      throw error;
+    }
+  };
+
   const handleSubmitTicket = async () => {
     // Basic validation
-    if (!subject.trim() || !title.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields (Subject, Title, and Message)');
+    if (!subject.trim() || !message.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields (Subject and Message)');
       return;
     }
 
     setLoading(true);
 
     try {
+      // Prepare payload to match your backend structure
       const payload = {
-        MainReason: "Customer Support Request",
-        Title: title.trim(),
         Subject: subject.trim(),
-        message: message.trim(),
+        MainReason: title.trim() || "Technical", // Use title as MainReason or default to "Technical"
         transactionId: transactionId.trim() || null,
+        message: message.trim(),
         document: document || null
       };
 
-      const response = await callMobileApi(
-        'CreateTicket',
-        payload,
-        'mobile-app-ticket-creation',
-        '',
-        'ticket'
-      );
+      const response = await createTicket(payload);
 
-      console.log('CreateTicket response:', response);
-
-      if (response.statusCode === 200) {
+      if (response.statusCode === 200 || response.success) {
         Alert.alert(
           'Success',
           'Your ticket has been submitted successfully!',
@@ -74,9 +92,12 @@ const RaiseTicketsScreen = () => {
       } else {
         Alert.alert('Error', response.message || 'Failed to submit ticket');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('CreateTicket error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to submit ticket. Please try again.';
+      const errorMessage =
+        (error as any)?.response?.data?.message ||
+        (error instanceof Error ? error.message : null) ||
+        'Failed to submit ticket. Please try again.';
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
@@ -84,91 +105,93 @@ const RaiseTicketsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={22} color="#666" />
-        </TouchableOpacity>
-
-        <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>Raise a Ticket</Text>
-          <Text style={styles.subText}>Fill out the form below to submit a support request</Text>
-        </View>
-      </View>
-
-      {/* Content Area */}
-      <View style={styles.content}>
-        {/* Input Fields */}
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Subject</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Subject"
-              value={subject}
-              onChangeText={setSubject}
-            />
-          </View>
-
-          <Text style={styles.label}>Title</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Title"
-              value={title}
-              onChangeText={setTitle}
-            />
-          </View>
-
-          <Text style={styles.label}>Transaction ID (If Relevant)</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Transaction ID (If Relevant)"
-              value={transactionId}
-              onChangeText={setTransactionId}
-            />
-          </View>
-
-          <Text style={styles.label}>Message</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={[styles.input, styles.messageInput]}
-              placeholder="Message"
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
-          <Text style={styles.label}>Upload Screenshots (If Any)</Text>
-          <TouchableOpacity style={styles.uploadWrapper}>
-            <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
-            <View style={styles.uploadTextContainer}>
-              <Text style={styles.uploadTitle}>Upload Screenshots</Text>
-              <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
-            </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#666" />
           </TouchableOpacity>
+
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>Raise a Ticket</Text>
+            <Text style={styles.subText}>Fill out the form below to submit a support request</Text>
+          </View>
         </View>
 
-        {/* Submit Button */}
-        <View style={styles.submitButtonContainer}>
-          <CustomButton
-            title="Submit"
-            size="medium"
-            variant="primary"
-            onPress={handleSubmitTicket}
-            disabled={loading}
-          />
+        {/* Content Area */}
+        <View style={styles.content}>
+          {/* Input Fields */}
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Subject *</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter subject (e.g., payment, refund, etc.)"
+                value={subject}
+                onChangeText={setSubject}
+              />
+            </View>
+
+            <Text style={styles.label}>Main Reason</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Main reason (e.g., Technical, Payment, etc.)"
+                value={title}
+                onChangeText={setTitle}
+              />
+            </View>
+
+            <Text style={styles.label}>Transaction ID (If Relevant)</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Transaction ID (If Relevant)"
+                value={transactionId}
+                onChangeText={setTransactionId}
+              />
+            </View>
+
+            <Text style={styles.label}>Message *</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[styles.input, styles.messageInput]}
+                placeholder="Describe your issue in detail..."
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+            <Text style={styles.label}>Upload Screenshots (If Any)</Text>
+            <TouchableOpacity style={styles.uploadWrapper}>
+              <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
+              <View style={styles.uploadTextContainer}>
+                <Text style={styles.uploadTitle}>Upload Screenshots</Text>
+                <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Submit Button */}
+          <View style={styles.submitButtonContainer}>
+            <CustomButton
+              title={loading ? "Submitting..." : "Submit Ticket"}
+              size="medium"
+              variant="primary"
+              onPress={handleSubmitTicket}
+              disabled={loading}
+            />
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 

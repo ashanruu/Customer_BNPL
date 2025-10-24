@@ -9,10 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import HamburgerMenu from "../../components/HamburgerMenu";
 import { callMobileApi } from "../../scripts/api";
 
 const MyTicketsScreen = () => {
@@ -42,7 +40,13 @@ const MyTicketsScreen = () => {
       if (response.statusCode === 200) {
         if (response.data) {
           const ticketsData = Array.isArray(response.data) ? response.data : [response.data];
-          setTickets(ticketsData);
+          // Format the tickets data to match the UI expectations
+          const formattedTickets = ticketsData.map((ticket: { createAt: string; }) => ({
+            ...ticket,
+            createdAt: ticket.createAt, // Map createAt to createdAt for consistency
+            date: formatDate(ticket.createAt) // Format date for display
+          }));
+          setTickets(formattedTickets);
         } else {
           setTickets([]);
         }
@@ -59,6 +63,21 @@ const MyTicketsScreen = () => {
     }
   };
 
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   // Fetch tickets when component mounts
   useEffect(() => {
     fetchTickets();
@@ -71,7 +90,6 @@ const MyTicketsScreen = () => {
       });
     }, [navigation])
   );
-
 
   // Refresh tickets when screen comes into focus
   useFocusEffect(
@@ -95,46 +113,87 @@ const MyTicketsScreen = () => {
     }
   };
 
+  // Helper function for left border styling
+  const getLeftBorderStyle = (isActive: boolean) => {
+    return styles.defaultBorderLine; // Use same style for all tickets
+  };
+
+  // Helper function for status dot styling
+  const getStatusDotStyle = (isActive: boolean) => {
+    return isActive ? styles.activeStatusDot : styles.closedStatusDot;
+  };
+
   const renderTicket = ({ item }: any) => (
-    <TouchableOpacity
-      style={styles.ticketWrapper}
-      onPress={() =>
-        (navigation as any).navigate("TicketsDetails", { ticket: item })
-      }
-      activeOpacity={0.7}
-    >
-      <Text style={styles.date}>{item.createdAt || item.date || 'N/A'}</Text>
-      <View style={styles.ticketCard}>
-        <View style={styles.ticketContent}>
-          <Text style={styles.ticketTitle}>#{item.ticketId || 'N/A'}</Text>
-          <Text style={styles.ticketSubtitle} numberOfLines={2}>
-            {item.mainReason || 'No Description'}
-          </Text>
-          <View style={[
-            styles.statusBadge,
-            item.isActive ? styles.activeBadge : styles.closedBadge
-          ]}>
-            <Text style={[
-              styles.statusText,
-              item.isActive ? styles.activeStatusText : styles.closedStatusText
-            ]}>
-              {item.isActive ? 'Active' : 'Closed'}
+    <View style={styles.ticketWrapper}>
+      <Text style={styles.date}>{item.date || formatDate(item.createdAt) || 'N/A'}</Text>
+      <TouchableOpacity
+        style={styles.ticketCard}
+        onPress={() =>
+          (navigation as any).navigate("TicketsDetails", { ticket: item })
+        }
+        activeOpacity={0.7}
+      >
+        {/* Left Border Line */}
+        <View style={[styles.leftBorderLine, getLeftBorderStyle(item.isActive)]} />
+
+        {/* Card Content */}
+        <View style={styles.cardContent}>
+          {/* Ticket ID with Status Dot */}
+          <View style={styles.ticketIdRow}>
+            <Text style={styles.ticketId}>
+              #{item.ticketId || 'N/A'}
+            </Text>
+            <View style={[styles.statusDot, getStatusDotStyle(item.isActive)]} />
+          </View>
+
+          {/* Main Reason with Status Tag */}
+          <View style={styles.ticketDescriptionContainer}>
+            <View style={styles.ticketDescriptionWithTag}>
+              <Text style={styles.ticketDescription} numberOfLines={2}>
+                {item.mainReason || item.subject || 'No Description'}
+              </Text>
+              <View style={[
+                styles.statusTag,
+                item.isActive ? styles.activeTag : styles.closedTag
+              ]}>
+                <Text style={[
+                  styles.statusTagText,
+                  item.isActive ? styles.activeTagText : styles.closedTagText
+                ]}>
+                  {item.isActive ? 'Active' : 'Closed'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Additional Info if needed */}
+          {item.category && (
+            <Text style={styles.categoryInfo}>
+              Category: {item.category}
+            </Text>
+          )}
+        </View>
+
+        {/* Right Side - Date and Arrow */}
+        <View style={styles.rightSection}>
+          <View style={styles.createdDateContainer}>
+            <Text style={styles.createdDateLabel}>Created</Text>
+            <Text style={styles.createdDateValue}>
+              {formatDate(item.createdAt)}
             </Text>
           </View>
+
+          {/* Arrow indicator */}
+          <View style={styles.arrowContainer}>
+            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          </View>
         </View>
-        <View style={styles.chevronContainer}>
-          <Ionicons name="chevron-forward" size={20} color="#C1C1C1" />
-        </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
     <View style={styles.screenContainer}>
-      {/* <HamburgerMenu
-        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-      /> */}
-
       <View style={styles.container}>
         {/* Header Section */}
         <View style={styles.header}>
@@ -233,12 +292,12 @@ export default MyTicketsScreen;
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.95)",
     paddingTop: 40,
   },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.95)",
     paddingHorizontal: 20,
   },
   header: {
@@ -333,70 +392,148 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8E8E93",
     marginBottom: 8,
-    marginLeft: 4,
     fontWeight: "500",
     letterSpacing: -0.1,
+    textAlign: 'center',
   },
   ticketCard: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: "#F2F2F7",
+    borderColor: "#F0F0F0",
+    overflow: 'hidden',
+    position: 'relative',
   },
-  ticketContent: {
+  // Left border line styles
+  leftBorderLine: {
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderRadius: 2,
+    height: '30%',
+    alignSelf: 'center',
+  },
+  defaultBorderLine: {
+    backgroundColor: '#9E9E9E',
+  },
+  cardContent: {
     flex: 1,
+    paddingVertical: 18,
+    paddingLeft: 16,
+    paddingRight: 12,
   },
-  ticketTitle: {
-    fontSize: 17,
+  // Ticket ID row with status dot
+  ticketIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ticketId: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginRight: 8,
+  },
+  // Status dot styles
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  activeStatusDot: {
+    backgroundColor: '#4CAF50',
+  },
+  closedStatusDot: {
+    backgroundColor: '#8B4513',
+  },
+  // Ticket description container
+  ticketDescriptionContainer: {
+    marginBottom: 8,
+  },
+  ticketDescriptionWithTag: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  ticketDescription: {
+    fontSize: 16,
+    color: "#1a1a1a",
     fontWeight: "600",
-    marginBottom: 6,
-    color: "#2C2C2E",
-    letterSpacing: -0.2,
-  },
-  ticketSubtitle: {
-    fontSize: 15,
-    color: "#6D6D70",
-    marginBottom: 12,
     lineHeight: 20,
   },
-  statusBadge: {
+  statusTag: {
     alignSelf: 'flex-start',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
-  activeBadge: {
+  activeTag: {
     backgroundColor: '#E8F5E8',
+    borderColor: '#4CAF50',
   },
-  closedBadge: {
+  closedTag: {
     backgroundColor: '#F5F5F5',
+    borderColor: '#8E8E93',
   },
-  statusText: {
-    fontSize: 12,
+  statusTagText: {
+    fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.2,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  activeStatusText: {
-    color: '#34C759',
+  activeTagText: {
+    color: '#4CAF50',
   },
-  closedStatusText: {
+  closedTagText: {
     color: '#8E8E93',
   },
-  chevronContainer: {
-    justifyContent: 'center',
-    paddingLeft: 12,
+  categoryInfo: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+  rightSection: {
+    paddingRight: 16,
+    paddingLeft: 8,
+    paddingTop: 18,
+    alignSelf: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  createdDateContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  createdDateLabel: {
+    fontSize: 11,
+    color: "#888",
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  createdDateValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1a1a1a",
+  },
+  arrowContainer: {
+    marginTop: 0,
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
