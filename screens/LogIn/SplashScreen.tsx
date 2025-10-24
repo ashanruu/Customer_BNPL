@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Dimensions, SafeAreaView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,10 +63,11 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   return (
-    <LinearGradient
-      colors={['#20222E', '#090B1A']}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient
+        colors={['#20222E', '#090B1A']}
+        style={styles.container}
+      >
       <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.logo}>BNPL</Text>
       </Animated.View>
@@ -78,7 +79,8 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         <AnimatedDot delay={300} />
         <AnimatedDot delay={600} />
       </View>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
@@ -116,6 +118,9 @@ const AnimatedDot: React.FC<{ delay: number }> = ({ delay }) => {
 export default SplashScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
