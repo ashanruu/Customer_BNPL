@@ -19,9 +19,98 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
     const [loading, setLoading] = useState(false);
     const [phoneError, setPhoneError] = useState('');
 
+    const formatPhoneNumber = (text: string): string => {
+        // Remove all non-digit characters except +
+        const cleaned = text.replace(/[^\d+]/g, '');
+        
+        // If it starts with +94, format it accordingly
+        if (cleaned.startsWith('+94')) {
+            const digits = cleaned.substring(3);
+            if (digits.length <= 9) {
+                return `+94 ${digits}`;
+            }
+            return `+94 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 9)}`;
+        }
+        
+        // If it starts with 94, add + and format
+        if (cleaned.startsWith('94') && cleaned.length > 2) {
+            const digits = cleaned.substring(2);
+            if (digits.length <= 9) {
+                return `+94 ${digits}`;
+            }
+            return `+94 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 9)}`;
+        }
+        
+        // If it starts with 0 (Sri Lankan local format)
+        if (cleaned.startsWith('0')) {
+            if (cleaned.length <= 10) {
+                return cleaned;
+            }
+            return `${cleaned.substring(0, 4)} ${cleaned.substring(4, 7)} ${cleaned.substring(7, 10)}`;
+        }
+        
+        return cleaned;
+    };
+
+    const validatePhoneNumber = (phone: string): { isValid: boolean; message: string } => {
+        // Remove all non-digit characters except + for validation
+        const cleanPhone = phone.replace(/[^\d+]/g, '');
+        const digitsOnly = cleanPhone.replace(/\D/g, '');
+        
+        // Check if phone number is empty
+        if (!phone.trim()) {
+            return { isValid: false, message: 'Please enter your mobile number' };
+        }
+        
+        // Check minimum length (should be at least 9 digits)
+        if (digitsOnly.length < 9) {
+            return { isValid: false, message: 'Phone number must be at least 9 digits' };
+        }
+        
+        // Check maximum length (should not exceed 15 digits as per international standard)
+        if (digitsOnly.length > 15) {
+            return { isValid: false, message: 'Phone number cannot exceed 15 digits' };
+        }
+        
+        // Check for Sri Lankan mobile number formats
+        if (cleanPhone.startsWith('+94')) {
+            // +94 format - should be +94XXXXXXXXX (9 digits after +94)
+            const sriLankanDigits = digitsOnly.substring(2); // Remove 94
+            if (sriLankanDigits.length !== 9 || !sriLankanDigits.startsWith('7')) {
+                return { isValid: false, message: 'Sri Lankan mobile numbers should be +94 7X XXX XXXX' };
+            }
+        } else if (cleanPhone.startsWith('94') && !cleanPhone.startsWith('+')) {
+            // 94 format - should be 94XXXXXXXXX
+            const sriLankanDigits = digitsOnly.substring(2); // Remove 94
+            if (sriLankanDigits.length !== 9 || !sriLankanDigits.startsWith('7')) {
+                return { isValid: false, message: 'Sri Lankan mobile numbers should be 94 7X XXX XXXX' };
+            }
+        } else if (cleanPhone.startsWith('0')) {
+            // Local format - should be 0XXXXXXXXX (10 digits total)
+            if (digitsOnly.length !== 10 || !digitsOnly.startsWith('07')) {
+                return { isValid: false, message: 'Sri Lankan mobile numbers should be 07X XXX XXXX' };
+            }
+        } else if (cleanPhone.startsWith('+')) {
+            // Other international format
+            if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+                return { isValid: false, message: 'Please enter a valid international mobile number' };
+            }
+        } else {
+            // Check if it's a valid mobile number pattern
+            const mobileRegex = /^[1-9]\d{8,14}$/;
+            if (!mobileRegex.test(digitsOnly)) {
+                return { isValid: false, message: 'Please enter a valid mobile number' };
+            }
+        }
+        
+        return { isValid: true, message: '' };
+    };
+
     const handleSendOTP = async () => {
-        if (!phoneNumber.trim()) {
-            setPhoneError('Please enter your mobile number');
+        // Validate phone number
+        const validation = validatePhoneNumber(phoneNumber);
+        if (!validation.isValid) {
+            setPhoneError(validation.message);
             return;
         }
 
@@ -29,60 +118,24 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
         setLoading(true);
 
         try {
-            // First, validate the customer
-            // console.log('Validating customer with phone number:', phoneNumber.trim());
+            console.log('Sending OTP to phone number:', phoneNumber.trim());
             
-            // const validateResponse = await validateCustomer(phoneNumber.trim());
+            const response = await callAuthApi(
+                "SendMobileOtp",
+                {
+                    phone: phoneNumber.replace(/\D/g, '') // Send only digits to API
+                }
+            );
 
-            // console.log('Customer validation response:', validateResponse);
+            setLoading(false);
 
-            // // Check if validation was successful
-            // if (validateResponse.statusCode !== 200) {
-            //     setLoading(false);
-            //     Alert.alert('Validation Error', validateResponse.message || 'Customer validation failed');
-            //     return;
-            // }
-
-            // // Check the success status and message from the validation response
-            // const validationData = validateResponse.data || validateResponse.payload || validateResponse;
-            
-            // if (!validationData.success) {
-            //     setLoading(false);
-            //     // Handle specific error messages
-            //     if (validationData.message === "Phone number is required") {
-            //         Alert.alert('Validation Error', 'Phone number is required');
-            //     } else if (validationData.message === "Phone number already exists") {
-            //         Alert.alert('Phone Number Exists', 'This phone number is already registered. Please use a different number or try logging in.');
-            //     } else {
-            //         Alert.alert('Validation Error', validationData.message || 'Customer validation failed');
-            //     }
-            //     return;
-            // }
-
-            // Only proceed if message is "Phone number is available"  validationData.message === "Phone number is available"
-            //if () {
-                console.log('Customer validated successfully, sending OTP...');
-                
-                const response = await callAuthApi(
-                    "SendMobileOtp",
-                    {
-                        phone: phoneNumber.trim()
-                    }
-                );
-
-                setLoading(false);
-
-                if (response.statusCode === 200) {
-                    // Pass the phone number to the next screen
-                    navigation.navigate('OtpVerification', { 
-                        phoneNumber: phoneNumber.trim() 
-                    });
-                // } else {
-                //     Alert.alert('Error', response.message || 'Failed to send OTP');
-                // }
+            if (response.statusCode === 200) {
+                // Pass the phone number to the next screen
+                navigation.navigate('OtpVerification', { 
+                    phoneNumber: phoneNumber.trim() 
+                });
             } else {
-                setLoading(false);
-                Alert.alert('Validation Error', 'Unexpected validation response');
+                Alert.alert('Error', response.message || 'Failed to send OTP');
             }
         } catch (error) {
             setLoading(false);
@@ -123,13 +176,23 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                             placeholder="Mobile Number"
                             value={phoneNumber}
                             onChangeText={(text) => {
-                                setPhoneNumber(text);
-                                setPhoneError('');
+                                const formatted = formatPhoneNumber(text);
+                                setPhoneNumber(formatted);
+                                // Clear error when user starts typing
+                                if (phoneError) {
+                                    setPhoneError('');
+                                }
                             }}
                             iconName="phone-outline"
-                            keyboardType="numeric"
+                            keyboardType="phone-pad"
                             error={phoneError}
                         />
+                        
+                        {!phoneError && (
+                            <SubText size="small" align="left" style={styles.helpText}>
+                                Enter your mobile number (e.g., +94 77 123 4567 or 077 123 4567)
+                            </SubText>
+                        )}
 
                         <CustomButton
                             title="Send OTP"
@@ -187,6 +250,13 @@ const styles = StyleSheet.create({
         width: '80%',
         maxWidth: 400,
         alignSelf: 'center',
+    },
+    helpText: {
+        marginTop: 8,
+        marginBottom: 16,
+        color: Colors.light.mutedText,
+        fontSize: 12,
+        lineHeight: 16,
     },
 
 });

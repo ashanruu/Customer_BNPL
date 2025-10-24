@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -93,7 +94,8 @@ const PlansScreen: React.FC = () => {
   );
 
   return (
-    <LinearGradient colors={["#20222E", "#090B1A"]} style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={["#20222E", "#090B1A"]} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -115,13 +117,17 @@ const PlansScreen: React.FC = () => {
         decelerationRate="fast"
         contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 20 }}
       />
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 export default PlansScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
