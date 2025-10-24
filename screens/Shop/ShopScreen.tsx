@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -158,7 +159,8 @@ const ShopScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
        {/* Search */}
         <View style={styles.searchBarContainer}>
           <View style={styles.searchBar}>
@@ -302,16 +304,21 @@ const ShopScreen: React.FC = () => {
           )}
         </ScrollView>
       </ScrollView>
-   </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default ShopScreen;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
+    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     justifyContent: 'center',

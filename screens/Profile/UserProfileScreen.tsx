@@ -8,7 +8,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  TextInput
+  TextInput,
+  SafeAreaView,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { callMobileApi } from '../../scripts/api';
@@ -244,7 +245,7 @@ const UserProfileScreen: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -408,7 +409,7 @@ const UserProfileScreen: React.FC = () => {
           </ScrollView>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

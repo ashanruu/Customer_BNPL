@@ -2,18 +2,11 @@ import React from 'react';
 import {
   Text,
   StyleSheet,
-  Platform,
   useColorScheme,
   TextStyle,
 } from 'react-native';
-import { Colors } from '../constants/Colors'; // Adjust path as needed
-
-// Font resolver
-const getFontFamily = () => {
-  if (Platform.OS === 'ios') return 'SF Pro Display';
-  if (Platform.OS === 'android') return 'Roboto';
-  return 'System';
-};
+import { Colors } from '../constants/Colors';
+import { getFontFamily, getFontWeight } from '../utils/fontUtils';
 
 // -------- MainText Component --------
 interface MainTextProps {
@@ -37,14 +30,16 @@ export const MainText: React.FC<MainTextProps> = ({
   const themeColors = Colors[colorScheme ?? 'light'];
 
   const baseStyle: TextStyle = {
-    fontFamily: getFontFamily(),
+    fontFamily: getFontFamily(weight),
+    fontWeight: getFontWeight(weight) as any,
     color: color ?? themeColors.text,
     textAlign: align,
     marginBottom: 8,
+    includeFontPadding: false, // Android-specific: prevents extra padding
   };
 
   return (
-    <Text style={[baseStyle, styles[size], styles[weight], style]}>
+    <Text style={[baseStyle, styles[size], style]}>
       {children}
     </Text>
   );
@@ -72,15 +67,17 @@ export const SubText: React.FC<SubTextProps> = ({
   const themeColors = Colors[colorScheme ?? 'light'];
 
   const baseStyle: TextStyle = {
-    fontFamily: getFontFamily(),
+    fontFamily: getFontFamily(weight),
+    fontWeight: getFontWeight(weight) as any,
     color: color ?? themeColors.icon,
     textAlign: align,
     lineHeight: 20,
     marginBottom: 4,
+    includeFontPadding: false, // Android-specific: prevents extra padding
   };
 
   return (
-    <Text style={[baseStyle, styles[size], styles[weight], style]}>
+    <Text style={[baseStyle, styles[size], style]}>
       {children}
     </Text>
   );
@@ -106,8 +103,10 @@ export const LinkText: React.FC<LinkTextProps> = ({
   const themeColors = Colors[colorScheme ?? 'light'];
 
   const baseStyle: TextStyle = {
-    fontFamily: getFontFamily(),
+    fontFamily: getFontFamily('normal'),
+    fontWeight: getFontWeight('normal') as any,
     color: color ?? themeColors.tint,
+    includeFontPadding: false, // Android-specific: prevents extra padding
   };
 
   return (
@@ -133,12 +132,6 @@ const styles = StyleSheet.create({
   },
   xlarge: {
     fontSize: 30, // previously 24
-  },
-  normal: {
-    fontWeight: '400',
-  },
-  bold: {
-    fontWeight: '700',
   },
 });
 

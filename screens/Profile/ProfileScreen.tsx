@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -589,7 +590,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
   const paymentData = getPaymentMethodData();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Loading indicator */}
       {(loading || planLoading || cardLoading) && (
         <View style={styles.loadingContainer}>
@@ -802,7 +803,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
           ))}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

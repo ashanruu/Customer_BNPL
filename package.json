@@ -6,7 +6,14 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "prebuild": "expo prebuild",
+    "eject": "expo prebuild --platform android,ios",
+    "build:android": "eas build -p android",
+    "build:android:local": "echo 'Use this after you prebuild (bare workflow). On Windows run: cd android && gradlew.bat assembleDebug' && exit 0",
+    "run:android:bare": "echo 'After ejecting/prebuilding run the following in PowerShell:\n cd android; .\\gradlew.bat installDebug' && exit 0",
+    "gradle:wrapper:win": "echo 'If android/ exists use: android\\gradlew.bat <task> (example: assembleDebug) from PowerShell' && exit 0",
+    "doctor": "expo doctor"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

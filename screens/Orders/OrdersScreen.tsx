@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -314,7 +315,7 @@ const OrdersScreen: React.FC = () => {
   const data = getFilteredData();
 
   return (
-    <View style={styles.screenContainer}>
+    <SafeAreaView style={styles.screenContainer}>
       <View style={styles.container}>
         {/* Header Section */}
         <View style={styles.header}>
@@ -399,7 +400,7 @@ const OrdersScreen: React.FC = () => {
           />
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
