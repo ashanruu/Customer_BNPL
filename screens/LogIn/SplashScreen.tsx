@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,64 +51,25 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <LinearGradient
-        colors={['#20222E', '#090B1A']}
-        style={styles.container}
-      >
-      <Animated.View style={[styles.logoContainer, { transform: [{ scale: scaleAnim }] }]}>
-        <Text style={styles.logo}>BNPL</Text>
+    <View style={styles.container}>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="wallet" size={50} color="#020c1dff" />
+          <Text style={styles.logo}>BNPL</Text>
+        </View>
+        <Text style={styles.tagline}>Buy Now Pay Later</Text>
       </Animated.View>
-      <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
-        Shop Today, Pay Your Way.
-      </Animated.Text>
-      <View style={styles.dotsContainer}>
-        <AnimatedDot delay={0} />
-        <AnimatedDot delay={300} />
-        <AnimatedDot delay={600} />
-      </View>
-      </LinearGradient>
-    </SafeAreaView>
-  );
-};
-
-const AnimatedDot: React.FC<{ delay: number }> = ({ delay }) => {
-  const scale = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: 500,
-          delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scale, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.dot,
-        { transform: [{ scale }] },
-      ]}
-    />
+      
+      <Animated.View style={[styles.versionContainer, { opacity: fadeAnim }]}>
+        <Text style={styles.version}>Version 1.0.0</Text>
+      </Animated.View>
+    </View>
   );
 };
 
 export default SplashScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF', // white background
@@ -146,6 +107,6 @@ const styles = StyleSheet.create({
   version: {
     fontSize: 12,
     color: '#6B7280', // gray text
-    fontWeight: '400',
-  },
+    fontWeight: '400',
+  },
 });

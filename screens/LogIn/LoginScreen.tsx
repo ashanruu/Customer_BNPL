@@ -221,7 +221,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
 
               <TouchableOpacity style={styles.forgotPasswordContainer}>
                 <LinkText
-                  style={{ fontSize: 14 }}
+                  style={{ fontSize: 14, color: Colors.light.primary }}
                   onPress={() => navigation.navigate('ForgotPassword')}
                 >
                   Forgot Password?
@@ -251,7 +251,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                 </SubText>
                 <LinkText
                   size="small"
-                  style={{ fontSize: 14 }}
+                  style={{ fontSize: 14, color: Colors.light.primary}}
                   onPress={() => navigation.navigate('GetStarted')}
                 >
                   Sign up

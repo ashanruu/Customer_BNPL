@@ -62,45 +62,29 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
             return { isValid: false, message: 'Please enter your mobile number' };
         }
         
-        // Check minimum length (should be at least 9 digits)
-        if (digitsOnly.length < 9) {
-            return { isValid: false, message: 'Phone number must be at least 9 digits' };
-        }
-        
-        // Check maximum length (should not exceed 15 digits as per international standard)
-        if (digitsOnly.length > 15) {
-            return { isValid: false, message: 'Phone number cannot exceed 15 digits' };
-        }
-        
         // Check for Sri Lankan mobile number formats
         if (cleanPhone.startsWith('+94')) {
-            // +94 format - should be +94XXXXXXXXX (9 digits after +94)
-            const sriLankanDigits = digitsOnly.substring(2); // Remove 94
-            if (sriLankanDigits.length !== 9 || !sriLankanDigits.startsWith('7')) {
-                return { isValid: false, message: 'Sri Lankan mobile numbers should be +94 7X XXX XXXX' };
+            // +94 format - should be 12 digits total (+94XXXXXXXXX)
+            if (digitsOnly.length !== 12) {
+                return { isValid: false, message: 'Mobile number with +94 should be 12 digits total' };
             }
-        } else if (cleanPhone.startsWith('94') && !cleanPhone.startsWith('+')) {
-            // 94 format - should be 94XXXXXXXXX
+            // Check if the number after +94 starts with 7 (Sri Lankan mobile pattern)
             const sriLankanDigits = digitsOnly.substring(2); // Remove 94
-            if (sriLankanDigits.length !== 9 || !sriLankanDigits.startsWith('7')) {
-                return { isValid: false, message: 'Sri Lankan mobile numbers should be 94 7X XXX XXXX' };
+            if (!sriLankanDigits.startsWith('7')) {
+                return { isValid: false, message: 'Sri Lankan mobile numbers should start with 7 after +94' };
             }
         } else if (cleanPhone.startsWith('0')) {
-            // Local format - should be 0XXXXXXXXX (10 digits total)
-            if (digitsOnly.length !== 10 || !digitsOnly.startsWith('07')) {
-                return { isValid: false, message: 'Sri Lankan mobile numbers should be 07X XXX XXXX' };
+            // Local format starting with 0 - should be 10 digits total (0XXXXXXXXX)
+            if (digitsOnly.length !== 10) {
+                return { isValid: false, message: 'Mobile number starting with 0 should be 10 digits total' };
             }
-        } else if (cleanPhone.startsWith('+')) {
-            // Other international format
-            if (digitsOnly.length < 10 || digitsOnly.length > 15) {
-                return { isValid: false, message: 'Please enter a valid international mobile number' };
+            // Check if it starts with 07 (Sri Lankan mobile pattern)
+            if (!digitsOnly.startsWith('07')) {
+                return { isValid: false, message: 'Sri Lankan mobile numbers should start with 07' };
             }
         } else {
-            // Check if it's a valid mobile number pattern
-            const mobileRegex = /^[1-9]\d{8,14}$/;
-            if (!mobileRegex.test(digitsOnly)) {
-                return { isValid: false, message: 'Please enter a valid mobile number' };
-            }
+            // If it doesn't start with +94 or 0, it's not a valid format
+            return { isValid: false, message: 'Mobile number must start with +94 or 0' };
         }
         
         return { isValid: true, message: '' };
@@ -154,7 +138,7 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <MainText size="xlarge" weight="bold" align="left">
+                    <MainText size="xlarge" weight="bold" align="left" color={Colors.light.primary}>
                         Get Started
                     </MainText>
                     <SubText size="medium" align="left" style={styles.subtitle}>
@@ -190,7 +174,7 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                         
                         {!phoneError && (
                             <SubText size="small" align="left" style={styles.helpText}>
-                                Enter your mobile number (e.g., +94 77 123 4567 or 077 123 4567)
+                                Enter mobile number starting with +94 (12 digits) or 0 (10 digits)
                             </SubText>
                         )}
 
