@@ -6,6 +6,7 @@ import {
     Alert,
     TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { callAuthApi, validateCustomer } from '../../scripts/api';
 import { MainText, SubText } from '../../components/CustomText';
 import CustomInputField from '../../components/CustomInputField';
@@ -15,6 +16,7 @@ import { Colors } from '../../constants/Colors';
 import StepIndicator from '../../components/StepIndicator';
 
 const GetStartedScreen: React.FC = ({ navigation }: any) => {
+    const { t } = useTranslation();
     const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [phoneError, setPhoneError] = useState('');
@@ -59,32 +61,32 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
         
         // Check if phone number is empty
         if (!phone.trim()) {
-            return { isValid: false, message: 'Please enter your mobile number' };
+            return { isValid: false, message: t('signup.enterMobile') };
         }
         
         // Check for Sri Lankan mobile number formats
         if (cleanPhone.startsWith('+94')) {
             // +94 format - should be 12 digits total (+94XXXXXXXXX)
             if (digitsOnly.length !== 12) {
-                return { isValid: false, message: 'Mobile number with +94 should be 12 digits total' };
+                return { isValid: false, message: t('signup.mobile94Format') };
             }
             // Check if the number after +94 starts with 7 (Sri Lankan mobile pattern)
             const sriLankanDigits = digitsOnly.substring(2); // Remove 94
             if (!sriLankanDigits.startsWith('7')) {
-                return { isValid: false, message: 'Sri Lankan mobile numbers should start with 7 after +94' };
+                return { isValid: false, message: t('signup.mobileStart7') };
             }
         } else if (cleanPhone.startsWith('0')) {
             // Local format starting with 0 - should be 10 digits total (0XXXXXXXXX)
             if (digitsOnly.length !== 10) {
-                return { isValid: false, message: 'Mobile number starting with 0 should be 10 digits total' };
+                return { isValid: false, message: t('signup.mobile0Format') };
             }
             // Check if it starts with 07 (Sri Lankan mobile pattern)
             if (!digitsOnly.startsWith('07')) {
-                return { isValid: false, message: 'Sri Lankan mobile numbers should start with 07' };
+                return { isValid: false, message: t('signup.mobileStart07') };
             }
         } else {
             // If it doesn't start with +94 or 0, it's not a valid format
-            return { isValid: false, message: 'Mobile number must start with +94 or 0' };
+            return { isValid: false, message: t('signup.mobileValidFormat') };
         }
         
         return { isValid: true, message: '' };
@@ -119,12 +121,12 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                     phoneNumber: phoneNumber.trim() 
                 });
             } else {
-                Alert.alert('Error', response.message || 'Failed to send OTP');
+                Alert.alert(t('common.error'), response.message || t('signup.otpSendFailed'));
             }
         } catch (error) {
             setLoading(false);
             console.error('Error during customer validation or OTP sending:', error);
-            Alert.alert('Error', 'Failed to process request. Please try again.');
+            Alert.alert(t('common.error'), t('signup.requestFailed'));
         }
     };
 
@@ -139,12 +141,12 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                 {/* Header */}
                 <View style={styles.header}>
                     <MainText size="xlarge" weight="bold" align="left" color={Colors.light.primary}>
-                        Get Started
+                        {t('signup.getStarted')}
                     </MainText>
                     <SubText size="medium" align="left" style={styles.subtitle}>
-                        Enter your mobile number to sign up
+                        {t('signup.enterMobileToSignup')}
                     </SubText>
-                </View>   //228461
+                </View>
 
                 {/* Step Indicator */}
                 <View style={styles.stepIndicatorWrapper}>
@@ -157,7 +159,7 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                     <View style={styles.form}>
 
                         <CustomInputField
-                            placeholder="Mobile Number"
+                            placeholder={t('signup.mobileNumber')}
                             value={phoneNumber}
                             onChangeText={(text) => {
                                 const formatted = formatPhoneNumber(text);
@@ -174,12 +176,12 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                         
                         {!phoneError && (
                             <SubText size="small" align="left" style={styles.helpText}>
-                                Enter mobile number starting with +94 (12 digits) or 0 (10 digits)
+                                {t('signup.mobileHelp')}
                             </SubText>
                         )}
 
                         <CustomButton
-                            title="Send OTP"
+                            title={t('signup.sendOtp')}
                             onPress={handleSendOTP}
                             loading={loading}
                             style={styles.sendButton}

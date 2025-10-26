@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import LanguageSelectionModal from '../../components/LanguageSelectionModal';
+import { getLanguageDisplayName, getCurrentLanguage } from '../../utils/i18n';
 import {
   getSecuritySettings,
   saveSecuritySettings,
@@ -39,6 +42,10 @@ const SettingsScreen: React.FC = () => {
   });
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState(getCurrentLanguage());
+  
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadSettings();
@@ -76,22 +83,22 @@ const SettingsScreen: React.FC = () => {
       navigation.navigate('ChangePinScreen');
     } else {
       Alert.alert(
-        'Disable PIN',
-        'Are you sure you want to disable PIN authentication? You will need to use email and password to log in.',
+        t('settings.disablePin'),
+        t('settings.disablePinMessage'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Disable',
+            text: t('settings.disable'),
             style: 'destructive',
             onPress: async () => {
               try {
                 setLoading(true);
                 await disablePin();
                 await loadSettings();
-                Alert.alert('Success', 'PIN authentication has been disabled.');
+                Alert.alert(t('common.success'), t('settings.pinDisabledSuccess'));
               } catch (error) {
                 console.error('Error disabling PIN:', error);
-                Alert.alert('Error', 'Failed to disable PIN authentication.');
+                Alert.alert(t('common.error'), 'Failed to disable PIN authentication.');
               } finally {
                 setLoading(false);
               }
@@ -106,7 +113,7 @@ const SettingsScreen: React.FC = () => {
     if (!biometricAvailable && enabled) {
       Alert.alert(
         'Biometric Not Available',
-        'Biometric authentication is not available on this device or not set up.'
+        t('settings.biometricNotAvailableMessage')
       );
       return;
     }
@@ -118,12 +125,12 @@ const SettingsScreen: React.FC = () => {
       });
       await loadSettings();
       Alert.alert(
-        'Success',
-        `Biometric authentication has been ${enabled ? 'enabled' : 'disabled'}.`
+        t('common.success'),
+        enabled ? t('settings.biometricEnabledSuccess') : t('settings.biometricDisabledSuccess')
       );
     } catch (error) {
       console.error('Error toggling biometric:', error);
-      Alert.alert('Error', 'Failed to update biometric authentication setting.');
+      Alert.alert(t('common.error'), 'Failed to update biometric authentication setting.');
     } finally {
       setLoading(false);
     }
@@ -135,28 +142,40 @@ const SettingsScreen: React.FC = () => {
 
   const handleResetSecurity = () => {
     Alert.alert(
-      'Reset Security Settings',
-      'This will disable all security features and remove your PIN. You will need to use email and password to log in.',
+      t('settings.resetSecurity'),
+      t('settings.resetSecurityMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('settings.reset'),
           style: 'destructive',
           onPress: async () => {
             try {
               setLoading(true);
               await clearSecuritySettings();
               await loadSettings();
-              Alert.alert('Success', 'Security settings have been reset.');
+              Alert.alert(t('common.success'), t('settings.securityResetSuccess'));
             } catch (error) {
               console.error('Error resetting security:', error);
-              Alert.alert('Error', 'Failed to reset security settings.');
+              Alert.alert(t('common.error'), 'Failed to reset security settings.');
             } finally {
               setLoading(false);
             }
           },
         },
       ]
+    );
+  };
+
+  const handleLanguagePress = () => {
+    setShowLanguageModal(true);
+  };
+
+  const handleLanguageChange = (languageCode: string) => {
+    setCurrentLanguage(languageCode);
+    Alert.alert(
+      t('common.success'),
+      t('languages.languageChanged')
     );
   };
 
@@ -231,8 +250,8 @@ const SettingsScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.subText}>Manage your app preferences and security</Text>
+          <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+          <Text style={styles.subText}>{t('settings.subtitle')}</Text>
         </View>
       </View>
 
@@ -243,12 +262,12 @@ const SettingsScreen: React.FC = () => {
       >
         {/* Security Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Security & Authentication</Text>
+          <Text style={styles.sectionTitle}>{t('settings.security')}</Text>
           
           <View style={styles.sectionContent}>
             <SettingItem
-              title="PIN Authentication"
-              subtitle={securitySettings.pinEnabled ? 'PIN is enabled' : 'Set up PIN for quick access'}
+              title={t('settings.pinAuth')}
+              subtitle={securitySettings.pinEnabled ? t('settings.pinEnabled') : t('settings.pinDisabled')}
               icon="lock-closed-outline"
               rightComponent={
                 <Switch
@@ -263,21 +282,21 @@ const SettingsScreen: React.FC = () => {
 
             {securitySettings.pinEnabled && (
               <SettingItem
-                title="Change PIN"
-                subtitle="Update your current PIN"
+                title={t('settings.changePin')}
+                subtitle={t('settings.changePinSubtitle')}
                 icon="key-outline"
                 onPress={handleChangePIN}
               />
             )}
 
             <SettingItem
-              title="Biometric Authentication"
+              title={t('settings.biometricAuth')}
               subtitle={
                 !biometricAvailable 
-                  ? 'Not available on this device'
+                  ? t('settings.biometricNotAvailable')
                   : securitySettings.biometricEnabled 
-                    ? 'Biometric login is enabled'
-                    : 'Enable fingerprint/face recognition'
+                    ? t('settings.biometricEnabled')
+                    : t('settings.biometricDisabled')
               }
               icon="finger-print-outline"
               disabled={!biometricAvailable}
@@ -293,8 +312,8 @@ const SettingsScreen: React.FC = () => {
             />
 
             <SettingItem
-              title="Change Password"
-              subtitle="Update your account password"
+              title={t('settings.changePassword')}
+              subtitle={t('settings.changePasswordSubtitle')}
               icon="lock-closed-outline"
               onPress={() => navigation.navigate('ChangePasswordScreen' as any)}
             />
@@ -304,19 +323,19 @@ const SettingsScreen: React.FC = () => {
 
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
           
           <View style={styles.sectionContent}>
 
             <SettingItem
-              title="Notification Preferences"
-              subtitle="Configure your notifications"
+              title={t('settings.notifications')}
+              subtitle={t('settings.notificationsSubtitle')}
               icon="notifications-outline"
             />
 
             <SettingItem
-              title="Privacy Settings"
-              subtitle="Control your data and privacy"
+              title={t('settings.privacy')}
+              subtitle={t('settings.privacySubtitle')}
               icon="shield-outline"
             />
           </View>
@@ -324,24 +343,25 @@ const SettingsScreen: React.FC = () => {
 
         {/* App Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings.appSettings')}</Text>
           
           <View style={styles.sectionContent}>
             <SettingItem
-              title="Language"
-              subtitle="English (US)"
+              title={t('settings.language')}
+              subtitle={getLanguageDisplayName(currentLanguage)}
               icon="language-outline"
+              onPress={handleLanguagePress}
             />
 
             <SettingItem
-              title="Theme"
-              subtitle="Light mode"
+              title={t('settings.theme')}
+              subtitle={t('settings.themeLight')}
               icon="color-palette-outline"
             />
 
             <SettingItem
-              title="About"
-              subtitle="Version 1.0.0"
+              title={t('settings.about')}
+              subtitle={t('settings.version')}
               icon="information-circle-outline"
             />
           </View>
@@ -349,6 +369,13 @@ const SettingsScreen: React.FC = () => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <LanguageSelectionModal
+        visible={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+        onLanguageChange={handleLanguageChange}
+      />
     </View>
   );
 };

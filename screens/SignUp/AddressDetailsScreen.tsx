@@ -12,6 +12,7 @@ import {
   Keyboard,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
 
@@ -38,6 +39,7 @@ type Props = {
 };
 
 const AddressDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   // Get data from previous screen
   const { phoneNumber, personalInfo, userInfo } = route.params || {};
 

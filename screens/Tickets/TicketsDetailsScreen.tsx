@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation, RouteProp } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from "@expo/vector-icons";
 import HamburgerMenu from "../../components/HamburgerMenu";
 
@@ -22,6 +23,7 @@ type Message = {
 };
 
 const TicketDetailsScreen = ({ route }: { route: RouteProp<any> }) => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const ticket = route.params?.ticket || {
     id: "1",

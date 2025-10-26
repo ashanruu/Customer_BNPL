@@ -19,6 +19,7 @@ import CustomButton from '../../components/CustomButton';
 import CustomNotification from '../../components/CustomNotification';
 import { useNotification } from '../../components/useNotification';
 import { resetPassword } from '../../scripts/api';
+import { validatePassword, validatePasswordConfirmation } from '../../utils/authUtils';
 
 type Props = {
   navigation: any;
@@ -43,6 +44,8 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     password: '',
     confirmPassword: '',
   });
+
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -81,17 +84,22 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
       confirmPassword: '',
     };
 
-    // Basic validation - just check if fields are not empty
+    // Validate password using authUtils
     if (!password.trim()) {
       newErrors.password = 'Please enter a password';
       valid = false;
+    } else {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors[0]; // Show first error
+        valid = false;
+      }
     }
 
-    if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Please confirm your password';
-      valid = false;
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    // Validate password confirmation
+    const confirmationValidation = validatePasswordConfirmation(password, confirmPassword);
+    if (!confirmationValidation.isValid) {
+      newErrors.confirmPassword = confirmationValidation.message || '';
       valid = false;
     }
 
@@ -117,7 +125,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
       if (response.statusCode === 200) {
         showSuccess('Password reset successfully!');
         setTimeout(() => {
-          navigation.navigate('Main');
+          navigation.replace('Login');
         }, 2000);
       } else {
         showError(response.message || 'Password reset failed');
@@ -134,11 +142,19 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // Clear errors when user starts typing
+  // Clear errors when user starts typing and update password strength
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     if (errors.password) {
       setErrors(prev => ({ ...prev, password: '' }));
+    }
+    
+    // Update password strength in real-time
+    if (text.trim()) {
+      const validation = validatePassword(text);
+      setPasswordStrength(validation.strength);
+    } else {
+      setPasswordStrength(null);
     }
   };
 
@@ -225,6 +241,74 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                     error={errors.password}
                   />
                   
+                  {/* Password Requirements */}
+                  {password.length > 0 && (
+                    <View style={styles.requirementsContainer}>
+                      <SubText size="small" style={styles.requirementsTitle}>
+                        Password must contain:
+                      </SubText>
+                      <SubText size="small" style={{
+                        ...styles.requirement,
+                        ...((/(?=.*[a-z])/.test(password)) && styles.requirementMet)
+                      }}>
+                        • At least one lowercase letter
+                      </SubText>
+                      <SubText size="small" style={{
+                        ...styles.requirement,
+                        ...((/(?=.*[A-Z])/.test(password)) && styles.requirementMet)
+                      }}>
+                        • At least one uppercase letter
+                      </SubText>
+                      <SubText size="small" style={{
+                        ...styles.requirement,
+                        ...((/(?=.*\d)/.test(password)) && styles.requirementMet)
+                      }}>
+                        • At least one number
+                      </SubText>
+                      <SubText size="small" style={{
+                        ...styles.requirement,
+                        ...((/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/.test(password)) && styles.requirementMet)
+                      }}>
+                        • At least one special character
+                      </SubText>
+                      <SubText size="small" style={{
+                        ...styles.requirement,
+                        ...((password.length >= 8) && styles.requirementMet)
+                      }}>
+                        • At least 8 characters long
+                      </SubText>
+                    </View>
+                  )}
+
+                  {/* Password Strength Indicator */}
+                  {passwordStrength && (
+                    <View style={styles.strengthContainer}>
+                      <View style={styles.strengthBar}>
+                        <View 
+                          style={[
+                            styles.strengthFill,
+                            {
+                              width: passwordStrength === 'weak' ? '33%' : 
+                                     passwordStrength === 'medium' ? '66%' : '100%',
+                              backgroundColor: passwordStrength === 'weak' ? '#EF4444' :
+                                             passwordStrength === 'medium' ? '#F59E0B' : '#10B981'
+                            }
+                          ]}
+                        />
+                      </View>
+                      <SubText 
+                        size="small" 
+                        style={{
+                          ...styles.strengthText,
+                          color: passwordStrength === 'weak' ? '#EF4444' :
+                                 passwordStrength === 'medium' ? '#F59E0B' : '#10B981'
+                        }}
+                      >
+                        Password strength: {passwordStrength.charAt(0).toUpperCase() + passwordStrength.slice(1)}
+                      </SubText>
+                    </View>
+                  )}
+                  
                   <CustomInputField
                     placeholder="Confirm New Password"
                     value={confirmPassword}
@@ -296,6 +380,47 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     marginTop: 20,
+  },
+  strengthContainer: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  strengthBar: {
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  strengthText: {
+    marginTop: 4,
+    fontSize: 12,
+  },
+  requirementsContainer: {
+    marginTop: 8,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  requirementsTitle: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  requirement: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  requirementMet: {
+    color: '#10B981',
   },
 });
 

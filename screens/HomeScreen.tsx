@@ -2,12 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMobileApi, callMerchantApi } from '../scripts/api';
 import OptimizedImage from '../components/OptimizedImage';
 import ImageCacheManager from '../utils/ImageCacheManager';
 
-function NavButton({ label, icon, active, onPress }) {
+interface NavButtonProps {
+  label: string;
+  icon: any; // Using any for Ionicons name to avoid type issues
+  active: boolean;
+  onPress: () => void;
+}
+
+function NavButton({ label, icon, active, onPress }: NavButtonProps) {
   return (
     <TouchableOpacity
       style={[styles.navButton, active && styles.navButtonActive]}
@@ -21,6 +29,7 @@ function NavButton({ label, icon, active, onPress }) {
 }
 
 const HomeScreen: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('home');
   const [promotions, setPromotions] = useState<any[]>([]);
   const [creditLimits, setCreditLimits] = useState<any>(null);
@@ -266,7 +275,7 @@ const HomeScreen: React.FC = () => {
     const diffTime = targetDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays > 0 ? `${diffDays.toString().padStart(2, '0')} Days` : 'Overdue';
+    return diffDays > 0 ? `${diffDays.toString().padStart(2, '0')} ${t('home.days')}` : t('home.overdue');
   };
 
   // Comprehensive refresh function for pull-to-refresh
@@ -288,7 +297,7 @@ const HomeScreen: React.FC = () => {
       console.log('Home screen refresh completed successfully');
     } catch (error) {
       console.error('Error refreshing home screen:', error);
-      Alert.alert('Refresh Failed', 'Unable to refresh data. Please check your connection and try again.');
+      Alert.alert(t('home.refreshFailed'), t('home.refreshFailedMessage'));
     } finally {
       setRefreshing(false);
     }
@@ -340,7 +349,7 @@ const HomeScreen: React.FC = () => {
 
           <Animated.View style={[styles.creditSection, { opacity: creditSectionOpacity }]}>
             <View>
-              <Text style={styles.label}>Your Credit Limit</Text>
+              <Text style={styles.label}>{t('home.yourCreditLimit')}</Text>
               <Text style={styles.value}>
                 Rs. {creditLimits?.fullCredit
                   ? creditLimits.fullCredit.toFixed(2)
@@ -353,7 +362,7 @@ const HomeScreen: React.FC = () => {
                     : '0%'
                 }]} />
               </View>
-              <Text style={styles.highlightedLabel}>You Can Spend</Text>
+              <Text style={styles.highlightedLabel}>{t('home.youCanSpend')}</Text>
               <Text style={styles.highlightedValue}>
                 Rs. {creditLimits?.availablePurchaseLimit
                   ? (creditLimits.availablePurchaseLimit).toFixed(2)
@@ -410,7 +419,7 @@ const HomeScreen: React.FC = () => {
                         : 0}
                       %
                     </Text>
-                    <Text style={styles.circleSubText}>Available</Text>
+                    <Text style={styles.circleSubText}>{t('home.available')}</Text>
                   </>
                 )}
               </Animated.View>
@@ -435,7 +444,7 @@ const HomeScreen: React.FC = () => {
             onRefresh={handleRefresh}
             colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
             tintColor={'#2DD4BF'} // iOS color
-            title="Pull to refresh"
+            title={t('home.pullToRefresh')}
             titleColor={'#666'}
             progressBackgroundColor={'#f0f0f0'}
           />
@@ -491,12 +500,12 @@ const HomeScreen: React.FC = () => {
         {(latestLoan && latestLoan.merchantName && latestLoan.totalAmount && getNextPaymentDate(latestLoan)) && (
           <View style={styles.cardsContainer}>
             <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Payment Notification</Text>
+              <Text style={styles.sectionTitle}>{t('home.paymentNotification')}</Text>
             </View>
 
             <View style={styles.paymentBox}>
               {/* Next Payment as header inside the box */}
-              <Text style={styles.nextPaymentHeader}>Next Payment</Text>
+              <Text style={styles.nextPaymentHeader}>{t('home.nextPayment')}</Text>
 
               {/* Main payment content */}
               <View style={styles.paymentContent}>
@@ -521,7 +530,7 @@ const HomeScreen: React.FC = () => {
               {loanListLoading && (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#666" />
-                  <Text style={styles.loadingText}>Loading loan data...</Text>
+                  <Text style={styles.loadingText}>{t('home.loadingLoanData')}</Text>
                 </View>
               )}
             </View>
@@ -530,7 +539,7 @@ const HomeScreen: React.FC = () => {
 
         {/* Promotions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Offers & Promotions</Text>
+          <Text style={styles.sectionTitle}>{t('home.offersPromotions')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -562,7 +571,7 @@ const HomeScreen: React.FC = () => {
               </TouchableOpacity>
             )) : (
               <View style={styles.noPromotionsContainer}>
-                <Text style={styles.noPromotionsText}>No promotions available</Text>
+                <Text style={styles.noPromotionsText}>{t('home.noPromotionsAvailable')}</Text>
               </View>
             )}
           </ScrollView>
@@ -570,7 +579,7 @@ const HomeScreen: React.FC = () => {
 
         {/* Second Row of Promotions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Deals</Text>
+          <Text style={styles.sectionTitle}>{t('home.specialDeals')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -602,7 +611,7 @@ const HomeScreen: React.FC = () => {
               </TouchableOpacity>
             )) : (
               <View style={styles.noPromotionsContainer}>
-                <Text style={styles.noPromotionsText}>No special deals available</Text>
+                <Text style={styles.noPromotionsText}>{t('home.noSpecialDealsAvailable')}</Text>
               </View>
             )}
           </ScrollView>

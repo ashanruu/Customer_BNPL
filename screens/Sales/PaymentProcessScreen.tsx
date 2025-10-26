@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTranslation } from 'react-i18next';
 
 // Define your stack param list according to your navigator setup
 type RootStackParamList = {
@@ -20,6 +21,7 @@ type RootStackParamList = {
 const PaymentProcessScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute();
+  const { t } = useTranslation();
 
   const [isProcessing, setIsProcessing] = useState(true);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -64,12 +66,12 @@ const PaymentProcessScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.processingContainer}>
           <ActivityIndicator size="large" color="#007AFF" style={styles.loadingSpinner} />
-          <Text style={styles.processingTitle}>Processing Payment</Text>
+          <Text style={styles.processingTitle}>{t('payment.processingPayment')}</Text>
           <Text style={styles.processingSubtitle}>
-            Your purchasing is processing...
+            {t('payment.purchasingProcessing')}
           </Text>
           <Text style={styles.processingNote}>
-            Please wait while we confirm your transaction
+            {t('payment.pleaseWait')}
           </Text>
         </View>
       </SafeAreaView>
@@ -100,17 +102,14 @@ const PaymentProcessScreen: React.FC = () => {
             { opacity: fadeAnim }
           ]}
         >
-          <Text style={styles.successTitle}>Payment successful</Text>
+          <Text style={styles.successTitle}>{t('payment.paymentSuccessful')}</Text>
           
           {/* <Text style={styles.amount}>Rs. {orderData?.amount || '50.00'}</Text> */}
           
-          <Text style={styles.paymentMethod}>Paid using Visa or Master</Text>
+          <Text style={styles.paymentMethod}>{t('payment.paidUsing')}</Text>
           
           <Text style={styles.successMessage}>
-            Transaction successfully{'\n'}
-            processed and you will be notified{'\n'}
-            when the amount is credited to your{'\n'}
-            account
+            {t('payment.transactionMessage')}
           </Text>
         </Animated.View>
 
@@ -125,7 +124,7 @@ const PaymentProcessScreen: React.FC = () => {
             style={styles.okButton} 
             onPress={handleNavigateToDashboard}
           >
-            <Text style={styles.okButtonText}>OK</Text>
+            <Text style={styles.okButtonText}>{t('payment.ok')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

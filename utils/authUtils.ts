@@ -276,3 +276,146 @@ export const getLastLoginInfo = async (): Promise<{ method?: string; time?: stri
     return {};
   }
 };
+
+
+// Password validation utility
+
+export interface PasswordValidationResult {
+  isValid: boolean;
+  errors: string[];
+  strength: 'weak' | 'medium' | 'strong';
+  score: number; // 0-100
+}
+
+export const validatePassword = (password: string): PasswordValidationResult => {
+  const errors: string[] = [];
+  let score = 0;
+
+  // Check if password exists
+  if (!password) {
+    return {
+      isValid: false,
+      errors: ['Password is required'],
+      strength: 'weak',
+      score: 0,
+    };
+  }
+
+  // Length validation
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  } else {
+    score += 20;
+    if (password.length >= 12) score += 10;
+    if (password.length >= 16) score += 10;
+  }
+
+  // Uppercase letter validation
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  } else {
+    score += 15;
+  }
+
+  // Lowercase letter validation
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  } else {
+    score += 15;
+  }
+
+  // Number validation
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
+  } else {
+    score += 15;
+  }
+
+  // Special character validation
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) {
+    errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+  } else {
+    score += 15;
+  }
+
+  // Check for common patterns
+  const commonPatterns = [
+    /(.)\1{2,}/, // Three or more repeated characters
+    /123456|654321|abcdef|qwerty|password|admin|welcome/i, // Common sequences
+    /^[a-zA-Z]+$/, // Only letters
+    /^\d+$/, // Only numbers
+  ];
+
+  let hasCommonPattern = false;
+  commonPatterns.forEach(pattern => {
+    if (pattern.test(password)) {
+      hasCommonPattern = true;
+    }
+  });
+
+  if (hasCommonPattern) {
+    errors.push('Password contains common patterns and is not secure');
+    score -= 10;
+  } else {
+    score += 10;
+  }
+
+  // Ensure score is within bounds
+  score = Math.max(0, Math.min(100, score));
+
+  // Determine strength based on score
+  let strength: 'weak' | 'medium' | 'strong';
+  if (score < 40) {
+    strength = 'weak';
+  } else if (score < 70) {
+    strength = 'medium';
+  } else {
+    strength = 'strong';
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    strength,
+    score,
+  };
+};
+
+/**
+ * Check if password meets minimum requirements (simplified version)
+ */
+export const isPasswordValid = (password: string): boolean => {
+  const validation = validatePassword(password);
+  return validation.isValid;
+};
+
+/**
+ * Get password strength level
+ */
+export const getPasswordStrength = (password: string): 'weak' | 'medium' | 'strong' => {
+  const validation = validatePassword(password);
+  return validation.strength;
+};
+
+/**
+ * Get password validation errors as a formatted string
+ */
+export const getPasswordErrors = (password: string): string => {
+  const validation = validatePassword(password);
+  return validation.errors.join('\n');
+};
+
+/**
+ * Validate password confirmation (for password change/reset)
+ */
+export const validatePasswordConfirmation = (password: string, confirmPassword: string): { isValid: boolean; message?: string } => {
+  if (!confirmPassword) {
+    return { isValid: false, message: 'Please confirm your password' };
+  }
+
+  if (password !== confirmPassword) {
+    return { isValid: false, message: 'Passwords do not match' };
+  }
+
+  return { isValid: true };
+};

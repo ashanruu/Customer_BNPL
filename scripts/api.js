@@ -3,8 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
  
-const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
-//const BASE_DOMAIN = "http://192.168.43.68:5111";
+//const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
+const BASE_DOMAIN = "http://192.168.0.126:5111";
 const AUTH_DOMAIN = "https://auth.sing.hexdive.com";
 
 

@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "bnplcustomer",
     "platforms": [
       "ios",
       "android",
@@ -20,7 +21,12 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "associatedDomains": [
+        "applinks:shop.bnplqr.hexdive.com",
+        "applinks:bnplqr.hexdive.com"
+      ],
+      "bundleIdentifier": "com.shi000123.customerbnpl"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,15 +34,43 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.shi000123.Customer_BNPL",
-      "usesCleartextTraffic": true,
-      "networkSecurityConfig": "@xml/network_security_config",
+      "package": "com.shi000123.customerbnpl",
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "shop.bnplqr.hexdive.com"
+            },
+            {
+              "scheme": "https", 
+              "host": "bnplqr.hexdive.com"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "bnplcustomer"
+          },
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ]
     },
     "web": {

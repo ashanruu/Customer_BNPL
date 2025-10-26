@@ -12,6 +12,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { callMobileApi, callMerchantApi, fetchCustomerCard, deleteCustomerCard, uploadDocument, fetchCustomerDocApproveStatus } from '../../scripts/api';
 import CustomButton from "../../components/CustomButton";
@@ -60,6 +61,7 @@ type RootStackParamList = {
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [customerPlan, setCustomerPlan] = useState<any>(null);
   const [cardData, setCardData] = useState<CardData | null>(null);
@@ -76,15 +78,23 @@ const [documents, setDocuments] = useState([
   { id: "address_proof", name: "Address Proof Document", date: "", status: "To Upload", type: "address_proof", fileType: 3 },
   { id: "salary_slip", name: "Salary Slip", date: "", status: "To Upload", type: "salary_slip", fileType: 4 },
 ]);
-const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
+  const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
+
+  // Update document names with translations when component mounts
+  useEffect(() => {
+    setDocuments([
+      { id: "nic_front", name: t('profile.nicFrontSide'), date: "", status: t('profile.toUpload'), type: "nic_front", fileType: 1 },
+      { id: "nic_back", name: t('profile.nicBackSide'), date: "", status: t('profile.toUpload'), type: "nic_back", fileType: 2 },
+      { id: "address_proof", name: t('profile.addressProofDocument'), date: "", status: t('profile.toUpload'), type: "address_proof", fileType: 3 },
+      { id: "salary_slip", name: t('profile.salarySlip'), date: "", status: t('profile.toUpload'), type: "salary_slip", fileType: 4 },
+    ]);
+  }, [t]);
 
   // Fetch customer details when component mounts
   useEffect(() => {
     fetchCustomerDetails();
     // Remove fetchCustomerPlan() from here
-  }, []);
-
-  // Fetch card data when customer details are loaded
+  }, []);  // Fetch card data when customer details are loaded
   useEffect(() => {
     if (customerDetails && (customerDetails.customerId || customerDetails.id)) {
       fetchCardData();
@@ -120,7 +130,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
         console.log("Customer details loaded successfully");
       } else {
         console.warn("Failed to fetch customer details:", response.message);
-        Alert.alert("Error", "Failed to load customer details");
+        Alert.alert(t('common.error'), t('profile.failedToLoadCustomerDetails'));
       }
     } catch (error) {
       console.error("Error fetching customer details:", error);
@@ -246,14 +256,14 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
         if (approvalInfo) {
           const statusMap: { [key: string]: string } = {
-            'approved': 'Approved',
-            'pending': 'Pending',
-            'rejected': 'Rejected'
+            'approved': t('profile.approved'),
+            'pending': t('profile.pending'),
+            'rejected': t('profile.rejected')
           };
 
           return {
             ...doc,
-            status: statusMap[approvalInfo.docApproveStatus] || 'To Upload',
+            status: statusMap[approvalInfo.docApproveStatus] || t('profile.toUpload'),
             date: doc.date || new Date().toLocaleDateString()
           };
         }
@@ -301,9 +311,9 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
         const paymentUrl = `https://hexdive.com/dpay.php?jobid=${jobId}`;
         console.log("Payment URL:", paymentUrl);
 
-        Alert.alert("Success", "Payment method onboarding initiated successfully", [
+        Alert.alert(t('common.success'), t('profile.paymentMethodOnboardingSuccess'), [
           {
-            text: "OK",
+            text: t('common.ok'),
             onPress: () => navigation.navigate("WebViewScreen", {
               url: paymentUrl,
               jobId: jobId
@@ -312,12 +322,12 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
         ]);
       } else {
         console.error("Failed to create onboard job:", response.message);
-        Alert.alert("Error", response.message || "Failed to initiate payment method setup");
+        Alert.alert(t('common.error'), response.message || t('profile.failedToInitiatePaymentSetup'));
       }
     } catch (error: any) {
       console.error("CreateOnBoardJob error:", error);
-      const errorMessage = error.response?.data?.message || "Failed to initiate payment method setup. Please try again.";
-      Alert.alert("Error", errorMessage);
+      const errorMessage = error.response?.data?.message || t('profile.failedToInitiatePaymentSetupTryAgain');
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setOnboardingLoading(false);
     }
@@ -326,15 +336,15 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
   // Handle removing payment method
   const handleRemovePaymentMethod = () => {
     Alert.alert(
-      "Remove Payment Method",
-      "Are you sure you want to remove this payment method? This action cannot be undone.",
+      t('profile.removePaymentMethod'),
+      t('profile.removePaymentMethodConfirm'),
       [
         {
-          text: "Cancel",
+          text: t('common.cancel'),
           style: "cancel"
         },
         {
-          text: "Remove",
+          text: t('profile.remove'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -346,7 +356,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
               console.log("Job ID for card removal:", jobId);
 
               if (!jobId) {
-                Alert.alert("Error", "Job ID not found. Please try again.");
+                Alert.alert(t('common.error'), t('profile.jobIdNotFound'));
                 return;
               }
 
@@ -358,19 +368,19 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                 setCardData(null);
                 setCustomerDetails(prev => prev ? { ...prev, hasPaymentMethod: false } : null);
 
-                Alert.alert("Success", "Payment method removed successfully");
+                Alert.alert(t('common.success'), t('profile.paymentMethodRemovedSuccess'));
                 console.log("Payment method removed successfully");
               } else {
                 // Handle API error response
-                const errorMessage = response.message || "Failed to remove payment method";
-                Alert.alert("Error", errorMessage);
+                const errorMessage = response.message || t('profile.failedToRemovePaymentMethod');
+                Alert.alert(t('common.error'), errorMessage);
                 console.error("Failed to remove payment method:", response);
               }
             } catch (error: any) {
               console.error("Error removing payment method:", error);
 
               // Handle different types of errors
-              let errorMessage = "Failed to remove payment method. Please try again.";
+              let errorMessage = t('profile.failedToRemovePaymentMethodTryAgain');
 
               if (error.response?.data?.message) {
                 errorMessage = error.response.data.message;
@@ -378,7 +388,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                 errorMessage = error.message;
               }
 
-              Alert.alert("Error", errorMessage);
+              Alert.alert(t('common.error'), errorMessage);
             } finally {
               setRemovingCard(false);
             }
@@ -391,19 +401,19 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
   // Handle document upload
   const handleDocumentUpload = (documentId: string, documentName: string) => {
     Alert.alert(
-      "Upload Document",
-      `Select how you want to upload your ${documentName}`,
+      t('profile.uploadDocument'),
+      t('profile.selectUploadMethod', { documentName }),
       [
         {
-          text: "Cancel",
+          text: t('common.cancel'),
           style: "cancel"
         },
         {
-          text: "Choose Image",
+          text: t('profile.chooseImage'),
           onPress: () => pickImage(documentId, documentName)
         },
         {
-          text: "Choose PDF",
+          text: t('profile.choosePdf'),
           onPress: () => pickDocument(documentId, documentName)
         }
       ]
@@ -417,7 +427,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert("Permission Required", "Permission to access camera roll is required!");
+        Alert.alert(t('profile.permissionRequired'), t('profile.cameraRollPermissionRequired'));
         return;
       }
 
@@ -433,7 +443,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Alert.alert(t('common.error'), t('profile.failedToPickImage'));
     }
   };
 
@@ -450,7 +460,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
       }
     } catch (error) {
       console.error("Error picking document:", error);
-      Alert.alert("Error", "Failed to pick document. Please try again.");
+      Alert.alert(t('common.error'), t('profile.failedToPickDocument'));
     }
   };
 
@@ -483,8 +493,8 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
       if (response.statusCode === 200) {
         Alert.alert(
-          "Success", 
-          `${documentName} uploaded successfully!`
+          t('common.success'), 
+          t('profile.documentUploadedSuccess', { documentName })
         );
         console.log(`Document ${documentId} uploaded successfully with fileType: ${fileType}`);
         
@@ -499,8 +509,8 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
     } catch (error: any) {
       console.error("Error uploading document:", error);
-      const errorMessage = error.response?.data?.message || error.message || `Failed to upload ${documentName}`;
-      Alert.alert("Upload Error", errorMessage);
+      const errorMessage = error.response?.data?.message || error.message || t('profile.failedToUploadDocument', { documentName });
+      Alert.alert(t('profile.uploadError'), errorMessage);
     } finally {
       setUploadingDocId(null);
     }
@@ -511,9 +521,9 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
     if (customerDetails) {
       return customerDetails.firstName && customerDetails.lastName
         ? `${customerDetails.firstName} ${customerDetails.lastName}`
-        : customerDetails.name || customerDetails.firstName || customerDetails.lastName || "Customer";
+        : customerDetails.name || customerDetails.firstName || customerDetails.lastName || t('profile.customer');
     }
-    return "N/A"; // fallback
+    return t('profile.na'); // fallback
   };
 
   // Helper function to get plan name
@@ -527,7 +537,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
   // Helper function to get plan status
   const getPlanStatus = () => {
     if (customerPlan && customerPlan.customer && customerPlan.customer.customerPlan && typeof customerPlan.customer.customerPlan.planIsActive !== 'undefined') {
-      return customerPlan.customer.customerPlan.planIsActive ? "Active" : "Inactive";
+      return customerPlan.customer.customerPlan.planIsActive ? t('profile.active') : t('profile.inactive');
     }
   };
 
@@ -579,9 +589,9 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
     // Map API response to expected format
     return {
-      cardNumber: cardData.maskedCardNumber || cardData.cardNumber || "No card",
-      cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || "N/A",
-      cardType: cardData.brand || cardData.cardType || "Unknown",
+      cardNumber: cardData.maskedCardNumber || cardData.cardNumber || t('profile.noCard'),
+      cardExpiry: cardData.cardDate || cardData.expiryDate || cardData.cardExpiry || t('profile.na'),
+      cardType: cardData.brand || cardData.cardType || t('profile.unknown'),
       isActive: cardData.isActive || cardData.status === 'active',
       jobId: cardData.jobId // Use jobId instead of cardId
     };
@@ -610,14 +620,15 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
           />
           <View style={styles.profileText}>
             <Text style={styles.profileName}>{getCustomerName()}</Text>
-            <Text style={styles.profileSubtitle}>Joined since 2023</Text>
+            { <Text style={styles.profileSubtitle}>{t('profile.joinedSince2023')}</Text> }
           </View>
-          <CustomButton
-            title="Edit Profile"
+          {<CustomButton
+            // title={t('profile.editProfile')}
+            title={"edit profile"}
             size="small"
             variant="outline"
             onPress={() => navigation.navigate("UserProfileScreen")}
-          />
+          /> }
         </View>
       </View>
 
@@ -644,7 +655,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
         {customerPlan?.validUntil && (
           <Text style={styles.planExpiry}>
-            Valid until: {new Date(customerPlan.validUntil).toLocaleDateString()}
+            {t('profile.validUntil')}: {new Date(customerPlan.validUntil).toLocaleDateString()}
           </Text>
         )}
 
@@ -659,12 +670,12 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
       >
         {/* Payment Method */}
         <View style={styles.paymentCard}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionTitle}>{t('profile.paymentMethod')}</Text>
 
           {cardLoading ? (
             <View style={styles.cardLoadingContainer}>
               <ActivityIndicator size="small" color="#666" />
-              <Text style={styles.loadingText}>Loading payment methods...</Text>
+              <Text style={styles.loadingText}>{t('profile.loadingPaymentMethods')}</Text>
             </View>
           ) : paymentData ? (
             // Show existing card AND add button
@@ -678,18 +689,18 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                     {/* Active Tag - After Card Number */}
                     <View style={styles.activeTag}>
                       <Text style={styles.activeTagText}>
-                        {paymentData.isActive ? 'Active' : 'Inactive'}
+                        {paymentData.isActive ? t('profile.active') : t('profile.inactive')}
                       </Text>
                     </View>
 
                     <View style={styles.cardFooter}>
                       <View style={styles.cardInfoRow}>
                         <View style={styles.cardTypeContainer}>
-                          <Text style={styles.cardTypeLabel}>Card Type</Text>
+                          <Text style={styles.cardTypeLabel}>{t('profile.cardType')}</Text>
                           <Text style={styles.cardValue}>{paymentData.cardType}</Text>
                         </View>
                         <View style={styles.expiryContainer}>
-                          <Text style={styles.expiryLabel}>Exp Date</Text>
+                          <Text style={styles.expiryLabel}>{t('profile.expDate')}</Text>
                           <Text style={styles.cardValue}>{paymentData.cardExpiry}</Text>
                         </View>
                       </View>
@@ -703,7 +714,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                         {removingCard ? (
                           <ActivityIndicator size="small" color="#666" />
                         ) : (
-                          <Text style={styles.removeBtnText}>Remove</Text>
+                          <Text style={styles.removeBtnText}>{t('profile.remove')}</Text>
                         )}
                       </TouchableOpacity>
                     </View>
@@ -724,7 +735,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                     <Text style={styles.addPaymentIcon}>+</Text>
                   )}
                   <Text style={styles.addPaymentText}>
-                    {onboardingLoading ? "Setting up..." : "Add New Payment Method"}
+                    {onboardingLoading ? t('profile.settingUp') : t('profile.addNewPaymentMethod')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -733,9 +744,9 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
             // Show add payment method only
             <View style={styles.noCardContainer}>
               <View style={styles.noCardContent}>
-                <Text style={styles.noCardTitle}>No Payment Method Added</Text>
+                <Text style={styles.noCardTitle}>{t('profile.noPaymentMethodAdded')}</Text>
                 <Text style={styles.noCardSubtitle}>
-                  Add a payment method to make purchases easier
+                  {t('profile.addPaymentMethodToMakePurchases')}
                 </Text>
               </View>
 
@@ -751,7 +762,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                     <Text style={styles.addPaymentIcon}>+</Text>
                   )}
                   <Text style={styles.addPaymentText}>
-                    {onboardingLoading ? "Setting up..." : "Add New Payment Method"}
+                    {onboardingLoading ? t('profile.settingUp') : t('profile.addNewPaymentMethod')}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -761,7 +772,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
 
         {/* Documents */}
         <View style={styles.docCard}>
-          <Text style={styles.sectionTitle}>My Documents</Text>
+          <Text style={styles.sectionTitle}>{t('profile.myDocuments')}</Text>
 
           {documents.map((item, index) => (
             <View key={item.id} style={styles.docRow}>
@@ -770,7 +781,7 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                 {item.date && <Text style={styles.docDate}>{item.date}</Text>}
               </View>
               <View>
-                {item.status === "To Upload" ? (
+                {item.status === t('profile.toUpload') ? (
                   <TouchableOpacity
                     style={[styles.statusContainer, styles.toUploadContainer, uploadingDocId === item.id && styles.disabledBtn]}
                     onPress={() => handleDocumentUpload(item.id, item.name)}
@@ -788,9 +799,9 @@ const [docApprovalStatus, setDocApprovalStatus] = useState<any[]>([]);
                   <View style={styles.statusContainer}>
                     <Text
                       style={[styles.statusBadge, 
-                        item.status === "Approved" ? styles.approved :
-                        item.status === "Pending" ? styles.pending :
-                        item.status === "Rejected" ? styles.rejected :
+                        item.status === t('profile.approved') ? styles.approved :
+                        item.status === t('profile.pending') ? styles.pending :
+                        item.status === t('profile.rejected') ? styles.rejected :
                         styles.submitted
                       ]}
                     >

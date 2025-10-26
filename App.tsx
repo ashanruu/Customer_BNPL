@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import AppNavigator from './navigation/AppNavigator'; // your stack or tab navigator
+import DeepLinkHandler from './components/DeepLinkHandler';
+import './utils/i18n'; // Initialize i18n
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -17,6 +19,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
+      <DeepLinkHandler />
       <AppNavigator />
     </NavigationContainer>
   );

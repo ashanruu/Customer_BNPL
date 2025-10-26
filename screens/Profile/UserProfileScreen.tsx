@@ -12,6 +12,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { callMobileApi } from '../../scripts/api';
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +34,7 @@ type CustomerDetails = {
 
 const UserProfileScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<string>("https://randomuser.me/api/portraits/men/17.jpg");
@@ -83,11 +85,11 @@ const UserProfileScreen: React.FC = () => {
         console.log("Customer details loaded successfully");
       } else {
         console.warn("Failed to fetch customer details:", response.message);
-        Alert.alert("Error", "Failed to load customer details");
+        Alert.alert(t('common.error'), t('profile.failedToLoadCustomerDetails'));
       }
     } catch (error) {
       console.error("Error fetching customer details:", error);
-      Alert.alert("Error", "Failed to load customer details");
+      Alert.alert(t('common.error'), t('profile.failedToLoadCustomerDetails'));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ const UserProfileScreen: React.FC = () => {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        Alert.alert("Permission required", "Permission to access camera roll is required!");
+        Alert.alert(t('profile.permissionRequired'), t('profile.cameraRollPermissionRequired'));
         return;
       }
 
@@ -118,7 +120,7 @@ const UserProfileScreen: React.FC = () => {
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image");
+      Alert.alert(t('common.error'), t('profile.failedToPickImage'));
     }
   };
 
@@ -126,23 +128,23 @@ const UserProfileScreen: React.FC = () => {
     if (customerDetails) {
       return customerDetails.firstName && customerDetails.lastName
         ? `${customerDetails.firstName} ${customerDetails.lastName}`
-        : customerDetails.firstName || customerDetails.lastName || "Customer";
+        : customerDetails.firstName || customerDetails.lastName || t('profile.customer');
     }
-    return "N/A";
+    return t('profile.na');
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return t('profile.na');
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString();
     } catch {
-      return "N/A";
+      return t('profile.na');
     }
   };
 
   const formatSalary = (salary?: number) => {
-    if (!salary) return "N/A";
+    if (!salary) return t('profile.na');
     return `$${salary.toFixed(2)}`;
   };
 
@@ -180,11 +182,11 @@ const UserProfileScreen: React.FC = () => {
       } : null);
 
       setIsEditing(false);
-      Alert.alert("Success", "Profile updated successfully!");
+      Alert.alert(t('common.success'), t('userProfile.profileUpdatedSuccessfully'));
       
     } catch (error) {
       console.error("Error saving changes:", error);
-      Alert.alert("Error", "Failed to save changes");
+      Alert.alert(t('common.error'), t('userProfile.failedToSaveChanges'));
     } finally {
       setSaving(false);
     }
@@ -239,7 +241,7 @@ const UserProfileScreen: React.FC = () => {
   const StatusBadge = ({ status, type }: { status: boolean, type: string }) => (
     <View style={[styles.statusBadge, status ? styles.statusActive : styles.statusInactive]}>
       <Text style={[styles.statusText, status ? styles.statusActiveText : styles.statusInactiveText]}>
-        {status ? "Verified" : "Pending"}
+        {status ? t('userProfile.verified') : t('userProfile.pending')}
       </Text>
     </View>
   );
@@ -257,14 +259,14 @@ const UserProfileScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{t('navigation.profile')}</Text>
         </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
+          <Text style={styles.loadingText}>{t('userProfile.loadingProfile')}</Text>
         </View>
       ) : (
         <View style={styles.contentContainer}>
@@ -290,11 +292,11 @@ const UserProfileScreen: React.FC = () => {
             </View>
 
             <Text style={styles.name}>{getCustomerName()}</Text>
-            <Text style={styles.email}>{customerDetails?.email || "N/A"}</Text>
+            <Text style={styles.email}>{customerDetails?.email || t('profile.na')}</Text>
 
             <View style={styles.memberSinceContainer}>
               <Text style={styles.memberSinceText}>
-                Member since {formatDate(customerDetails?.createdDate)}
+                {t('userProfile.memberSince')} {formatDate(customerDetails?.createdDate)}
               </Text>
             </View>
           </View>
@@ -303,24 +305,24 @@ const UserProfileScreen: React.FC = () => {
           <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             {/* Personal Information */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Personal Information</Text>
+              <Text style={styles.sectionTitle}>{t('userProfile.personalInformation')}</Text>
               
               <View style={styles.sectionContent}>
                 {isEditing ? (
                   <>
                     <EditableInfoItem
                       icon="call-outline"
-                      label="Phone Number"
+                      label={t('userProfile.phoneNumber')}
                       value={editablePhone}
                       onChangeText={setEditablePhone}
-                      placeholder="Enter phone number"
+                      placeholder={t('userProfile.enterPhoneNumber')}
                     />
                     <EditableInfoItem
                       icon="location-outline"
-                      label="Address"
+                      label={t('userProfile.address')}
                       value={editableAddress}
                       onChangeText={setEditableAddress}
-                      placeholder="Enter address"
+                      placeholder={t('userProfile.enterAddress')}
                       multiline={true}
                     />
                   </>
@@ -328,13 +330,13 @@ const UserProfileScreen: React.FC = () => {
                   <>
                     <InfoItem
                       icon="call-outline"
-                      label="Phone Number"
-                      value={customerDetails?.phoneNumber || "Not provided"}
+                      label={t('userProfile.phoneNumber')}
+                      value={customerDetails?.phoneNumber || t('userProfile.notProvided')}
                     />
                     <InfoItem
                       icon="location-outline"
-                      label="Address"
-                      value={customerDetails?.address || "Not provided"}
+                      label={t('userProfile.address')}
+                      value={customerDetails?.address || t('userProfile.notProvided')}
                     />
                   </>
                 )}
@@ -352,7 +354,7 @@ const UserProfileScreen: React.FC = () => {
                     color={isEditing ? "#fa828eff" : "#1F2937"} 
                   />
                   <Text style={[styles.editButtonText, isEditing && styles.cancelButtonText]}>
-                    {isEditing ? "Cancel" : "Edit"}
+                    {isEditing ? t('common.cancel') : t('common.edit')}
                   </Text>
                 </TouchableOpacity>
 
@@ -367,7 +369,7 @@ const UserProfileScreen: React.FC = () => {
                     ) : (
                       <>
                         <Ionicons name="save-outline" size={18} color="#65b62fff" />
-                        <Text style={styles.saveButtonText}>Save</Text>
+                        <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -377,12 +379,12 @@ const UserProfileScreen: React.FC = () => {
 
             {/* Verification Status */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Verification Status</Text>
+              <Text style={styles.sectionTitle}>{t('userProfile.verificationStatus')}</Text>
               <View style={styles.sectionContent}>
                 <View style={styles.verificationItem}>
                   <View style={styles.verificationLeft}>
                     <Ionicons name="document-text-outline" size={20} color="#6B7280" />
-                    <Text style={styles.verificationLabel}>KYC Verification</Text>
+                    <Text style={styles.verificationLabel}>{t('userProfile.kycVerification')}</Text>
                   </View>
                   <StatusBadge status={customerDetails?.kycStatus || false} type="kyc" />
                 </View>
@@ -390,7 +392,7 @@ const UserProfileScreen: React.FC = () => {
                 <View style={styles.verificationItem}>
                   <View style={styles.verificationLeft}>
                     <Ionicons name="receipt-outline" size={20} color="#6B7280" />
-                    <Text style={styles.verificationLabel}>Bill Proof</Text>
+                    <Text style={styles.verificationLabel}>{t('userProfile.billProof')}</Text>
                   </View>
                   <StatusBadge status={customerDetails?.billProofStatus || false} type="bill" />
                 </View>
@@ -398,7 +400,7 @@ const UserProfileScreen: React.FC = () => {
                 <View style={styles.verificationItem}>
                   <View style={styles.verificationLeft}>
                     <Ionicons name="wallet-outline" size={20} color="#6B7280" />
-                    <Text style={styles.verificationLabel}>Salary Slip</Text>
+                    <Text style={styles.verificationLabel}>{t('userProfile.salarySlip')}</Text>
                   </View>
                   <StatusBadge status={customerDetails?.salarySlipStatus || false} type="salary" />
                 </View>

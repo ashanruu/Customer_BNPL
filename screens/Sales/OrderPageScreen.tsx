@@ -12,14 +12,22 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../../components/CustomButton';
 import { fetchOrderDetails, createLoan } from '../../scripts/api';
+import { useTranslation } from 'react-i18next';
 
 const OrderPageScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { t } = useTranslation();
 
-  // Get order ID from route params (could come from QR code scan)
+  // Get parameters from route (could come from QR code scan or deep link)
   const qrData = (route.params as any)?.qrData || '';
-  const orderId = (route.params as any)?.orderId || extractOrderIdFromQR(qrData);
+  const routeOrderId = (route.params as any)?.orderId || '';
+  const saleCode = (route.params as any)?.saleCode || '';
+  const merchantId = (route.params as any)?.merchantId || '';
+  const deepLinkUrl = (route.params as any)?.url || '';
+  
+  // Determine order ID from various sources
+  const orderId = routeOrderId || saleCode || merchantId || extractOrderIdFromQR(qrData) || extractOrderIdFromURL(deepLinkUrl);
 
   // State for order details and loading
   const [orderDetails, setOrderDetails] = useState({
@@ -38,6 +46,32 @@ const OrderPageScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [creatingLoan, setCreatingLoan] = useState(false);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<'once' | 'installments'>('installments');
+
+  // Extract order ID from deep link URL
+  function extractOrderIdFromURL(url: string): string {
+    if (!url) return '';
+    
+    try {
+      const urlObj = new URL(url);
+      
+      // Handle static QR: https://shop.bnplqr.hexdive.com/merchant/32
+      if (urlObj.hostname === 'shop.bnplqr.hexdive.com' && urlObj.pathname.startsWith('/merchant/')) {
+        const merchantId = urlObj.pathname.split('/merchant/')[1];
+        return merchantId || '';
+      }
+      
+      // Handle dynamic QR: https://bnplqr.hexdive.com?salecode=32
+      if (urlObj.hostname === 'bnplqr.hexdive.com') {
+        const saleCode = urlObj.searchParams.get('salecode');
+        return saleCode || '';
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Error extracting order ID from URL:', error);
+      return '';
+    }
+  }
 
   // Extract order ID from QR code data
   function extractOrderIdFromQR(qrString: string): string {
@@ -76,7 +110,7 @@ const OrderPageScreen: React.FC = () => {
 
   const fetchOrderDetailsData = async (orderIdToFetch: string) => {
     if (!orderIdToFetch) {
-      setError('No order ID provided');
+      setError(t('orderPage.noOrderIdAvailable'));
       return;
     }
 
@@ -94,25 +128,25 @@ const OrderPageScreen: React.FC = () => {
         const orderData = response.data;
 
         setOrderDetails({
-          merchantName: orderData.provider || 'N/A',
+          merchantName: orderData.provider || t('orderPage.na'),
           orderId: orderData.saleCode || orderIdToFetch,
           saleId: orderData.saleId || 0,
           amount: orderData.salesAmount?.toString() || '0',
-          note: orderData.productName || 'No product information',
+          note: orderData.productName || t('orderPage.noProductInfo'),
           status: orderData.paymentStatus || 'Unknown',
           createdDate: orderData.saleDate || new Date().toISOString(),
           merchantId: orderData.fK_MerchantId?.toString() || '',
           customerId: orderData.fK_CusId?.toString() || '',
         });
       } else {
-        setError(response.message || 'Failed to fetch order details');
-        Alert.alert('Error', response.message || 'Failed to fetch order details');
+        setError(response.message || t('orderPage.unableToLoadOrder'));
+        Alert.alert(t('sales.error'), response.message || t('orderPage.unableToLoadOrder'));
       }
     } catch (error: any) {
       console.error('Error fetching order details:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch order details';
+      const errorMessage = error.response?.data?.message || error.message || t('orderPage.unableToLoadOrder');
       setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      Alert.alert(t('sales.error'), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -123,13 +157,13 @@ const OrderPageScreen: React.FC = () => {
     if (orderId) {
       fetchOrderDetailsData(orderId);
     } else {
-      setError('No order ID found in QR code or parameters');
+      setError(t('orderPage.noOrderIdAvailable'));
     }
   }, [orderId]);
 
   const handleContinue = async () => {
     if (!orderDetails.orderId || !orderDetails.saleId) {
-      Alert.alert('Error', 'Order details not loaded. Please try again.');
+      Alert.alert(t('sales.error'), t('orderPage.orderDetailsNotLoaded'));
       return;
     }
 
@@ -160,12 +194,12 @@ const OrderPageScreen: React.FC = () => {
           installments: noOfInstallment,
         });
       } else {
-        Alert.alert('Error', loanResponse.message || 'Failed to create loan');
+        Alert.alert(t('sales.error'), loanResponse.message || t('orderPage.failedToCreateLoan'));
       }
     } catch (error: any) {
       console.error('Error creating loan:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create loan';
-      Alert.alert('Loan Creation Error', errorMessage);
+      const errorMessage = error.response?.data?.message || error.message || t('orderPage.failedToCreateLoan');
+      Alert.alert(t('orderPage.loanCreationError'), errorMessage);
     } finally {
       setCreatingLoan(false);
     }
@@ -175,7 +209,7 @@ const OrderPageScreen: React.FC = () => {
     if (orderId) {
       fetchOrderDetailsData(orderId);
     } else {
-      Alert.alert('Error', 'No order ID available to retry');
+      Alert.alert(t('sales.error'), t('orderPage.noOrderIdAvailable'));
     }
   };
 
@@ -192,8 +226,8 @@ const OrderPageScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>Order Details</Text>
-          <Text style={styles.subText}>Review your order information below</Text>
+          <Text style={styles.headerTitle}>{t('orderPage.title')}</Text>
+          <Text style={styles.subText}>{t('orderPage.subtitle')}</Text>
         </View>
       </View>
 
@@ -203,16 +237,16 @@ const OrderPageScreen: React.FC = () => {
           // Loading state
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading order details...</Text>
+            <Text style={styles.loadingText}>{t('orderPage.loadingOrderDetails')}</Text>
           </View>
         ) : error ? (
           // Error state
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
-            <Text style={styles.errorTitle}>Unable to Load Order</Text>
+            <Text style={styles.errorTitle}>{t('orderPage.unableToLoadOrder')}</Text>
             <Text style={styles.errorMessage}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('orderPage.retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -229,7 +263,12 @@ const OrderPageScreen: React.FC = () => {
                       orderDetails.status.toLowerCase() === 'pending' ? styles.statusPending :
                         styles.statusDefault
                   ]}>
-                    <Text style={styles.statusText}>{orderDetails.status.toUpperCase()}</Text>
+                    <Text style={styles.statusText}>
+                      {orderDetails.status.toLowerCase() === 'active' ? t('orderPage.active') :
+                       orderDetails.status.toLowerCase() === 'completed' ? t('orderPage.completed') :
+                       orderDetails.status.toLowerCase() === 'pending' ? t('orderPage.pending') :
+                       orderDetails.status.toUpperCase()}
+                    </Text>
                   </View>
                 </View>
               )}
@@ -239,47 +278,47 @@ const OrderPageScreen: React.FC = () => {
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconLabel}>
                     <Ionicons name="storefront-outline" size={16} color="#666" />
-                    <Text style={styles.detailLabel}>Merchant Name</Text>
+                    <Text style={styles.detailLabel}>{t('orderPage.merchantName')}</Text>
                   </View>
                   <Text style={styles.detailValue}>
-                    {orderDetails.merchantName || 'N/A'}
+                    {orderDetails.merchantName || t('orderPage.na')}
                   </Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconLabel}>
                     <Ionicons name="barcode-outline" size={16} color="#666" />
-                    <Text style={styles.detailLabel}>Sales Code</Text>
+                    <Text style={styles.detailLabel}>{t('orderPage.salesCode')}</Text>
                   </View>
                   <Text style={styles.detailValue}>
-                    {orderDetails.orderId || 'N/A'}
+                    {orderDetails.orderId || t('orderPage.na')}
                   </Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconLabel}>
                     <Ionicons name="calendar-outline" size={16} color="#666" />
-                    <Text style={styles.detailLabel}>Order Date</Text>
+                    <Text style={styles.detailLabel}>{t('orderPage.orderDate')}</Text>
                   </View>
                   <Text style={styles.detailValue}>
-                    {orderDetails.createdDate ? new Date(orderDetails.createdDate).toLocaleDateString() : 'N/A'}
+                    {orderDetails.createdDate ? new Date(orderDetails.createdDate).toLocaleDateString() : t('orderPage.na')}
                   </Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <View style={styles.detailIconLabel}>
                     <Ionicons name="cube-outline" size={16} color="#666" />
-                    <Text style={styles.detailLabel}>Product</Text>
+                    <Text style={styles.detailLabel}>{t('orderPage.product')}</Text>
                   </View>
                   <Text style={styles.detailValue} numberOfLines={2}>
-                    {orderDetails.note || 'No product info'}
+                    {orderDetails.note || t('orderPage.noProductInfo')}
                   </Text>
                 </View>
               </View>
 
               {/* Amount Card */}
               <View style={styles.amountCard}>
-                <Text style={styles.amountLabel}>Total Amount</Text>
+                <Text style={styles.amountLabel}>{t('orderPage.totalAmount')}</Text>
                 <Text style={styles.amountValue}>
                   LKR {orderDetails.amount ? parseFloat(orderDetails.amount).toFixed(2) : '0.00'}
                 </Text>
@@ -287,7 +326,7 @@ const OrderPageScreen: React.FC = () => {
             </View>
 
             {/* Payment Options Section Title */}
-            <Text style={styles.detailLabel}>Payment Options</Text>
+            <Text style={styles.detailLabel}>{t('orderPage.paymentOptions')}</Text>
 
             {/* Payment Option Selection */}
             <View style={styles.paymentOptionsContainer}>
@@ -310,7 +349,7 @@ const OrderPageScreen: React.FC = () => {
                       styles.paymentOptionTitle,
                       selectedPaymentOption === 'once' && styles.paymentOptionTitleSelected
                     ]}>
-                      Pay Once
+                      {t('orderPage.payOnce')}
                     </Text>
                   </View>
                   <View style={[
@@ -326,7 +365,7 @@ const OrderPageScreen: React.FC = () => {
                   styles.paymentOptionDescription,
                   selectedPaymentOption === 'once' && styles.paymentOptionDescriptionSelected
                 ]}>
-                  Complete payment in full now
+                  {t('orderPage.completePaymentFull')}
                 </Text>
                 <Text style={[
                   styles.paymentOptionAmount,
@@ -355,7 +394,7 @@ const OrderPageScreen: React.FC = () => {
                       styles.paymentOptionTitle,
                       selectedPaymentOption === 'installments' && styles.paymentOptionTitleSelected
                     ]}>
-                      3 Installments
+                      {t('orderPage.installments')}
                     </Text>
                   </View>
                   <View style={[
@@ -371,13 +410,13 @@ const OrderPageScreen: React.FC = () => {
                   styles.paymentOptionDescription,
                   selectedPaymentOption === 'installments' && styles.paymentOptionDescriptionSelected
                 ]}>
-                  Split payment into 3 equal parts
+                  {t('orderPage.splitPayment')}
                 </Text>
                 <Text style={[
                   styles.paymentOptionAmount,
                   selectedPaymentOption === 'installments' && styles.paymentOptionAmountSelected
                 ]}>
-                  LKR {orderDetails.amount ? (parseFloat(orderDetails.amount) / 3).toFixed(2) : '0.00'} per installment
+                  LKR {orderDetails.amount ? (parseFloat(orderDetails.amount) / 3).toFixed(2) : '0.00'} {t('orderPage.perInstallment')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -388,8 +427,8 @@ const OrderPageScreen: React.FC = () => {
         {!loading && !error && orderDetails.orderId && (
           <View style={styles.submitButtonContainer}>
             <CustomButton
-              title={creatingLoan ? "Creating Loan..." :
-                selectedPaymentOption === 'once' ? "Pay Full Amount" : "Continue to Installments"}
+              title={creatingLoan ? t('orderPage.creatingLoan') :
+                selectedPaymentOption === 'once' ? t('orderPage.payFullAmount') : t('orderPage.continueToInstallments')}
               size="medium"
               variant="primary"
               onPress={handleContinue}

@@ -13,7 +13,10 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  BackHandler,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MainText, SubText, LinkText } from '../../components/CustomText';
@@ -36,6 +39,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
   const passwordInputRef = useRef<TextInput>(null);
 
   const { notification, showError, hideNotification } = useNotification();
+  const { t } = useTranslation();
 
   useEffect(() => {
     checkSecuritySetup();
@@ -45,6 +49,38 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
       gestureEnabled: false,
     });
   }, [navigation]);
+
+  // Prevent hardware back button navigation
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Show confirmation dialog when user tries to go back
+        Alert.alert(
+          t('dialogs.exitApp'),
+          t('dialogs.exitAppMessage'),
+          [
+            {
+              text: t('common.cancel'),
+              onPress: () => null,
+              style: 'cancel',
+            },
+            {
+              text: t('dialogs.exit'),
+              onPress: () => BackHandler.exitApp(),
+            },
+          ],
+          { cancelable: false }
+        );
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [])
+  );
 
   const checkSecuritySetup = async () => {
     try {
@@ -78,14 +114,14 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
     let hasError = false;
 
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError(t('auth.emailRequired'));
       hasError = true;
     } else {
       setEmailError('');
     }
 
     if (!password.trim()) {
-      setPasswordError('Password is required');
+      setPasswordError(t('auth.passwordRequired'));
       hasError = true;
     } else {
       setPasswordError('');
@@ -155,10 +191,10 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
         <View style={styles.overlayContainer}>
           <View style={styles.logoContainer}>
             <MainText size="xlarge" weight="bold" align="center" color="#fff">
-              Welcome Back
+              {t('auth.welcome')}
             </MainText>
             <SubText size="medium" align="center" color="#eee" style={{ marginTop: 0 }}>
-              Hello there, sign in to continue!
+              {t('auth.welcomeSubtitle')}
             </SubText>
           </View>
         </View>
@@ -180,7 +216,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
               <TextInput
                 ref={emailInputRef}
                 style={styles.input}
-                placeholder="Email"
+                placeholder={t('common.email')}
                 placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={(text) => {
@@ -201,7 +237,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
               <TextInput
                 ref={passwordInputRef}
                 style={styles.input}
-                placeholder="Password"
+                placeholder={t('common.password')}
                 placeholderTextColor="#aaa"
                 secureTextEntry
                 value={password}
@@ -224,12 +260,12 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                   style={{ fontSize: 14, color: Colors.light.primary }}
                   onPress={() => navigation.navigate('ForgotPassword')}
                 >
-                  Forgot Password?
+                  {t('auth.forgotPassword')}
                 </LinkText>
               </TouchableOpacity>
 
               <CustomButton
-                title={isLoading ? "Logging in..." : "Login"}
+                title={isLoading ? t('auth.loggingIn') : t('common.login')}
                 onPress={handleLogin}
                 disabled={isLoading}
               />
@@ -241,20 +277,20 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                   onPress={() => navigation.navigate('BiometricPinLogin')}
                 >
                   <MaterialCommunityIcons name="fingerprint" size={20} />
-                  <Text style={styles.biometricLoginText}>Use PIN or Biometric</Text>
+                  <Text style={styles.biometricLoginText}>{t('auth.loginWithBiometric')}</Text>
                 </TouchableOpacity>
               )}
 
               <View style={styles.registerRow}>
                 <SubText size="small" style={styles.mutedText}>
-                  Don't have an account?{' '}
+                  {t('auth.dontHaveAccount')}{' '}
                 </SubText>
                 <LinkText
                   size="small"
                   style={{ fontSize: 14, color: Colors.light.primary}}
                   onPress={() => navigation.navigate('GetStarted')}
                 >
-                  Sign up
+                  {t('common.signup')}
                 </LinkText>
               </View>
             </View>

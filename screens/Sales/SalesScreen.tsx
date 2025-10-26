@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomButton from '../../components/CustomButton';
+import { useTranslation } from 'react-i18next';
 
 type RootStackParamList = {
   OrderPageScreen: { qrData: string };
@@ -32,6 +33,7 @@ const { width, height } = Dimensions.get('window');
 
 const SalesScreen: React.FC = () => {
   const navigation = useNavigation<SalesScreenNavigationProp>();
+  const { t } = useTranslation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [manualCode, setManualCode] = useState('');
@@ -158,7 +160,7 @@ const SalesScreen: React.FC = () => {
 
   const handleSubmit = () => {
     if (!manualCode.trim()) {
-      Alert.alert('Missing Information', 'Please scan a QR code or enter a link manually');
+      Alert.alert(t('sales.missingInformation'), t('sales.scanOrEnterLink'));
       return;
     }
 
@@ -223,14 +225,14 @@ const SalesScreen: React.FC = () => {
   const handleShopQRProceed = () => {
     // Basic validation
     if (!saleValue.trim()) {
-      Alert.alert('Error', 'Please enter a sale value');
+      Alert.alert(t('sales.error'), t('sales.enterSaleValue'));
       return;
     }
 
     // Validate if sale value is a number
     const numericValue = parseFloat(saleValue);
     if (isNaN(numericValue) || numericValue <= 0) {
-      Alert.alert('Error', 'Please enter a valid sale amount');
+      Alert.alert(t('sales.error'), t('sales.enterValidAmount'));
       return;
     }
 
@@ -240,11 +242,11 @@ const SalesScreen: React.FC = () => {
     setTimeout(() => {
       setShopQRLoading(false);
       Alert.alert(
-        'Success',
-        `Sale processed successfully!\nAmount: $${numericValue.toFixed(2)}\nNote: ${note || 'No note provided'}`,
+        t('sales.success'),
+        `${t('sales.saleProcessedSuccessfully')}\n${t('sales.amount')}: $${numericValue.toFixed(2)}\n${t('sales.note')}: ${note || t('sales.noNoteProvided')}`,
         [
           {
-            text: 'OK',
+            text: t('sales.ok'),
             onPress: () => {
               closeShopQRModal();
             }
@@ -291,7 +293,7 @@ const SalesScreen: React.FC = () => {
   if (hasPermission === null) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>Setting up camera...</Text>
+        <Text style={styles.permissionText}>{t('sales.settingUpCamera')}</Text>
       </View>
     );
   }
@@ -302,8 +304,8 @@ const SalesScreen: React.FC = () => {
         <View style={styles.emptyIconContainer}>
           <Ionicons name="camera-outline" size={64} color="#E5E5E7" />
         </View>
-        <Text style={styles.permissionText}>Camera access needed</Text>
-        <Text style={styles.permissionSubtext}>Enable camera permissions to scan QR codes</Text>
+        <Text style={styles.permissionText}>{t('sales.cameraAccessNeeded')}</Text>
+        <Text style={styles.permissionSubtext}>{t('sales.enableCameraPermissions')}</Text>
       </View>
     );
   }
@@ -319,8 +321,8 @@ const SalesScreen: React.FC = () => {
       {/* Header Section with Dark Theme */}
       <View style={styles.headerSection}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Sales</Text>
-          <Text style={styles.headerSubtitle}>Scan QR codes or enter Sales Code</Text>
+          <Text style={styles.headerTitle}>{t('sales.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('sales.subtitle')}</Text>
         </View>
       </View>
 
@@ -352,7 +354,7 @@ const SalesScreen: React.FC = () => {
                       style={styles.rescanButton}
                       onPress={() => setScanned(false)}
                     >
-                      <Text style={styles.rescanButtonText}>Scan Again</Text>
+                      <Text style={styles.rescanButtonText}>{t('sales.scanAgain')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -362,14 +364,14 @@ const SalesScreen: React.FC = () => {
             {/* Divider */}
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>{t('sales.or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
 
             <Text style={styles.helperText}>
               {manualCode.length > 0
-                ? `✓ Ready to process (${manualCode.length} characters)`
-                : 'No camera? No problem! Just paste your link below'}
+                ? t('sales.readyToProcess', { count: manualCode.length })
+                : t('sales.noCameraNoProblem')}
             </Text>
 
             {/* Manual Input with Inline Go Button */}
@@ -379,7 +381,7 @@ const SalesScreen: React.FC = () => {
                     <Ionicons name="link" size={20} color="#8E8E93" style={styles.inputIcon} />
                     <TextInput
                       style={styles.textInput}
-                      placeholder=" Enter Your Sales Code here..."
+                      placeholder={t('sales.enterSalesCode')}
                       placeholderTextColor="#8E8E93"
                       value={manualCode}
                       onChangeText={setManualCode}
@@ -400,7 +402,7 @@ const SalesScreen: React.FC = () => {
                       styles.inlineGoButtonText,
                       (!manualCode.trim() || loading) && styles.inlineGoButtonTextDisabled
                     ]}>
-                      {loading ? "..." : "Go"}
+                      {loading ? "..." : t('sales.go')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -409,18 +411,18 @@ const SalesScreen: React.FC = () => {
 
           {/* Help Text */}
             <View style={styles.helpSection}>
-              <Text style={styles.helpTitle}>Need help?</Text>
+              <Text style={styles.helpTitle}>{t('sales.needHelp')}</Text>
               <Text style={styles.helpText}>
-                • Point your camera at any QR code to scan automatically{'\n'}
-                • Or paste/type any link in the text box above{'\n'}
-                • Both methods work the same way
+                {t('sales.helpPoint1')}{'\n'}
+                {t('sales.helpPoint2')}{'\n'}
+                {t('sales.helpPoint3')}
               </Text>
             </View>
 
           {/* Shop QR Button */}
             <TouchableOpacity style={styles.shopQRButton} onPress={handleShopQRButtonPress}>
               <Ionicons name="construct-outline" size={20} color="#fff" style={styles.shopQRButtonIcon} />
-              <Text style={styles.shopQRButtonText}>Process Sale Manually</Text>
+              <Text style={styles.shopQRButtonText}>{t('sales.processSaleManually')}</Text>
             </TouchableOpacity>
         </ScrollView>
       </View>
@@ -450,14 +452,14 @@ const SalesScreen: React.FC = () => {
                     style={styles.simpleRetryButton}
                     onPress={handleRetry}
                   >
-                    <Text style={styles.simpleRetryText}>Scan New</Text>
+                    <Text style={styles.simpleRetryText}>{t('sales.scanNew')}</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={styles.simpleCloseButton}
                     onPress={handleClose}
                   >
-                    <Text style={styles.simpleCloseText}>Close</Text>
+                    <Text style={styles.simpleCloseText}>{t('sales.close')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -490,11 +492,11 @@ const SalesScreen: React.FC = () => {
               </TouchableOpacity>
 
               <View style={styles.shopQRTitleSection}>
-                <Text style={styles.shopQRHeaderTitle}>Process Sale</Text>
+                <Text style={styles.shopQRHeaderTitle}>{t('sales.processSale')}</Text>
                 <Text style={styles.shopQRSubText}>
                   {manualCode.toLowerCase().includes('shop')
-                    ? `Detected shop URL: ${manualCode.length > 50 ? manualCode.substring(0, 50) + '...' : manualCode}`
-                    : 'Enter sale details to proceed'
+                    ? t('sales.detected', { url: manualCode.length > 50 ? manualCode.substring(0, 50) + '...' : manualCode })
+                    : t('sales.subtitle')
                   }
                 </Text>
               </View>
@@ -504,12 +506,12 @@ const SalesScreen: React.FC = () => {
             <View style={styles.shopQRContent}>
               {/* Input Fields */}
               <View style={styles.shopQRInputSection}>
-                <Text style={styles.shopQRLabel}>Sale Value *</Text>
+                <Text style={styles.shopQRLabel}>{t('sales.saleValue')}</Text>
                 <View style={styles.shopQRInputWrapper}>
                   <Ionicons name="cash-outline" size={20} color="#bdbdbd" style={styles.shopQRInputIcon} />
                   <TextInput
                     style={styles.shopQRInput}
-                    placeholder="Enter sale amount"
+                    placeholder={t('sales.enterSaleAmount')}
                     value={saleValue}
                     onChangeText={setSaleValue}
                     keyboardType="numeric"
@@ -517,11 +519,11 @@ const SalesScreen: React.FC = () => {
                   />
                 </View>
 
-                <Text style={styles.shopQRLabel}>Note (Optional)</Text>
+                <Text style={styles.shopQRLabel}>{t('sales.note')}</Text>
                 <View style={styles.shopQRInputWrapper}>
                   <TextInput
                     style={[styles.shopQRInput, styles.shopQRNoteInput]}
-                    placeholder="Add a note about this sale..."
+                    placeholder={t('sales.addSaleNote')}
                     value={note}
                     onChangeText={setNote}
                     multiline
@@ -537,9 +539,9 @@ const SalesScreen: React.FC = () => {
                   disabled={shopQRLoading}
                 >
                   {shopQRLoading ? (
-                    <Text style={styles.shopQRActionButtonText}>Processing...</Text>
+                    <Text style={styles.shopQRActionButtonText}>{t('sales.processing')}</Text>
                   ) : (
-                    <Text style={styles.shopQRActionButtonText}>Proceed</Text>
+                    <Text style={styles.shopQRActionButtonText}>{t('sales.proceed')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

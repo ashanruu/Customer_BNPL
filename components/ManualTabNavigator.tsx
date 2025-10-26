@@ -15,6 +15,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 import HomeScreen from '../screens/HomeScreen';
 import ShopScreen from '../screens/Shop/ShopScreen';
@@ -42,20 +43,21 @@ const ManualTabNavigator: React.FC = () => {
     const colorScheme = useColorScheme();
     const themeColors = Colors[colorScheme ?? 'light'];
     const navigation = useNavigation<any>();
+    const { t } = useTranslation();
 
     const tabs = [
-        { name: 'Home', iconName: 'home-outline', component: HomeScreen },
-        { name: 'Shop', iconName: 'cart-outline', component: ShopScreen },
-        { name: 'Scan', iconName: 'qrcode-scan', component: SalesScreen }, 
-        { name: 'Orders', iconName: 'text-box-outline', component: OrdersScreen },
-        { name: 'Profile', iconName: 'account-outline', component: ProfileScreen },
+        { name: t('navigation.home'), iconName: 'home-outline', component: HomeScreen },
+        { name: t('navigation.shop'), iconName: 'cart-outline', component: ShopScreen },
+        { name: t('navigation.scan'), iconName: 'qrcode-scan', component: SalesScreen }, 
+        { name: t('navigation.orders'), iconName: 'text-box-outline', component: OrdersScreen },
+        { name: t('navigation.profile'), iconName: 'account-outline', component: ProfileScreen },
     ];
 
     const menuItems = [
-        { label: 'My Tickets', icon: 'ticket-outline', screen: 'MyTickets' },
-        { label: 'Terms & Conditions', icon: 'file-document-outline', screen: 'Splash' },
-        { label: 'Settings', icon: 'cog-outline', screen: 'Settings' },
-        { label: 'Log Out', icon: 'logout', screen: 'Login', replace: true },
+        { label: t('navigation.myTickets'), icon: 'ticket-outline', screen: 'MyTickets' },
+        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'Splash' },
+        { label: t('navigation.settings'), icon: 'cog-outline', screen: 'Settings' },
+        { label: t('navigation.logOut'), icon: 'logout', screen: 'Login', replace: true },
     ];
 
     const openDrawer = () => {
@@ -79,15 +81,15 @@ const ManualTabNavigator: React.FC = () => {
 
     const handleLogout = () => {
         Alert.alert(
-            'Confirm Logout',
-            'Are you sure you want to log out?',
+            t('navigation.confirmLogout'),
+            t('navigation.logoutConfirmMessage'),
             [
                 {
-                    text: 'Cancel',
+                    text: t('navigation.cancel'),
                     style: 'cancel',
                 },
                 {
-                    text: 'Log Out',
+                    text: t('navigation.logOut'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -119,7 +121,7 @@ const ManualTabNavigator: React.FC = () => {
                             navigation.replace('Login');
                         } catch (error) {
                             console.error('Error during logout:', error);
-                            Alert.alert('Error', 'Failed to log out. Please try again.');
+                            Alert.alert(t('navigation.error'), t('navigation.logoutError'));
                         }
                     },
                 },
@@ -195,7 +197,7 @@ const ManualTabNavigator: React.FC = () => {
                                 <Pressable
                                     key={index}
                                     onPress={() => {
-                                        if (item.label === 'Log Out') {
+                                        if (item.label === t('navigation.logOut')) {
                                             handleLogout();
                                         } else {
                                             closeDrawer();

@@ -11,11 +11,13 @@ import {
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, DrawerActions, useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from "@expo/vector-icons";
 import HamburgerMenu from "../../components/HamburgerMenu";
 import { callMobileApi } from "../../scripts/api";
 
 const MyTicketsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("active");
   const [tickets, setTickets] = useState([]);
@@ -47,12 +49,12 @@ const MyTicketsScreen = () => {
           setTickets([]);
         }
       } else {
-        Alert.alert('Error', response.message || 'Failed to fetch tickets');
+        Alert.alert(t('common.error'), response.message || t('tickets.failedToFetch'));
       }
     } catch (error: any) {
       console.error('GetTicketByU_Id error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch tickets. Please try again.';
-      Alert.alert('Error', errorMessage);
+      const errorMessage = error.response?.data?.message || t('tickets.failedToFetch');
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -103,12 +105,12 @@ const MyTicketsScreen = () => {
       }
       activeOpacity={0.7}
     >
-      <Text style={styles.date}>{item.createdAt || item.date || 'N/A'}</Text>
+      <Text style={styles.date}>{item.createdAt || item.date || t('tickets.noDate')}</Text>
       <View style={styles.ticketCard}>
         <View style={styles.ticketContent}>
-          <Text style={styles.ticketTitle}>#{item.ticketId || 'N/A'}</Text>
+          <Text style={styles.ticketTitle}>#{item.ticketId || t('tickets.noId')}</Text>
           <Text style={styles.ticketSubtitle} numberOfLines={2}>
-            {item.mainReason || 'No Description'}
+            {item.mainReason || t('tickets.noDescription')}
           </Text>
           <View style={[
             styles.statusBadge,
@@ -118,7 +120,7 @@ const MyTicketsScreen = () => {
               styles.statusText,
               item.isActive ? styles.activeStatusText : styles.closedStatusText
             ]}>
-              {item.isActive ? 'Active' : 'Closed'}
+              {item.isActive ? t('tickets.active') : t('tickets.closed')}
             </Text>
           </View>
         </View>
@@ -147,8 +149,8 @@ const MyTicketsScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.titleSection}>
-            <Text style={styles.headerTitle}>My Tickets</Text>
-            <Text style={styles.subText}>View and track your support requests</Text>
+            <Text style={styles.headerTitle}>{t('tickets.myTickets')}</Text>
+            <Text style={styles.subText}>{t('tickets.viewTrackRequests')}</Text>
           </View>
         </View>
 
@@ -158,7 +160,7 @@ const MyTicketsScreen = () => {
           onPress={() => (navigation as any).navigate("RaiseTickets")}
           activeOpacity={0.7}
         >
-          <Text style={styles.raiseText}>Raise New Ticket</Text>
+          <Text style={styles.raiseText}>{t('tickets.raiseNewTicket')}</Text>
           <Ionicons name="arrow-forward" size={18} color="#fff" />
         </TouchableOpacity>
 
@@ -173,7 +175,7 @@ const MyTicketsScreen = () => {
               styles.tabText,
               activeTab === "active" && styles.activeTabText,
             ]}>
-              Active
+              {t('tickets.active')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -185,7 +187,7 @@ const MyTicketsScreen = () => {
               styles.tabText,
               activeTab === "history" && styles.activeTabText,
             ]}>
-              History
+              {t('tickets.history')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -194,7 +196,7 @@ const MyTicketsScreen = () => {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#2C2C2E" />
-            <Text style={styles.loadingText}>Loading tickets...</Text>
+            <Text style={styles.loadingText}>{t('tickets.loadingTickets')}</Text>
           </View>
         ) : (
           <FlatList
@@ -211,12 +213,12 @@ const MyTicketsScreen = () => {
                   <Ionicons name="ticket-outline" size={64} color="#E5E5E7" />
                 </View>
                 <Text style={styles.emptyText}>
-                  {activeTab === "active" ? "No active tickets" : "No ticket history"}
+                  {activeTab === "active" ? t('tickets.noActiveTickets') : t('tickets.noTicketHistory')}
                 </Text>
                 <Text style={styles.emptySubtext}>
                   {activeTab === "active"
-                    ? "Your active support requests will appear here"
-                    : "Your resolved tickets will appear here"
+                    ? t('tickets.activeSupportAppearHere')
+                    : t('tickets.resolvedTicketsAppearHere')
                   }
                 </Text>
               </View>

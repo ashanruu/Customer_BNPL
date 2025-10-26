@@ -10,10 +10,12 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from "@expo/vector-icons";
 import { callMobileApi } from "../../scripts/api";
 
 const OrdersScreen: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"ongoing" | "history" | "cancelled">("ongoing");
   const [loanData, setLoanData] = useState<{
     activeLoans: any[];
@@ -141,14 +143,14 @@ const OrdersScreen: React.FC = () => {
         console.log("Loans enriched with details successfully");
       } else {
         console.error('Failed to fetch loan list:', response.message);
-        Alert.alert('Error', 'Failed to load orders. Please try again.');
+        Alert.alert(t('common.error'), t('orders.failedToLoad'));
         setLoanData({ activeLoans: [], completedLoans: [], returnedLoans: [] });
         setEnrichedLoans({ activeLoans: [], completedLoans: [], returnedLoans: [] });
       }
     } catch (error: any) {
       console.error('GetLoanList error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      Alert.alert('Error', 'Failed to load orders. Please try again.');
+      Alert.alert(t('common.error'), t('orders.failedToLoad'));
       setLoanData({ activeLoans: [], completedLoans: [], returnedLoans: [] });
       setEnrichedLoans({ activeLoans: [], completedLoans: [], returnedLoans: [] });
     } finally {
@@ -222,7 +224,7 @@ const OrdersScreen: React.FC = () => {
           {activeTab === "ongoing" && (
             <View style={styles.loanDetailsRow}>
               <Text style={styles.creditInfo}>
-                Due Amount : Rs. {item.totCreditValue?.toLocaleString() || '0'}
+                {t('orders.dueAmount')} : Rs. {item.totCreditValue?.toLocaleString() || '0'}
               </Text>
               <Text style={styles.installmentInfo}>
                 {(() => {
@@ -241,7 +243,7 @@ const OrdersScreen: React.FC = () => {
         <View style={styles.rightSection}>
           {activeTab === "ongoing" && (
             <View style={styles.downPaymentContainer}>
-              <Text style={styles.downPaymentLabel}>Next Payment</Text>
+              <Text style={styles.downPaymentLabel}>{t('orders.nextPayment')}</Text>
               <Text style={styles.downPaymentAmount}>
                 {(() => {
                   if (item.nextPaymentDate) {
@@ -252,7 +254,7 @@ const OrdersScreen: React.FC = () => {
                       year: 'numeric'
                     });
                   } else {
-                    return 'No pending payments';
+                    return t('orders.noPendingPayments');
                   }
                 })()}
               </Text>
@@ -320,8 +322,8 @@ const OrdersScreen: React.FC = () => {
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.titleSection}>
-            <Text style={styles.headerTitle}>My Orders</Text>
-            <Text style={styles.subText}>Track your loans and payment history</Text>
+            <Text style={styles.headerTitle}>{t('orders.myOrders')}</Text>
+            <Text style={styles.subText}>{t('orders.trackLoansPayments')}</Text>
           </View>
         </View>
 
@@ -336,7 +338,7 @@ const OrdersScreen: React.FC = () => {
               styles.tabText,
               activeTab === "ongoing" && styles.activeTabText,
             ]}>
-              Ongoing
+              {t('orders.ongoing')}
             </Text>
           </TouchableOpacity>
 
@@ -349,7 +351,7 @@ const OrdersScreen: React.FC = () => {
               styles.tabText,
               activeTab === "history" && styles.activeTabText,
             ]}>
-              History
+              {t('orders.history')}
             </Text>
           </TouchableOpacity>
 
@@ -362,7 +364,7 @@ const OrdersScreen: React.FC = () => {
               styles.tabText,
               activeTab === "cancelled" && styles.activeTabText,
             ]}>
-              Cancelled
+              {t('orders.cancelled')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -371,7 +373,7 @@ const OrdersScreen: React.FC = () => {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#2C2C2E" />
-            <Text style={styles.loadingText}>Loading orders...</Text>
+            <Text style={styles.loadingText}>{t('orders.loadingOrders')}</Text>
           </View>
         ) : (
           /* List */
@@ -387,13 +389,13 @@ const OrdersScreen: React.FC = () => {
                   <Ionicons name="receipt-outline" size={64} color="#E5E5E7" />
                 </View>
                 <Text style={styles.emptyText}>
-                  {activeTab === "ongoing" ? "No ongoing orders" :
-                    activeTab === "history" ? "No order history" : "No cancelled orders"}
+                  {activeTab === "ongoing" ? t('orders.noOngoingOrders') :
+                    activeTab === "history" ? t('orders.noOrderHistory') : t('orders.noCancelledOrders')}
                 </Text>
                 <Text style={styles.emptySubtext}>
-                  {activeTab === "ongoing" ? "Your active loans will appear here" :
-                    activeTab === "history" ? "Your completed orders will appear here" :
-                      "Your cancelled orders will appear here"}
+                  {activeTab === "ongoing" ? t('orders.activeLoansAppearHere') :
+                    activeTab === "history" ? t('orders.completedOrdersAppearHere') :
+                      t('orders.cancelledOrdersAppearHere')}
                 </Text>
               </View>
             }

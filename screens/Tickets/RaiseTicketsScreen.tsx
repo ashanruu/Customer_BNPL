@@ -8,11 +8,13 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from "@expo/vector-icons";
 import { callMobileApi } from "../../scripts/api";
 import CustomButton from "../../components/CustomButton";
 
 const RaiseTicketsScreen = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
 
   const [subject, setSubject] = useState("");
@@ -25,7 +27,7 @@ const RaiseTicketsScreen = () => {
   const handleSubmitTicket = async () => {
     // Basic validation
     if (!subject.trim() || !title.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields (Subject, Title, and Message)');
+      Alert.alert(t('common.error'), t('tickets.fillRequiredFields'));
       return;
     }
 
@@ -53,11 +55,11 @@ const RaiseTicketsScreen = () => {
 
       if (response.statusCode === 200) {
         Alert.alert(
-          'Success',
-          'Your ticket has been submitted successfully!',
+          t('common.success'),
+          t('tickets.ticketSubmittedSuccessfully'),
           [
             {
-              text: 'OK',
+              text: t('common.ok'),
               onPress: () => {
                 // Clear form
                 setSubject('');
@@ -72,7 +74,7 @@ const RaiseTicketsScreen = () => {
           ]
         );
       } else {
-        Alert.alert('Error', response.message || 'Failed to submit ticket');
+        Alert.alert(t('common.error'), response.message || t('tickets.failedToSubmit'));
       }
     } catch (error: any) {
       console.error('CreateTicket error:', error);
@@ -96,8 +98,8 @@ const RaiseTicketsScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>Raise a Ticket</Text>
-          <Text style={styles.subText}>Fill out the form below to submit a support request</Text>
+          <Text style={styles.headerTitle}>{t('tickets.raiseTicket')}</Text>
+          <Text style={styles.subText}>{t('tickets.fillFormSubmitRequest')}</Text>
         </View>
       </View>
 
@@ -105,41 +107,41 @@ const RaiseTicketsScreen = () => {
       <View style={styles.content}>
         {/* Input Fields */}
         <View style={styles.inputSection}>
-          <Text style={styles.label}>Subject</Text>
+          <Text style={styles.label}>{t('tickets.subject')}</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Subject"
+              placeholder={t('tickets.subject')}
               value={subject}
               onChangeText={setSubject}
             />
           </View>
 
-          <Text style={styles.label}>Title</Text>
+          <Text style={styles.label}>{t('tickets.title')}</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Title"
+              placeholder={t('tickets.title')}
               value={title}
               onChangeText={setTitle}
             />
           </View>
 
-          <Text style={styles.label}>Transaction ID (If Relevant)</Text>
+          <Text style={styles.label}>{t('tickets.transactionIdOptional')}</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Transaction ID (If Relevant)"
+              placeholder={t('tickets.transactionIdOptional')}
               value={transactionId}
               onChangeText={setTransactionId}
             />
           </View>
 
-          <Text style={styles.label}>Message</Text>
+          <Text style={styles.label}>{t('tickets.message')}</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={[styles.input, styles.messageInput]}
-              placeholder="Message"
+              placeholder={t('tickets.message')}
               value={message}
               onChangeText={setMessage}
               multiline
@@ -160,7 +162,7 @@ const RaiseTicketsScreen = () => {
         {/* Submit Button */}
         <View style={styles.submitButtonContainer}>
           <CustomButton
-            title="Submit"
+            title={t('tickets.submit')}
             size="medium"
             variant="primary"
             onPress={handleSubmitTicket}
