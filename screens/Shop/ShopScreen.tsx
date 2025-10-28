@@ -453,15 +453,108 @@ const ShopScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Featured */}
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>
-            Featured {searchQuery && `(${filteredFeaturedShops.length})`}
-          </Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
-          {filteredFeaturedShops.length > 0 ? filteredFeaturedShops.map
-    backgroundColor: '#F5F5F5',
+            {/* Featured */}
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>
+                Featured {searchQuery && `(${filteredFeaturedShops.length})`}
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
+              {filteredFeaturedShops.length > 0 ? filteredFeaturedShops.map((shop, index) => (
+                <TouchableOpacity key={shop.id || index} style={styles.shopCard} onPress={() => handleShopPress(shop)}>
+                  {shop.imageUrl ? (
+                    <OptimizedImage
+                      source={{ uri: shop.imageUrl }}
+                      style={styles.shopImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={styles.noImagePlaceholder}>
+                      <Ionicons name="image-outline" size={30} color="#ccc" />
+                    </View>
+                  )}
+                  <View style={styles.shopCardOverlay}>
+                    <Text style={styles.shopName} numberOfLines={1}>{shop.name || 'Unknown Shop'}</Text>
+                    {shop.discount && shop.discount > 0 && (
+                      <Text style={styles.shopDiscount}>{shop.discount}% OFF</Text>
+                    )}
+                    {shop.merchantName && (
+                      <Text style={styles.merchantName} numberOfLines={1}>{shop.merchantName}</Text>
+                    )}
+                    {shop.description && (
+                      <Text style={styles.shopDescription} numberOfLines={2}>{shop.description}</Text>
+                    )}
+                    {shop.minOrder && (
+                      <Text style={styles.minOrder}>Min order: {shop.minOrder}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )) : (
+                <View style={styles.emptySection}>
+                  <Ionicons name="storefront-outline" size={40} color="#ccc" />
+                  <Text style={styles.emptySectionText}>
+                    {searchQuery ? 'No featured shops match your search' : 'No featured shops available'}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+    
+            {/* New Arrivals */}
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>
+                New Arrivals {searchQuery && `(${filteredNewArrivals.length})`}
+              </Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
+              {filteredNewArrivals.length > 0 ? filteredNewArrivals.map((item, index) => (
+                <TouchableOpacity key={item.id || index} style={styles.shopCard} onPress={() => handleShopPress(item)}>
+                  {item.imageUrl ? (
+                    <OptimizedImage
+                      source={{ uri: item.imageUrl }}
+                      style={styles.shopImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={styles.noImagePlaceholder}>
+                      <Ionicons name="image-outline" size={30} color="#ccc" />
+                    </View>
+                  )}
+                  <View style={styles.shopCardOverlay}>
+                    <Text style={styles.shopName} numberOfLines={1}>{item.name || 'Unknown Item'}</Text>
+                    {item.discount && item.discount > 0 && (
+                      <Text style={styles.shopDiscount}>{item.discount}% OFF</Text>
+                    )}
+                    {item.merchantName && (
+                      <Text style={styles.merchantName} numberOfLines={1}>{item.merchantName}</Text>
+                    )}
+                    {item.description && (
+                      <Text style={styles.shopDescription} numberOfLines={2}>{item.description}</Text>
+                    )}
+                    {item.minOrder && (
+                      <Text style={styles.minOrder}>Min order: {item.minOrder}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )) : (
+                <View style={styles.emptySection}>
+                  <Ionicons name="sparkles-outline" size={40} color="#ccc" />
+                  <Text style={styles.emptySectionText}>
+                    {searchQuery ? 'No new arrivals match your search' : 'No new arrivals available'}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+    
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      );
+    };
+    
+    const styles = StyleSheet.create({
+      safeArea: {
   },
   container: {
     flex: 1,
@@ -703,5 +796,54 @@ const ShopScreen: React.FC = () => {
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+  },
+  bannerWrapper: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+  },
+  bannerDotsContainer: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 10,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  bannerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 3,
+  },
+  bannerDotActive: {
+    backgroundColor: '#fff',
+  },
+  bannerArrowLeft: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerArrowRight: {
+    position: 'absolute',
+    right: 10,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
