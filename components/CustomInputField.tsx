@@ -22,6 +22,7 @@ interface CustomInputFieldProps {
   multiline?: boolean;
   numberOfLines?: number;
   error?: string; // added error prop
+  maxLength?: number;
 }
 
 const CustomInputField: React.FC<CustomInputFieldProps> = ({
@@ -36,6 +37,7 @@ const CustomInputField: React.FC<CustomInputFieldProps> = ({
   multiline = false,
   numberOfLines = 1,
   error,
+  maxLength,
 }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -80,6 +82,7 @@ const CustomInputField: React.FC<CustomInputFieldProps> = ({
           editable={editable}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          maxLength={maxLength}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />

@@ -106,6 +106,7 @@ const SecuritySetupScreen: React.FC = () => {
         email: personalInfo.email,
         phoneNumber: phoneNumber,
         nic: personalInfo.nic,
+        bod : personalInfo.dateOfBirth,
         password: personalInfo.password,
         userType: 2
       };
@@ -138,6 +139,7 @@ const SecuritySetupScreen: React.FC = () => {
         state: addressInfo.state,
         email: personalInfo.email,
         phoneNumber: phoneNumber,
+        dob : personalInfo.dateOfBirth,
         salary: 0,
       };
 

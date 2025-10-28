@@ -62,7 +62,13 @@
     "mobileHelp": "Enter mobile number starting with +94 (12 digits) or 0 (10 digits)",
     "sendOtp": "Send OTP",
     "otpSendFailed": "Failed to send OTP",
-    "requestFailed": "Failed to process request. Please try again."
+    "requestFailed": "Failed to process request. Please try again.",
+    "dateOfBirth": "Date of Birth",
+    "enterDateOfBirth": "Please select your date of birth",
+    "selectDateOfBirth": "Select Date of Birth",
+    "ageRequirement": "You must be 18 or older to register",
+    "invalidDate": "Please enter a valid date",
+    "futureDateError": "Date of birth cannot be in the future"
   },
   "password": {
     "requirements": "Password must contain:",
