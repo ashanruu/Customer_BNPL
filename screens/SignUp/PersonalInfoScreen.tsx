@@ -202,18 +202,9 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView 
-                        ref={scrollViewRef}
-                        style={styles.scrollView}
-                        contentContainerStyle={[
-                            styles.scrollContainer,
-                            { paddingBottom: Math.max(80, keyboardHeight / 3) }
-                        ]}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        bounces={false}
-                    >
-                        <View style={styles.contentWrapper}>
+                    <View style={styles.mainWrapper}>
+                        {/* Fixed Header Section */}
+                        <View style={styles.fixedHeader}>
                             {/* Back Button */}
                             <TouchableOpacity 
                                 style={styles.backButton} 
@@ -230,17 +221,30 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                             <View style={styles.header}>
                                 <MainText size="xlarge" weight="bold" align="left">
                                     {t('signup.startBasics')}
-                                </MainText>
-                                <SubText size="medium" align="left" style={styles.subtitle}>
-                                    {t('signup.startBasicsSubtitle')}
-                                </SubText>
+                            </MainText>
+                            <SubText size="medium" align="left" style={styles.subtitle}>
+                                {t('signup.startBasicsSubtitle')}
+                            </SubText>
                             </View>
 
                             {/* Step Indicator */}
                             <View style={styles.stepIndicatorWrapper}>
                                 <StepIndicator currentStep={3} />
                             </View>
+                        </View>
 
+                        {/* Scrollable Form Section */}
+                        <ScrollView 
+                            ref={scrollViewRef}
+                            style={styles.scrollView}
+                            contentContainerStyle={[
+                                styles.scrollContainer,
+                                { paddingBottom: Math.max(80, keyboardHeight / 3) }
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            bounces={false}
+                        >
                             {/* Form */}
                             <View style={styles.centeredBox}>
                                 <View style={styles.form}>
@@ -307,7 +311,7 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                             </SubText>
                                             <SubText size="small" style={{
                                                 ...styles.requirement,
-                                                ...((/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/.test(password)) && styles.requirementMet)
+                                                ...((/(?=.[!@#$%^&()_+\-=\[\]{};':"\\|,.<>\/?~`])/.test(password)) && styles.requirementMet)
                                             }}>
                                                 • {t('password.special')}
                                             </SubText>
@@ -366,8 +370,8 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                     />
                                 </View>
                             </View>
-                        </View>
-                    </ScrollView>
+                        </ScrollView>
+                    </View>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -382,21 +386,35 @@ const styles = StyleSheet.create({
     keyboardContainer: {
         flex: 1,
     },
+    mainWrapper: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+    fixedHeader: {
+        paddingTop: 16,
+        paddingBottom: 10,
+        backgroundColor: Colors.light.background,
+        // Add these properties to ensure it stays fixed
+        zIndex: 1,
+    },
     scrollView: {
         flex: 1,
     },
     scrollContainer: {
         flexGrow: 1,
-    },
-    contentWrapper: {
-        flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 16,
+        paddingTop: 20,
     },
     centeredBox: {
+        flex: 1,
         width: '100%',
         maxWidth: 400,
         alignSelf: 'center',
+        // Remove any height constraints
+    },
+    form: {
+        width: '100%',
+        // Add minimum height to ensure scrolling
+        minHeight: 200,
     },
     backButton: {
         width: 36,
@@ -408,17 +426,14 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     header: {
-        marginTop: 30,
         marginBottom: 20,
     },
     subtitle: {
         color: Colors.light.mutedText,
     },
-    form: {
-        width: '100%',
-    },
     sendButton: {
         marginTop: 24,
+        marginBottom: 40, // Add bottom margin for better spacing
     },
     stepIndicatorWrapper: {
         width: '80%',

@@ -242,7 +242,7 @@ const HomeScreen: React.FC = () => {
 
   // Helper function to format currency
   const formatCurrency = (amount: number | undefined): string => {
-    if (!amount) return '';
+    if (amount === undefined || amount === null) return '';
     return `Rs. ${amount.toFixed(2)}`;
   };
 
@@ -578,7 +578,7 @@ const HomeScreen: React.FC = () => {
         </View>
 
         {/* Second Row of Promotions */}
-        <View style={styles.section}>
+        <View style={styles.sectionSecond}>
           <Text style={styles.sectionTitle}>{t('home.specialDeals')}</Text>
           <ScrollView
             horizontal
@@ -710,6 +710,12 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 15,
     paddingVertical: 10,
+    paddingTop: 140,
+  },
+  sectionSecond: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 16,

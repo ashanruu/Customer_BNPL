@@ -26,6 +26,7 @@ import TermsModal from '../../components/TermsModal';
 type RootStackParamList = {
   SecuritySetupScreen: undefined;
   AddressDetailsScreen: undefined;
+  TermsAndConditions: { onAccept?: (accepted: boolean) => void }; // Changed from TermsAndConditionsScreen
 };
 
 type NavigationProp = {
@@ -263,18 +264,9 @@ Last updated: ${new Date().toLocaleDateString()}`;
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.scrollView}
-            contentContainerStyle={[
-              styles.scrollContainer,
-              { paddingBottom: Math.max(80, keyboardHeight / 3) }
-            ]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            <View style={styles.contentWrapper}>
+          <View style={styles.mainWrapper}>
+            {/* Fixed Header Section */}
+            <View style={styles.fixedHeader}>
               {/* Back Button */}
               <TouchableOpacity
                 style={styles.backButton}
@@ -301,7 +293,20 @@ Last updated: ${new Date().toLocaleDateString()}`;
               <View style={styles.stepIndicatorWrapper}>
                 <StepIndicator currentStep={4} />
               </View>
+            </View>
 
+            {/* Scrollable Form Section */}
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              contentContainerStyle={[
+                styles.scrollContainer,
+                { paddingBottom: Math.max(80, keyboardHeight / 3) }
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
               {/* Form */}
               <View style={styles.centeredBox}>
                 <View style={styles.form}>
@@ -344,7 +349,11 @@ Last updated: ${new Date().toLocaleDateString()}`;
                       I agree to the{' '}
                       <Text
                         style={styles.linkText}
-                        onPress={() => setShowTermsModal(true)}
+                        onPress={() => navigation.navigate('TermsAndConditions', {
+                          onAccept: (accepted: boolean) => {
+                            setAcceptedTerms(accepted);
+                          }
+                        })}
                       >
                         Terms and Conditions
                       </Text>
@@ -363,8 +372,8 @@ Last updated: ${new Date().toLocaleDateString()}`;
                   />
                 </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
@@ -386,16 +395,22 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
+  mainWrapper: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  fixedHeader: {
+    paddingTop: 16,
+    paddingBottom: 10,
+    backgroundColor: Colors.light.background,
+    zIndex: 1,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-  },
-  contentWrapper: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 20,
   },
   centeredBox: {
     width: '100%',
@@ -412,7 +427,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   header: {
-    marginTop: 30,
     marginBottom: 20,
   },
   subtitle: {
@@ -420,9 +434,11 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+    minHeight: 400,
   },
   sendButton: {
     marginTop: 60,
+    marginBottom: 40,
   },
   disabledButton: {
     opacity: 0.5,
@@ -451,4 +467,3 @@ const styles = StyleSheet.create({
 });
 
 export default AddressDetailsScreen;
-

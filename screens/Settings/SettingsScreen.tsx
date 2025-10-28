@@ -331,12 +331,14 @@ const SettingsScreen: React.FC = () => {
               title={t('settings.notifications')}
               subtitle={t('settings.notificationsSubtitle')}
               icon="notifications-outline"
+              onPress={() => navigation.navigate('NotificationPreferences' as any)}
             />
 
             <SettingItem
               title={t('settings.privacy')}
               subtitle={t('settings.privacySubtitle')}
               icon="shield-outline"
+              onPress={() => navigation.navigate('PrivacySettings' as any)}
             />
           </View>
         </View>

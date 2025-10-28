@@ -17,6 +17,7 @@ import OtpVerificationScreen from "../screens/SignUp/OtpVerificationScreen";
 import PersonalInfoScreen from "../screens/SignUp/PersonalInfoScreen";
 import AddressDetailsScreen from "../screens/SignUp/AddressDetailsScreen";
 import SecuritySetupScreen from "../screens/SignUp/SecuritySetupScreen";
+import TermsAndConditionsScreen from "../screens/SignUp/TermsAndConditionsScreen";
 
 // Other Screens
 import PlansScreen from "../screens/PlansScreen";
@@ -31,12 +32,15 @@ import SalesScreen from "../screens/Sales/SalesScreen";
 import OrderPageScreen from "../screens/Sales/OrderPageScreen";
 import PaymentProcessScreen from "../screens/Sales/PaymentProcessScreen";
 import HomeScreen from "../screens/HomeScreen";
+import CardAddedSuccessScreen from "../screens/Cards/CardAddedSuccessScreen";
 
 //Web View Screen
 import WebViewScreen from "../screens/Profile/WebViewScreen";
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 import ChangePasswordScreen from "../screens/Settings/ChangePasswordScreen";
 import ShopDetailsScreen from "../screens/Shop/ShopDetailsScreen";
+import NotificationPreferencesScreen from "../screens/Settings/NotificationPreferencessScreen";
+import PrivacySettingsScreen from "../screens/Settings/PrivacySettingScreen";
 
 const Stack = createStackNavigator();
 
@@ -68,6 +72,7 @@ const AppNavigator = () => {
       <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="AddressDetails" component={AddressDetailsScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} options={{ gestureEnabled: false }} />
 
       {/* Settings */}
       <Stack.Screen name="Settings" component={SettingsScreen} />
@@ -94,6 +99,9 @@ const AppNavigator = () => {
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
       {/* <Stack.Screen name="QRProgressScreen" component={QRProgressScreen} options={{ gestureEnabled: false }} /> */}
+      <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
+      <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
+      <Stack.Screen name="CardAddedSuccess" component={CardAddedSuccessScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,12 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  SafeAreaView,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from 'react-i18next';
@@ -16,6 +22,7 @@ import CustomButton from "../../components/CustomButton";
 const RaiseTicketsScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [subject, setSubject] = useState("");
   const [title, setTitle] = useState("");
@@ -23,6 +30,37 @@ const RaiseTicketsScreen = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [document, setDocument] = useState(""); // For uploaded documents
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Auto scroll when keyboard appears
+        setTimeout(() => {
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({
+              y: 100,
+              animated: true,
+            });
+          }
+        }, 100);
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const handleSubmitTicket = async () => {
     // Basic validation
@@ -86,91 +124,117 @@ const RaiseTicketsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={22} color="#666" />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.mainWrapper}>
+            {/* Fixed Header Section */}
+            <View style={styles.fixedHeader}>
+              {/* Back Button */}
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Ionicons name="arrow-back" size={22} color="#666" />
+              </TouchableOpacity>
 
-        <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>{t('tickets.raiseTicket')}</Text>
-          <Text style={styles.subText}>{t('tickets.fillFormSubmitRequest')}</Text>
-        </View>
-      </View>
-
-      {/* Content Area */}
-      <View style={styles.content}>
-        {/* Input Fields */}
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>{t('tickets.subject')}</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder={t('tickets.subject')}
-              value={subject}
-              onChangeText={setSubject}
-            />
-          </View>
-
-          <Text style={styles.label}>{t('tickets.title')}</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder={t('tickets.title')}
-              value={title}
-              onChangeText={setTitle}
-            />
-          </View>
-
-          <Text style={styles.label}>{t('tickets.transactionIdOptional')}</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder={t('tickets.transactionIdOptional')}
-              value={transactionId}
-              onChangeText={setTransactionId}
-            />
-          </View>
-
-          <Text style={styles.label}>{t('tickets.message')}</Text>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={[styles.input, styles.messageInput]}
-              placeholder={t('tickets.message')}
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
-          <Text style={styles.label}>Upload Screenshots (If Any)</Text>
-          <TouchableOpacity style={styles.uploadWrapper}>
-            <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
-            <View style={styles.uploadTextContainer}>
-              <Text style={styles.uploadTitle}>Upload Screenshots</Text>
-              <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
+              {/* Header */}
+              <View style={styles.titleSection}>
+                <Text style={styles.headerTitle}>{t('tickets.raiseTicket')}</Text>
+                <Text style={styles.subText}>{t('tickets.fillFormSubmitRequest')}</Text>
+              </View>
             </View>
-          </TouchableOpacity>
-        </View>
 
-        {/* Submit Button */}
-        <View style={styles.submitButtonContainer}>
-          <CustomButton
-            title={t('tickets.submit')}
-            size="medium"
-            variant="primary"
-            onPress={handleSubmitTicket}
-            disabled={loading}
-          />
-        </View>
-      </View>
-    </View>
+            {/* Scrollable Form Section */}
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              contentContainerStyle={[
+                styles.scrollContainer,
+                { paddingBottom: Math.max(80, keyboardHeight / 3) }
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
+              {/* Form Content */}
+              <View style={styles.content}>
+                {/* Input Fields */}
+                <View style={styles.inputSection}>
+                  <Text style={styles.label}>{t('tickets.subject')}</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('tickets.subject')}
+                      value={subject}
+                      onChangeText={setSubject}
+                    />
+                  </View>
+
+                  <Text style={styles.label}>{t('tickets.title')}</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('tickets.title')}
+                      value={title}
+                      onChangeText={setTitle}
+                    />
+                  </View>
+
+                  <Text style={styles.label}>{t('tickets.transactionIdOptional')}</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('tickets.transactionIdOptional')}
+                      value={transactionId}
+                      onChangeText={setTransactionId}
+                    />
+                  </View>
+
+                  <Text style={styles.label}>{t('tickets.message')}</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={[styles.input, styles.messageInput]}
+                      placeholder={t('tickets.message')}
+                      value={message}
+                      onChangeText={setMessage}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                  </View>
+
+                  <Text style={styles.label}>Upload Screenshots (If Any)</Text>
+                  <TouchableOpacity style={styles.uploadWrapper}>
+                    <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
+                    <View style={styles.uploadTextContainer}>
+                      <Text style={styles.uploadTitle}>Upload Screenshots</Text>
+                      <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Submit Button */}
+                <View style={styles.submitButtonContainer}>
+                  <CustomButton
+                    title={t('tickets.submit')}
+                    size="medium"
+                    variant="primary"
+                    onPress={handleSubmitTicket}
+                    disabled={loading}
+                    loading={loading}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -181,14 +245,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  header: {
+  keyboardContainer: {
+    flex: 1,
+  },
+  mainWrapper: {
+    flex: 1,
+  },
+  fixedHeader: {
     paddingHorizontal: 20,
-    paddingTop: 52,
+    paddingTop: 16,
     paddingBottom: 20,
+    backgroundColor: "#fff",
+    zIndex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   backButton: {
     position: 'absolute',
-    top: 52,
+    top: 16,
     left: 20,
     zIndex: 1,
     width: 40,
@@ -198,7 +272,7 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: 30,
     marginBottom: 10,
   },
   headerTitle: {
@@ -214,10 +288,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingTop: 20,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
+    minHeight: 600, // Ensure enough height for scrolling
   },
   inputSection: {
     flex: 1,
@@ -285,6 +366,7 @@ const styles = StyleSheet.create({
   submitButtonContainer: {
     alignSelf: 'center',
     width: '75%',
-    paddingBottom: 50,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
 });

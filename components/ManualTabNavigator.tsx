@@ -55,7 +55,7 @@ const ManualTabNavigator: React.FC = () => {
 
     const menuItems = [
         { label: t('navigation.myTickets'), icon: 'ticket-outline', screen: 'MyTickets' },
-        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'Splash' },
+        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'TermsAndConditions' },
         { label: t('navigation.settings'), icon: 'cog-outline', screen: 'Settings' },
         { label: t('navigation.logOut'), icon: 'logout', screen: 'Login', replace: true },
     ];
