@@ -22,17 +22,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomButton from '../../components/CustomButton';
 import { useTranslation } from 'react-i18next';
 import { callMobileApi } from '../../scripts/api';
-import { callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
-  OrderPageScreen: { 
-    qrData?: string; 
-    orderId?: string; 
-    saleCode?: string; 
-    merchantId?: string; 
-    url?: string; 
-  };
-  OrderDetailsScreen: { order: any; screenType: string };
   OrderPageScreen: { 
     qrData?: string; 
     orderId?: string; 
@@ -64,9 +55,6 @@ const SalesScreen: React.FC = () => {
 
 
  
-
-
- 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
@@ -84,41 +72,6 @@ const SalesScreen: React.FC = () => {
         friction: 8,
       }).start();
 
-      // Process validation with actual API call
-      const processValidation = async () => {
-        try {
-          // Validate URL format first
-          const urlValidation = isValidSaleURL(manualCode);
-          
-          if (!urlValidation.isValid) {
-            setResponseMessage('Invalid QR code format. Please scan a valid BNPL sale QR code.');
-            setResponseStatus('error');
-            return;
-          }
-
-          // Call API with extracted order ID
-          const response = await ValidateSale(urlValidation.orderId!);
-          
-          if (response.success) {
-            resetModalState();
-            navigation.navigate('OrderPageScreen', { 
-              qrData: manualCode,
-              orderId: urlValidation.orderId,
-              saleCode: urlValidation.orderId
-            });
-          } else {
-            // Show error with backend message
-            setResponseMessage(response.message);
-            setResponseStatus('error');
-          }
-        } catch (error) {
-          console.error('Validation error:', error);
-          setResponseMessage('An unexpected error occurred. Please try again.');
-          setResponseStatus('error');
-        }
-      };
-
-      processValidation();
       // Process validation with actual API call
       const processValidation = async () => {
         try {
@@ -201,8 +154,6 @@ const SalesScreen: React.FC = () => {
     slideAnim.setValue(height);
     // Reset scanning state so user can scan again
     setScanned(false);
-    // Reset scanning state so user can scan again
-    setScanned(false);
   };
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
@@ -228,40 +179,19 @@ const SalesScreen: React.FC = () => {
           }
         ]
       );
-    // Check if it's a valid BNPL sale URL
-    const urlValidation = isValidSaleURL(data);
-    
-    if (!urlValidation.isValid) {
-      Alert.alert(
-        t('sales.error'), 
-        'Invalid QR code format. Please scan a valid BNPL sale QR code.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Reset scanning state so user can scan again immediately
-              setScanned(false);
-              setManualCode('');
-            }
-          }
-        ]
-      );
       return;
     }
 
     // Auto continue with validation when valid QR code is detected
-    // Auto continue with validation when valid QR code is detected
     setTimeout(() => {
       setLoading(true);
 
-      // Brief loading then show progress modal for validation
       // Brief loading then show progress modal for validation
       setTimeout(() => {
         setLoading(false);
         setShowProgressModal(true);
         setResponseStatus('processing');
       }, 500);
-    }, 100);
     }, 100);
   };
 
@@ -279,20 +209,11 @@ const SalesScreen: React.FC = () => {
         t('sales.error'), 
         'Invalid URL format. Please enter a valid BNPL sale.'
       );
-    // Validate the manually entered URL format
-    const urlValidation = isValidSaleURL(manualCode.trim());
-    
-    if (!urlValidation.isValid) {
-      Alert.alert(
-        t('sales.error'), 
-        'Invalid URL format. Please enter a valid BNPL sale.'
-      );
       return;
     }
 
     setLoading(true);
 
-    // Brief loading then show progress modal for validation
     // Brief loading then show progress modal for validation
     setTimeout(() => {
       setLoading(false);
@@ -310,10 +231,8 @@ const SalesScreen: React.FC = () => {
 
   const handleTryAgain = () => {
     // Retry with the same QR code without resetting scanned state
-    // Retry with the same QR code without resetting scanned state
     setResponseStatus('processing');
     setResponseMessage('');
-    setShowProgressModal(true);
     setShowProgressModal(true);
   };
 
@@ -327,66 +246,6 @@ const SalesScreen: React.FC = () => {
     });
   };
 
-
-
-  const ValidateSale = async (saleCode: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      console.log('Validating sale with code:', saleCode);
-      
-      const response = await callMobileApi(
-        'ValaidateSale',
-        { saleCode: saleCode },
-        'mobile-app-validate-sale',
-        '',
-        'customer'
-      );
-
-      console.log('ValidateSale API response:', response);
-
-      // Check if the response indicates success (response format: {data: true, message: "success", statusCode: 200})
-      if (response && response.statusCode === 200 && response.data === true) {
-        return { success: true, message: response.message || 'Sale validated successfully' };
-      } else {
-        return { 
-          success: false, 
-          message: response?.message || response?.error || 'Invalid sale code. Please try again.' 
-        };
-      }
-    } catch (error: any) {
-      console.error('ValidateSale API Error:', error);
-      
-      // Extract error message from API response if available
-      const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.error ||
-                          error?.message ||
-                          'Network error. Please check your connection and try again.';
-      
-      return { 
-        success: false, 
-        message: errorMessage
-      };
-    }
-  };
-
-  // URL validation function for BNPL QR codes
-  const isValidSaleURL = (url: string): { isValid: boolean; orderId?: string } => {
-    try {
-      // Pattern: https://bnplqr.hexdive.com/sale/{orderId}
-      const pattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
-      const match = url.trim().match(pattern);
-      
-      if (match && match[1]) {
-        const orderId = match[1].trim();
-        console.log('Extracted order ID:', orderId);
-        return { isValid: true, orderId: orderId };
-      }
-      
-      console.log('URL does not match expected pattern:', url);
-      return { isValid: false };
-    } catch (error) {
-      console.error('URL validation error:', error);
-      return { isValid: false };
-    }
 
 
   const ValidateSale = async (saleCode: string): Promise<{ success: boolean; message: string }> => {
@@ -613,7 +472,6 @@ const SalesScreen: React.FC = () => {
             </View>
 
 
-
         </ScrollView>
       </View>
 
@@ -641,20 +499,14 @@ const SalesScreen: React.FC = () => {
                   <TouchableOpacity
                     style={styles.simpleTryAgainButton}
                     onPress={handleTryAgain}
-                    style={styles.simpleTryAgainButton}
-                    onPress={handleTryAgain}
                   >
-                    <Text style={styles.simpleTryAgainText}>Try Again</Text>
                     <Text style={styles.simpleTryAgainText}>Try Again</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={styles.simpleRetryButton}
                     onPress={handleRetry}
-                    style={styles.simpleRetryButton}
-                    onPress={handleRetry}
                   >
-                    <Text style={styles.simpleRetryText}>Scan New</Text>
                     <Text style={styles.simpleRetryText}>Scan New</Text>
                   </TouchableOpacity>
                 </View>
@@ -663,7 +515,6 @@ const SalesScreen: React.FC = () => {
           )}
         </View>
       </Modal>
-
 
 
     </View>
@@ -1149,21 +1000,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  simpleTryAgainButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-  },
-  simpleTryAgainText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   simpleRetryText: {
     color: '#333',
     fontSize: 14,
@@ -1174,7 +1010,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-
 
 
 

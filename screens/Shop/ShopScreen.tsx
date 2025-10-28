@@ -7,17 +7,38 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
-  BackHandler,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMerchantApi, callMobileApi } from '../../scripts/api';
 import OptimizedImage from '../../components/OptimizedImage';
 import ImageCacheManager from '../../utils/ImageCacheManager';
+
+// Type definitions
+interface Store {
+  storeName?: string;
+  storeType?: string;
+  storeProfileImageUrl?: string;
+  fk_CategoryId?: number;
+  fK_PtagId?: number;
+}
+
+interface Merchant {
+  merchantId: number;
+  name?: string;
+  stores?: Store[];
+  storeTypes?: string[];
+}
+
+interface Promotion {
+  promotionId: number;
+  promotionName?: string;
+  description?: string;
+  promotionImageLink?: string;
+  discount?: number;
+}
 
 // NavButton Component
 interface NavButtonProps {
@@ -36,7 +57,6 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, active, onPress }) =
 
 const ShopScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('ShopScreen');
   const [promotions, setPromotions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -81,46 +101,9 @@ const ShopScreen: React.FC = () => {
   useEffect(() => {
     fetchPromotions();
     fetchCategories();
-    fetchTags(); // NEW
-    fetchStores(); // NEW
+    fetchTags();
+    fetchShops();
   }, []);
-
-  // Handle hardware back button on ShopScreen
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        // Navigate back to previous screen or show exit dialog
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else {
-          // Show confirmation dialog when user tries to exit the app
-          Alert.alert(
-            t('dialogs.exitApp'),
-            t('dialogs.exitAppMessage'),
-            [
-              {
-                text: t('common.cancel'),
-                onPress: () => null,
-                style: 'cancel',
-              },
-              {
-                text: t('dialogs.exit'),
-                onPress: () => BackHandler.exitApp(),
-              },
-            ],
-            { cancelable: false }
-          );
-        }
-        return true; // Prevent default back action
-      };
-
-      // Add event listener for hardware back button
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      // Cleanup function
-      return () => backHandler.remove();
-    }, [navigation, t])
-  );
 
   // NEW: Apply all filters when search query, category, or tag changes
   useEffect(() => {
@@ -142,7 +125,7 @@ const ShopScreen: React.FC = () => {
       // Step 2: Apply search filter
       if (searchQuery.trim()) {
         // Filter merchants
-        const searchFiltered = baseShops.filter((merchant) => {
+        const searchFiltered = baseShops.filter((merchant: any) => {
           const merchantName = merchant.name?.toLowerCase() || '';
           const query = searchQuery.toLowerCase().trim();
           
@@ -150,12 +133,12 @@ const ShopScreen: React.FC = () => {
           const matchesName = merchantName.includes(query);
           
           // Also search in store names if available
-          const matchesStores = merchant.stores?.some((store) => 
+          const matchesStores = merchant.stores?.some((store: Store) => 
             store.storeName?.toLowerCase().includes(query)
           ) || false;
           
           // Search in store types
-          const matchesStoreTypes = merchant.storeTypes?.some((storeType) => {
+          const matchesStoreTypes = merchant.storeTypes?.some((storeType: string) => {
             const type = storeType?.toLowerCase() || '';
             return type.includes(query);
           }) || false;
@@ -164,7 +147,7 @@ const ShopScreen: React.FC = () => {
         });
         
         // Filter promotions
-        const promotionFiltered = basePromotions.filter((promotion) => {
+        const promotionFiltered = basePromotions.filter((promotion: Promotion) => {
           const promotionName = promotion.promotionName?.toLowerCase() || '';
           const promotionDescription = promotion.description?.toLowerCase() || '';
           const query = searchQuery.toLowerCase().trim();
@@ -214,21 +197,21 @@ const ShopScreen: React.FC = () => {
 
       if (response.statusCode === 200 && response.data && Array.isArray(response.data)) {
         const merchantsData = response.data;
-        const groupedMerchants = [];
+        const groupedMerchants: any[] = [];
 
         // Process filtered merchants same as fetchShops
-        merchantsData.forEach((merchant) => {
+        merchantsData.forEach((merchant: Merchant) => {
           if (merchant.stores && Array.isArray(merchant.stores) && merchant.stores.length > 0) {
-            const storeTypes = [];
-            let prioritizedImage = null;
-            let merchantName = '';
+            const storeTypes: string[] = [];
+            let prioritizedImage: string | null = null;
+            let merchantName: string = '';
             
-            const sortedStores = merchant.stores.sort((a, b) => {
-              const priority = { 'Physical': 1, 'Online': 2, 'FB': 3 };
-              return (priority[a.storeType] || 999) - (priority[b.storeType] || 999);
+            const sortedStores = merchant.stores.sort((a: Store, b: Store) => {
+              const priority: { [key: string]: number } = { 'Physical': 1, 'Online': 2, 'FB': 3 };
+              return (priority[a.storeType || ''] || 999) - (priority[b.storeType || ''] || 999);
             });
 
-            sortedStores.forEach((store) => {
+            sortedStores.forEach((store: Store) => {
               if (store.storeType && !storeTypes.includes(store.storeType)) {
                 storeTypes.push(store.storeType);
               }
@@ -339,28 +322,28 @@ const ShopScreen: React.FC = () => {
 
       if (response.statusCode === 200 && response.data && Array.isArray(response.data)) {
         const merchantsData = response.data;
-        const groupedMerchants = [];
+        const groupedMerchants: any[] = [];
 
         // Process each merchant and group their stores
-        merchantsData.forEach((merchant) => {
+        merchantsData.forEach((merchant: Merchant) => {
           console.log("Processing merchant:", merchant.merchantId);
           
           if (merchant.stores && Array.isArray(merchant.stores) && merchant.stores.length > 0) {
             // Initialize arrays and variables
-            const storeTypes = [];
-            let prioritizedImage = null;
-            let merchantName = '';
+            const storeTypes: string[] = [];
+            let prioritizedImage: string | null = null;
+            let merchantName: string = '';
             
             // Sort stores by priority: Physical > Online > FB
-            const sortedStores = merchant.stores.sort((a, b) => {
-              const priority = { 'Physical': 1, 'Online': 2, 'FB': 3 };
-              return (priority[a.storeType] || 999) - (priority[b.storeType] || 999);
+            const sortedStores = merchant.stores.sort((a: Store, b: Store) => {
+              const priority: { [key: string]: number } = { 'Physical': 1, 'Online': 2, 'FB': 3 };
+              return (priority[a.storeType || ''] || 999) - (priority[b.storeType || ''] || 999);
             });
 
             console.log("Sorted stores for merchant", merchant.merchantId, ":", sortedStores);
 
             // Get prioritized image and collect store types
-            sortedStores.forEach((store) => {
+            sortedStores.forEach((store: Store) => {
               // Add store type to array if not already present and if it exists
               if (store.storeType && !storeTypes.includes(store.storeType)) {
                 storeTypes.push(store.storeType);
@@ -452,7 +435,7 @@ const ShopScreen: React.FC = () => {
       console.error("Error fetching promotions:", error);
       setPromotions([]);
       setFeaturedShops([]);
-      setNewArrivals([]);
+      setFilteredPromotions([]);
     } finally {
       setLoading(false);
     }
@@ -481,8 +464,100 @@ const ShopScreen: React.FC = () => {
     }
   };
 
-  const handleShopPress = (shop: any) => {
-    navigation.navigate('ShopDetailsScreen', { shop });
+  const fetchTags = async () => {
+    try {
+      console.log("Fetching tags...");
+      const response = await callMobileApi(
+        'GetAllTags',
+        {},
+        'mobile-app-tags',
+        '',
+        'merchant'
+      );
+      
+      if (response.statusCode === 200) {
+        const tagsData = response.data || response.payload || [];
+        setTags(Array.isArray(tagsData) ? tagsData : []);
+        console.log("Tags loaded:", tagsData.length);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      setTags([]);
+    }
+  };
+  
+  const handleShopPress = (merchant: any) => {
+    navigation.navigate('ShopDetailsScreen', { 
+      merchant,
+      merchantId: merchant.merchantId,
+      stores: merchant.stores 
+    });
+  };
+
+  // Helper functions remain the same...
+  const getStoreTypeColor = (storeType: string) => {
+    switch (storeType?.toLowerCase()) {
+      case 'physical': return '#2E7D32';
+      case 'online': return '#D84315';
+      case 'fb': return '#1565C0';
+      default: return '#424242';
+    }
+  };
+
+  const getStoreTypeBackgroundColor = (storeType: string) => {
+    switch (storeType?.toLowerCase()) {
+      case 'physical': return 'rgba(46, 125, 50, 0.15)';
+      case 'online': return 'rgba(216, 67, 21, 0.15)';
+      case 'fb': return 'rgba(21, 101, 192, 0.15)';
+      default: return 'rgba(66, 66, 66, 0.15)';
+    }
+  };
+
+  const getStoreTypeIcon = (storeType: string) => {
+    switch (storeType?.toLowerCase()) {
+      case 'physical': return 'storefront-outline';
+      case 'online': return 'globe-outline';
+      case 'fb': return 'logo-facebook';
+      default: return 'business-outline';
+    }
+  };
+
+  const getStoreTypesDisplay = (storeTypes: string[]) => {
+    if (!storeTypes || !Array.isArray(storeTypes) || storeTypes.length === 0) return 'Shop';
+    
+    if (storeTypes.length === 1) {
+      return storeTypes[0];
+    }
+    
+    return `${storeTypes.length} Types`;
+  };
+
+  const getStoreTypesColor = (storeTypes: string[]) => {
+    if (!storeTypes || !Array.isArray(storeTypes) || storeTypes.length === 0) return '#666';
+    
+    if (storeTypes.length > 1) return '#8B4513';
+    
+    return getStoreTypeColor(storeTypes[0]);
+  };
+
+  const getStoreTypesIcon = (storeTypes: string[]) => {
+    if (!storeTypes || !Array.isArray(storeTypes) || storeTypes.length === 0) return 'business-outline';
+    
+    if (storeTypes.length > 1) return 'business-outline';
+    
+    return getStoreTypeIcon(storeTypes[0]);
+  };
+
+  const formatPromotionDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return '';
+    }
   };
 
   if (loading) {
@@ -803,7 +878,7 @@ const ShopScreen: React.FC = () => {
                 
                 <View style={styles.shopCardOverlay} pointerEvents="none">
                   <View style={styles.storeTypesContainer}>
-                    {merchant.storeTypes && Array.isArray(merchant.storeTypes) && merchant.storeTypes.map((storeType, typeIndex) => (
+                    {merchant.storeTypes && Array.isArray(merchant.storeTypes) && merchant.storeTypes.map((storeType: string, typeIndex: number) => (
                       <View 
                         key={typeIndex} 
                         style={[
