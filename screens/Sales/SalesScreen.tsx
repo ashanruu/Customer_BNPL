@@ -20,9 +20,17 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomButton from '../../components/CustomButton';
 import { useTranslation } from 'react-i18next';
+import { callMobileApi } from '../../scripts/api';
 
 type RootStackParamList = {
-  OrderPageScreen: { qrData: string };
+  OrderPageScreen: { 
+    qrData?: string; 
+    orderId?: string; 
+    saleCode?: string; 
+    merchantId?: string; 
+    url?: string; 
+  };
+  OrderDetailsScreen: { order: any; screenType: string };
 };
 
 type SalesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -43,41 +51,9 @@ const SalesScreen: React.FC = () => {
   const [responseMessage, setResponseMessage] = useState('');
   const slideAnim = useState(new Animated.Value(height))[0];
 
-  // Shop QR Modal States
-  const [showShopQRModal, setShowShopQRModal] = useState(false);
-  const [saleValue, setSaleValue] = useState('');
-  const [note, setNote] = useState('');
-  const [shopQRLoading, setShopQRLoading] = useState(true);
-  const shopQRSlideAnim = useState(new Animated.Value(height))[0];
 
-  // Simulate API response
-  const simulateAPIResponse = (): { success: boolean; message: string } => {
-    const responses = [
-      // Success responses
-      { success: true, message: 'QR code verified successfully! Order is ready to proceed.' },
-      { success: true, message: 'Payment gateway connected. Everything looks good!' },
-      { success: true, message: 'Customer verified. Welcome to BNPL service!' },
 
-      // Error responses
-      { success: false, message: 'Invalid QR code format. Please check and try again.' },
-      { success: false, message: 'This QR code has already been used. Please scan a new one.' },
-      { success: false, message: 'QR code has expired. Please generate a new one.' },
-      { success: false, message: 'Network error. Please check your connection and retry.' },
-      { success: false, message: 'Server temporarily unavailable. Please try again later.' },
-    ];
-
-    // 70% success rate for demo
-    const isSuccess = Math.random() > 0.3;
-    const successResponses = responses.filter(r => r.success);
-    const errorResponses = responses.filter(r => !r.success);
-
-    if (isSuccess) {
-      return successResponses[Math.floor(Math.random() * successResponses.length)];
-    } else {
-      return errorResponses[Math.floor(Math.random() * errorResponses.length)];
-    }
-  };
-
+ 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
@@ -95,42 +71,53 @@ const SalesScreen: React.FC = () => {
         friction: 8,
       }).start();
 
-      // Simple loading simulation (2 seconds)
-      const timer = setTimeout(() => {
-        const response = simulateAPIResponse();
+      // Process validation with actual API call
+      const processValidation = async () => {
+        try {
+          // Validate URL format first
+          const urlValidation = isValidSaleURL(manualCode);
+          
+          if (!urlValidation.isValid) {
+            setResponseMessage('Invalid QR code format. Please scan a valid BNPL sale QR code.');
+            setResponseStatus('error');
+            return;
+          }
 
-        if (response.success) {
-          // Directly navigate without showing success stage
-          resetModalState();
-          navigation.navigate('OrderPageScreen', { qrData: manualCode });
-        } else {
-          // Only show error stage
-          setResponseMessage(response.message);
+          // Call API with extracted order ID
+          const response = await ValidateSale(urlValidation.orderId!);
+          
+          if (response.success) {
+            resetModalState();
+            navigation.navigate('OrderPageScreen', { 
+              qrData: manualCode,
+              orderId: urlValidation.orderId,
+              saleCode: urlValidation.orderId
+            });
+          } else {
+            // Show error with backend message
+            setResponseMessage(response.message);
+            setResponseStatus('error');
+          }
+        } catch (error) {
+          console.error('Validation error:', error);
+          setResponseMessage('An unexpected error occurred. Please try again.');
           setResponseStatus('error');
         }
-      }, 2000);
+      };
 
-      return () => clearTimeout(timer);
+      processValidation();
     }
   }, [showProgressModal, responseStatus]);
 
-  // Temp Modal Animation Effect
-  useEffect(() => {
-    if (showShopQRModal) {
-      Animated.spring(shopQRSlideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
-    }
-  }, [showShopQRModal]);
+
 
   const resetModalState = () => {
     setShowProgressModal(false);
     setResponseStatus('processing');
     setResponseMessage('');
     slideAnim.setValue(height);
+    // Reset scanning state so user can scan again
+    setScanned(false);
   };
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
@@ -138,24 +125,38 @@ const SalesScreen: React.FC = () => {
     console.log('QR Code scanned:', data);
     setManualCode(data);
 
-    // Check if the scanned QR contains "shop" - if so, show the shop QR modal
-    if (data.toLowerCase().includes('shop')) {
-      console.log('Shop QR detected, showing Process Sale modal');
-      setShowShopQRModal(true);
+    // Check if it's a valid BNPL sale URL
+    const urlValidation = isValidSaleURL(data);
+    
+    if (!urlValidation.isValid) {
+      Alert.alert(
+        t('sales.error'), 
+        'Invalid QR code format. Please scan a valid BNPL sale QR code.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset scanning state so user can scan again immediately
+              setScanned(false);
+              setManualCode('');
+            }
+          }
+        ]
+      );
       return;
     }
 
-    // Auto continue when QR code is detected (for non-shop QRs)
+    // Auto continue with validation when valid QR code is detected
     setTimeout(() => {
       setLoading(true);
 
-      // Simulate brief loading then show progress modal
+      // Brief loading then show progress modal for validation
       setTimeout(() => {
         setLoading(false);
         setShowProgressModal(true);
         setResponseStatus('processing');
       }, 500);
-    }, 100); // Small delay to update UI state
+    }, 100);
   };
 
   const handleSubmit = () => {
@@ -164,16 +165,20 @@ const SalesScreen: React.FC = () => {
       return;
     }
 
-    // Check if the manually entered code contains "shop" - if so, show the shop QR modal
-    if (manualCode.toLowerCase().includes('shop')) {
-      console.log('Shop URL detected in manual input, showing Process Sale modal');
-      setShowShopQRModal(true);
+    // Validate the manually entered URL format
+    const urlValidation = isValidSaleURL(manualCode.trim());
+    
+    if (!urlValidation.isValid) {
+      Alert.alert(
+        t('sales.error'), 
+        'Invalid URL format. Please enter a valid BNPL sale.'
+      );
       return;
     }
 
     setLoading(true);
 
-    // Simulate brief loading then show progress modal
+    // Brief loading then show progress modal for validation
     setTimeout(() => {
       setLoading(false);
       setShowProgressModal(true);
@@ -189,9 +194,10 @@ const SalesScreen: React.FC = () => {
   };
 
   const handleTryAgain = () => {
-    // Retry with the same QR code
+    // Retry with the same QR code without resetting scanned state
     setResponseStatus('processing');
     setResponseMessage('');
+    setShowProgressModal(true);
   };
 
   const closeModal = () => {
@@ -204,56 +210,66 @@ const SalesScreen: React.FC = () => {
     });
   };
 
-  // Shop QR Modal Functions
-  const handleShopQRButtonPress = () => {
-    setShowShopQRModal(true);
-  };
 
-  const closeShopQRModal = () => {
-    Animated.timing(shopQRSlideAnim, {
-      toValue: height,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowShopQRModal(false);
-      setSaleValue('');
-      setNote('');
-      shopQRSlideAnim.setValue(height);
-    });
-  };
 
-  const handleShopQRProceed = () => {
-    // Basic validation
-    if (!saleValue.trim()) {
-      Alert.alert(t('sales.error'), t('sales.enterSaleValue'));
-      return;
-    }
-
-    // Validate if sale value is a number
-    const numericValue = parseFloat(saleValue);
-    if (isNaN(numericValue) || numericValue <= 0) {
-      Alert.alert(t('sales.error'), t('sales.enterValidAmount'));
-      return;
-    }
-
-    setShopQRLoading(true);
-
-    // Simulate processing
-    setTimeout(() => {
-      setShopQRLoading(false);
-      Alert.alert(
-        t('sales.success'),
-        `${t('sales.saleProcessedSuccessfully')}\n${t('sales.amount')}: $${numericValue.toFixed(2)}\n${t('sales.note')}: ${note || t('sales.noNoteProvided')}`,
-        [
-          {
-            text: t('sales.ok'),
-            onPress: () => {
-              closeShopQRModal();
-            }
-          }
-        ]
+  const ValidateSale = async (saleCode: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      console.log('Validating sale with code:', saleCode);
+      
+      const response = await callMobileApi(
+        'ValaidateSale',
+        { saleCode: saleCode },
+        'mobile-app-validate-sale',
+        '',
+        'customer'
       );
-    }, 1000);
+
+      console.log('ValidateSale API response:', response);
+
+      // Check if the response indicates success (response format: {data: true, message: "success", statusCode: 200})
+      if (response && response.statusCode === 200 && response.data === true) {
+        return { success: true, message: response.message || 'Sale validated successfully' };
+      } else {
+        return { 
+          success: false, 
+          message: response?.message || response?.error || 'Invalid sale code. Please try again.' 
+        };
+      }
+    } catch (error: any) {
+      console.error('ValidateSale API Error:', error);
+      
+      // Extract error message from API response if available
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error ||
+                          error?.message ||
+                          'Network error. Please check your connection and try again.';
+      
+      return { 
+        success: false, 
+        message: errorMessage
+      };
+    }
+  };
+
+  // URL validation function for BNPL QR codes
+  const isValidSaleURL = (url: string): { isValid: boolean; orderId?: string } => {
+    try {
+      // Pattern: https://bnplqr.hexdive.com/sale/{orderId}
+      const pattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
+      const match = url.trim().match(pattern);
+      
+      if (match && match[1]) {
+        const orderId = match[1].trim();
+        console.log('Extracted order ID:', orderId);
+        return { isValid: true, orderId: orderId };
+      }
+      
+      console.log('URL does not match expected pattern:', url);
+      return { isValid: false };
+    } catch (error) {
+      console.error('URL validation error:', error);
+      return { isValid: false };
+    }
   };
 
   const getStatusIcon = () => {
@@ -419,11 +435,7 @@ const SalesScreen: React.FC = () => {
               </Text>
             </View>
 
-          {/* Shop QR Button */}
-            <TouchableOpacity style={styles.shopQRButton} onPress={handleShopQRButtonPress}>
-              <Ionicons name="construct-outline" size={20} color="#fff" style={styles.shopQRButtonIcon} />
-              <Text style={styles.shopQRButtonText}>{t('sales.processSaleManually')}</Text>
-            </TouchableOpacity>
+
         </ScrollView>
       </View>
 
@@ -449,17 +461,17 @@ const SalesScreen: React.FC = () => {
                 
                 <View style={styles.simpleActionButtons}>
                   <TouchableOpacity
-                    style={styles.simpleRetryButton}
-                    onPress={handleRetry}
+                    style={styles.simpleTryAgainButton}
+                    onPress={handleTryAgain}
                   >
-                    <Text style={styles.simpleRetryText}>{t('sales.scanNew')}</Text>
+                    <Text style={styles.simpleTryAgainText}>Try Again</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={styles.simpleCloseButton}
-                    onPress={handleClose}
+                    style={styles.simpleRetryButton}
+                    onPress={handleRetry}
                   >
-                    <Text style={styles.simpleCloseText}>{t('sales.close')}</Text>
+                    <Text style={styles.simpleRetryText}>Scan New</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -468,87 +480,7 @@ const SalesScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Shop QR Modal */}
-      <Modal
-        visible={showShopQRModal}
-        transparent={true}
-        animationType="none"
-        onRequestClose={closeShopQRModal}
-      >
-        <View style={styles.modalOverlay}>
-          <Animated.View
-            style={[
-              styles.shopQRModalContainer,
-              {
-                transform: [{ translateY: shopQRSlideAnim }],
-              },
-            ]}
-          >
-            {/* Modal Header */}
-            <View style={styles.shopQRModalHeader}>
-              <View style={styles.modalHandle} />
-              <TouchableOpacity style={styles.closeButton} onPress={closeShopQRModal}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
 
-              <View style={styles.shopQRTitleSection}>
-                <Text style={styles.shopQRHeaderTitle}>{t('sales.processSale')}</Text>
-                <Text style={styles.shopQRSubText}>
-                  {manualCode.toLowerCase().includes('shop')
-                    ? t('sales.detected', { url: manualCode.length > 50 ? manualCode.substring(0, 50) + '...' : manualCode })
-                    : t('sales.subtitle')
-                  }
-                </Text>
-              </View>
-            </View>
-
-            {/* Temp Content */}
-            <View style={styles.shopQRContent}>
-              {/* Input Fields */}
-              <View style={styles.shopQRInputSection}>
-                <Text style={styles.shopQRLabel}>{t('sales.saleValue')}</Text>
-                <View style={styles.shopQRInputWrapper}>
-                  <Ionicons name="cash-outline" size={20} color="#bdbdbd" style={styles.shopQRInputIcon} />
-                  <TextInput
-                    style={styles.shopQRInput}
-                    placeholder={t('sales.enterSaleAmount')}
-                    value={saleValue}
-                    onChangeText={setSaleValue}
-                    keyboardType="numeric"
-                    placeholderTextColor="#bdbdbd"
-                  />
-                </View>
-
-                <Text style={styles.shopQRLabel}>{t('sales.note')}</Text>
-                <View style={styles.shopQRInputWrapper}>
-                  <TextInput
-                    style={[styles.shopQRInput, styles.shopQRNoteInput]}
-                    placeholder={t('sales.addSaleNote')}
-                    value={note}
-                    onChangeText={setNote}
-                    multiline
-                    textAlignVertical="top"
-                    placeholderTextColor="#bdbdbd"
-                  />
-                </View>
-
-                {/* Action Button - Moved here */}
-                <TouchableOpacity
-                  style={[styles.shopQRActionButton, shopQRLoading && styles.shopQRDisabledButton]}
-                  onPress={handleShopQRProceed}
-                  disabled={shopQRLoading}
-                >
-                  {shopQRLoading ? (
-                    <Text style={styles.shopQRActionButtonText}>{t('sales.processing')}</Text>
-                  ) : (
-                    <Text style={styles.shopQRActionButtonText}>{t('sales.proceed')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -1017,6 +949,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 44,
   },
+  simpleTryAgainButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  simpleTryAgainText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   simpleRetryText: {
     color: '#333',
     fontSize: 14,
@@ -1029,138 +976,5 @@ const styles = StyleSheet.create({
   },
 
 
-  shopQRButton: {
-    backgroundColor: '#8B4513',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  shopQRButtonIcon: {
-    marginRight: 8,
-  },
-  shopQRButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
 
-  // Shop QR Modal Styles
-  shopQRModalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 34,
-    minHeight: height * 0.7,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -5,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 25,
-  },
-  shopQRModalHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
-  },
-  shopQRTitleSection: {
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  shopQRHeaderTitle: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    letterSpacing: -0.3,
-    marginBottom: 6,
-  },
-  shopQRSubText: {
-    fontSize: 15,
-    color: "#666",
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  shopQRContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  shopQRInputSection: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  shopQRLabel: {
-    fontSize: 13,
-    color: '#999',
-    marginLeft: 4,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  shopQRInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderColor: '#E5E5E5',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    elevation: 2,
-    marginBottom: 8,
-    minHeight: 48,
-  },
-  shopQRInputIcon: {
-    marginRight: 10,
-  },
-  shopQRInput: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 12,
-    color: '#000',
-    fontWeight: '500',
-  },
-  shopQRNoteInput: {
-    minHeight: 80,
-    maxHeight: 120,
-    paddingTop: 12,
-  },
-  shopQRActionButton: {
-    backgroundColor: '#20222E',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginTop: 20, // Add margin top instead of bottom
-  },
-  shopQRDisabledButton: {
-    backgroundColor: '#8E8E93',
-  },
-  shopQRActionButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    textAlign: 'center',
-  },
 });

@@ -49,7 +49,7 @@ const ShopScreen: React.FC = () => {
 
   // Add banner rotation state
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [bannerRotationInterval, setBannerRotationInterval] = useState<NodeJS.Timeout | null>(null);
+  const [bannerRotationInterval, setBannerRotationInterval] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPromotions();
