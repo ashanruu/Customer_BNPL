@@ -847,3 +847,5 @@ const ShopScreen: React.FC = () => {
     alignItems: 'center',
   },
 });
+
+export default ShopScreen;

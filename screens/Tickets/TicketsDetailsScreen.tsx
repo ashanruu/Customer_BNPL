@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useNavigation, RouteProp, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { callMobileApi } from "../../scripts/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomButton from "../../components/CustomButton";
