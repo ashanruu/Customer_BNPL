@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    //backgroundColor: "rgba(242,242,247,0.25)",
+    backgroundColor: "#FFF8F0", // Keep cream background like pending buttons
     paddingVertical: 0,
     paddingHorizontal: 0,
     borderRadius: 12,
@@ -468,7 +468,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "#8B4513", // Keep brown border like pending buttons
+    borderStyle: "solid",
     overflow: 'hidden',
     position: 'relative',
   },
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
   },
 
   defaultBorderLine: {
-    backgroundColor: '#9E9E9E',
+    backgroundColor: '#8B4513', // Keep brown
   },
 
   cardContent: {
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   loanAmount: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1a1a1a",
+    color: "#1a1a1a", // Changed back to original dark color
     marginRight: 8,
   },
 
@@ -530,17 +531,16 @@ const styles = StyleSheet.create({
   },
 
   planTag: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFF8F0', // Keep cream background
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    // Removed borderWidth, borderColor, and borderStyle to remove border
   },
 
   planTagText: {
     fontSize: 11,
-    color: '#2C2C2E',
+    color: '#000000', // Keep black text color
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
 
   completedStatusDot: {
-    backgroundColor: '#8B4513',
+    backgroundColor: '#8B4513', // Keep brown for completed status
   },
   returnedStatusDot: {
     backgroundColor: '#F44336',
@@ -614,12 +614,15 @@ const styles = StyleSheet.create({
   downPaymentAmount: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1a1a1a",
+    color: "#1a1a1a", // Changed back to original dark color
   },
 
   activeTab: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
+    backgroundColor: "#FFF8F0", // Keep cream background
+    borderWidth: 1,
+    borderColor: "#8B4513", // Keep brown border
+    borderStyle: "solid",
+    shadowColor: "#8B4513",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -628,15 +631,18 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  
   tabText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#8E8E93",
     letterSpacing: -0.2,
   },
+  
   activeTabText: {
-    color: "#2C2C2E",
+    color: "#000000", // Changed from brown (#8B4513) to black
   },
+  
   listContainer: {
     paddingBottom: 20,
   },
@@ -645,11 +651,11 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 13,
-    color: "#8E8E93",
+    color: "#8E8E93", // Keep original gray color
     marginBottom: 8,
     fontWeight: "500",
     letterSpacing: -0.1,
-    textAlign: 'center',
+    textAlign: 'left', // Changed back to left alignment
   },
   loadingContainer: {
     flex: 1,

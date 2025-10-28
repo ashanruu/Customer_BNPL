@@ -236,7 +236,7 @@ const OrderPageScreen: React.FC = () => {
         {loading ? (
           // Loading state
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size="large" color="#8B4513" />
             <Text style={styles.loadingText}>{t('orderPage.loadingOrderDetails')}</Text>
           </View>
         ) : error ? (
@@ -343,7 +343,7 @@ const OrderPageScreen: React.FC = () => {
                     <Ionicons
                       name="wallet-outline"
                       size={20}
-                      color={selectedPaymentOption === 'once' ? '#4CAF50' : '#666'}
+                      color={selectedPaymentOption === 'once' ? '#8B4513' : '#666'}
                     />
                     <Text style={[
                       styles.paymentOptionTitle,
@@ -388,7 +388,7 @@ const OrderPageScreen: React.FC = () => {
                     <Ionicons
                       name="calendar-outline"
                       size={20}
-                      color={selectedPaymentOption === 'installments' ? '#4CAF50' : '#666'}
+                      color={selectedPaymentOption === 'installments' ? '#8B4513' : '#666'}
                     />
                     <Text style={[
                       styles.paymentOptionTitle,
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   retryButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#8B4513',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -593,8 +593,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   paymentOptionSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#F8FFF8',
+    borderColor: '#8B4513',
+    backgroundColor: '#FFF8F0',
     elevation: 4,
     shadowOpacity: 0.1,
   },
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   paymentOptionTitleSelected: {
-    color: '#4CAF50',
+    color: '#8B4513',
   },
   paymentOptionDescription: {
     fontSize: 14,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   paymentOptionAmountSelected: {
-    color: '#4CAF50',
+    color: '#8B4513',
   },
   radioButton: {
     width: 22,
@@ -645,13 +645,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioButtonSelected: {
-    borderColor: '#4CAF50',
+    borderColor: '#8B4513',
   },
   radioButtonInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#8B4513',
   },
   detailRow: {
     flexDirection: 'row',
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#8B4513',
     letterSpacing: -0.5,
   },
 });

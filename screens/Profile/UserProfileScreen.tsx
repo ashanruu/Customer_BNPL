@@ -351,7 +351,7 @@ const UserProfileScreen: React.FC = () => {
                   <Ionicons 
                     name={isEditing ? "close" : "create-outline"} 
                     size={18} 
-                    color={isEditing ? "#fa828eff" : "#1F2937"} 
+                    color={isEditing ? "#8B4513" : "#8B4513"} 
                   />
                   <Text style={[styles.editButtonText, isEditing && styles.cancelButtonText]}>
                     {isEditing ? t('common.cancel') : t('common.edit')}
@@ -368,7 +368,7 @@ const UserProfileScreen: React.FC = () => {
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <>
-                        <Ionicons name="save-outline" size={18} color="#65b62fff" />
+                        <Ionicons name="save-outline" size={18} color="#8B4513" />
                         <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                       </>
                     )}
@@ -606,7 +606,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8F5E8",
   },
   statusInactive: {
-    backgroundColor: "#FFF4E6",
+    backgroundColor: "#FFF8F0",
+    borderWidth: 1,
+    borderColor: "#8B4513",
+    borderStyle: "solid",
   },
   statusText: {
     fontSize: 11,
@@ -641,42 +644,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFF8F0",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#8B4513",
+    borderStyle: "solid",
     minWidth: 90, // Increased from 80 to 90
     justifyContent: "center",
   },
   cancelButton: {
-    backgroundColor: "#ffebee",
-    borderColor: "#ffcdd2",
+    backgroundColor: "#FFF8F0",
+    borderColor: "#8B4513",
+    borderStyle: "solid",
   },
   editButtonText: {
     fontSize: 12,
-    color: "#1F2937",
+    color: "#8B4513",
     fontWeight: "500",
     marginLeft: 4,
   },
   cancelButtonText: {
-    color: "#fa828eff",
+    color: "#8B4513",
   },
   saveButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E8F5E8",
+    backgroundColor: "#FFF8F0",
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#65b62fff",
+    borderColor: "#8B4513",
+    borderStyle: "solid",
     minWidth: 90, // Increased from 80 to 90
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonText: {
-    color: "#65b62fff",
+    color: "#8B4513",
     fontSize: 12,
     fontWeight: "500",
     marginLeft: 6,
