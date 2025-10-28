@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -215,6 +215,38 @@ const HomeScreen: React.FC = () => {
       fetchCreditLimits();
       fetchLoanList();
     }, [])
+  );
+
+  // Handle hardware back button on HomeScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Show confirmation dialog when user tries to exit the app from home screen
+        Alert.alert(
+          t('dialogs.exitApp'),
+          t('dialogs.exitAppMessage'),
+          [
+            {
+              text: t('common.cancel'),
+              onPress: () => null,
+              style: 'cancel',
+            },
+            {
+              text: t('dialogs.exit'),
+              onPress: () => BackHandler.exitApp(),
+            },
+          ],
+          { cancelable: false }
+        );
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [t])
   );
 
   // Helper function to get latest active loan

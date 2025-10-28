@@ -7,8 +7,9 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../../components/CustomButton';
 import { fetchOrderDetails, createLoan } from '../../scripts/api';
@@ -170,6 +171,43 @@ const OrderPageScreen: React.FC = () => {
       setError(t('orderPage.noOrderIdAvailable'));
     }
   }, [orderId]);
+
+  // Handle hardware back button on OrderPageScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Navigate back to previous screen
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // Show confirmation dialog when user tries to exit the app
+          Alert.alert(
+            t('dialogs.exitApp'),
+            t('dialogs.exitAppMessage'),
+            [
+              {
+                text: t('common.cancel'),
+                onPress: () => null,
+                style: 'cancel',
+              },
+              {
+                text: t('dialogs.exit'),
+                onPress: () => BackHandler.exitApp(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [navigation, t])
+  );
 
   const handleContinue = async () => {
     if (!orderDetails.orderId || !orderDetails.saleId) {

@@ -7,9 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMerchantApi, callMobileApi } from '../../scripts/api';
 import OptimizedImage from '../../components/OptimizedImage';
@@ -32,6 +35,7 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, active, onPress }) =
 
 const ShopScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('ShopScreen');
   const [promotions, setPromotions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -47,6 +51,43 @@ const ShopScreen: React.FC = () => {
     fetchTags(); // NEW
     fetchStores(); // NEW
   }, []);
+
+  // Handle hardware back button on ShopScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Navigate back to previous screen or show exit dialog
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // Show confirmation dialog when user tries to exit the app
+          Alert.alert(
+            t('dialogs.exitApp'),
+            t('dialogs.exitAppMessage'),
+            [
+              {
+                text: t('common.cancel'),
+                onPress: () => null,
+                style: 'cancel',
+              },
+              {
+                text: t('dialogs.exit'),
+                onPress: () => BackHandler.exitApp(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [navigation, t])
+  );
 
   const fetchPromotions = async () => {
     try {
