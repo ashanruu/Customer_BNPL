@@ -750,7 +750,7 @@ const [documents, setDocuments] = useState([
                         disabled={removingCard}
                       >
                         {removingCard ? (
-                          <ActivityIndicator size="small" color="#666" />
+                          <ActivityIndicator size="small" color="#8B4513" />
                         ) : (
                           <Text style={styles.removeBtnText}>{t('profile.remove')}</Text>
                         )}
@@ -795,7 +795,7 @@ const [documents, setDocuments] = useState([
               >
                 <View style={styles.addPaymentBtnContent}>
                   {onboardingLoading ? (
-                    <ActivityIndicator size="small" color="#666" style={{ marginRight: 8 }} />
+                    <ActivityIndicator size="small" color="#8B4513" style={{ marginRight: 8 }} />
                   ) : (
                     <Text style={styles.addPaymentIcon}>+</Text>
                   )}
@@ -1066,8 +1066,8 @@ const styles = StyleSheet.create({
   },
   addPaymentBtn: {
     borderWidth: 1,
-    borderColor: '#666',
-    borderStyle: 'dashed',
+    borderColor: '#8B4513',
+    borderStyle: 'solid',
     padding: 16,
     borderRadius: 8,
     width: '100%',
@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   toUploadContainer: {
     borderWidth: 1,
     borderColor: '#8B4513',
-    borderStyle: 'dashed',
+    borderStyle: 'solid',
     borderRadius: 6,
     backgroundColor: '#FFF8F0',
     paddingHorizontal: 2,
@@ -1168,15 +1168,16 @@ const styles = StyleSheet.create({
   },
   removeBtn: {
     alignSelf: 'flex-end',
-    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#8B4513',
+    borderStyle: 'solid',
+    borderRadius: 6,
+    backgroundColor: '#FFF8F0',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ffcdd2',
   },
   removeBtnText: {
-    color: '#fa828eff',
+    color: '#8B4513',
     fontSize: 12,
     fontWeight: '500',
   },

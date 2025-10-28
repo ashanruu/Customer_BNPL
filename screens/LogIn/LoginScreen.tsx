@@ -404,35 +404,34 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     position: 'relative',
     // Add shadow to the entire background
-    shadowColor: '#0a0c29ff', // Dark blue shadow
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 15, // For Android
+    // shadowColor: '#0a0c29ff', // Dark blue shadow
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 8,
+    // },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 12,
+    // elevation: 15, // For Android
   },
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(26, 35, 126, 0.2)', // Dark blue overlay with transparency
     justifyContent: 'center',
     alignItems: 'center',
+    // Remove marginLeft: 30 to fix the black margin issue
   },
   logoContainer: {
-    alignItems: "flex-start",
+    alignItems: "flex-start", // Keep flex-start for left alignment
     paddingHorizontal: 20,
-    right: 50,
     paddingTop: 150,
-    // Add shadow to text container
+    // Remove right: 50 and marginLeft: 5 for pure left alignment
+    width: '100%', // Take full width
+    paddingLeft: 24, // Add consistent left padding
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
   },
   scrollView: {
     marginTop: 20,

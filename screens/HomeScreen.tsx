@@ -570,7 +570,7 @@ const HomeScreen: React.FC = () => {
         )}
 
         {/* Promotions */}
-        <View style={styles.section}>
+        <View style={styles.sectionSecond}>
           <Text style={styles.sectionTitle}>{t('home.offersPromotions')}</Text>
           <ScrollView
             horizontal
@@ -745,15 +745,15 @@ const styles = StyleSheet.create({
     paddingTop: 140,
   },
   sectionSecond: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 5,
     paddingVertical: 10,
-    marginBottom: 30,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '400',
     color: '#333',
-    marginBottom: 15,
+    marginBottom: 5,
   },
 
   // Updated payment box
