@@ -35,125 +35,17 @@ const ShopScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState('ShopScreen');
   const [promotions, setPromotions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]); // NEW
   const [featuredShops, setFeaturedShops] = useState<any[]>([]);
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
   const [creditLimitsLoading, setCreditLimitsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // Add search/filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
-  const [filteredPromotions, setFilteredPromotions] = useState<any[]>([]);
-  const [filteredFeaturedShops, setFilteredFeaturedShops] = useState<any[]>([]);
-  const [filteredNewArrivals, setFilteredNewArrivals] = useState<any[]>([]);
-
-  // Add banner rotation state
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [bannerRotationInterval, setBannerRotationInterval] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPromotions();
     fetchCategories();
+    fetchTags(); // NEW
   }, []);
-
-  // Add filter effect when search query or data changes
-  useEffect(() => {
-    filterData();
-  }, [searchQuery, promotions, categories, featuredShops, newArrivals]);
-
-  // Banner rotation effect
-  useEffect(() => {
-    if (filteredPromotions.length > 1) {
-      // Clear existing interval
-      if (bannerRotationInterval) {
-        clearInterval(bannerRotationInterval);
-      }
-
-      // Set up new rotation interval (change every 5 seconds)
-      const interval = setInterval(() => {
-        setCurrentBannerIndex(prevIndex => {
-          const validPromotions = filteredPromotions.filter(promo => 
-            promo.promotionImageLink && promo.promotionImageLink.trim() !== ''
-          );
-          return validPromotions.length > 0 ? (prevIndex + 1) % validPromotions.length : 0;
-        });
-      }, 5000); // Change banner every 5 seconds
-
-      setBannerRotationInterval(interval);
-
-      // Cleanup interval on unmount or when promotions change
-      return () => {
-        if (interval) {
-          clearInterval(interval);
-        }
-      };
-    }
-  }, [filteredPromotions]);
-
-  // Cleanup interval on unmount
-  useEffect(() => {
-    return () => {
-      if (bannerRotationInterval) {
-        clearInterval(bannerRotationInterval);
-      }
-    };
-  }, []);
-
-  const filterData = () => {
-    const query = searchQuery.toLowerCase().trim();
-    
-    if (query === '') {
-      // If no search query, show all data
-      setFilteredCategories(categories);
-      setFilteredPromotions(promotions);
-      setFilteredFeaturedShops(featuredShops);
-      setFilteredNewArrivals(newArrivals);
-    } else {
-      // Filter categories
-      const filteredCats = categories.filter(category => {
-        const categoryName = (category.categoryName || category.name || '').toLowerCase();
-        return categoryName.includes(query);
-      });
-      setFilteredCategories(filteredCats);
-
-      // Filter promotions
-      const filteredPromos = promotions.filter(promo => {
-        const promotionName = (promo.promotionName || '').toLowerCase();
-        const description = (promo.description || '').toLowerCase();
-        const merchantName = (promo.merchantName || '').toLowerCase();
-        return promotionName.includes(query) || 
-               description.includes(query) || 
-               merchantName.includes(query);
-      });
-      setFilteredPromotions(filteredPromos);
-
-      // Filter featured shops (now all promotions)
-      const filteredFeatured = featuredShops.filter(shop => {
-        const shopName = (shop.name || '').toLowerCase();
-        const description = (shop.description || '').toLowerCase();
-        const merchantName = (shop.merchantName || '').toLowerCase(); // Add merchant name filtering
-        return shopName.includes(query) || 
-               description.includes(query) || 
-               merchantName.includes(query);
-      });
-      setFilteredFeaturedShops(filteredFeatured);
-
-      // Filter new arrivals
-      const filteredArrivals = newArrivals.filter(item => {
-        const itemName = (item.name || '').toLowerCase();
-        const description = (item.description || '').toLowerCase();
-        const merchantName = (item.merchantName || '').toLowerCase();
-        return itemName.includes(query) || 
-               description.includes(query) || 
-               merchantName.includes(query);
-      });
-      setFilteredNewArrivals(filteredArrivals);
-    }
-  };
-
-  const clearSearch = () => {
-    setSearchQuery('');
-  };
 
   const fetchPromotions = async () => {
     try {
@@ -180,31 +72,28 @@ const ShopScreen: React.FC = () => {
         
         // Use promotions data for featured shops and new arrivals
         if (promotionsData.length > 0) {
-          // Convert ALL promotions to shop-like items for featured section
-          const allPromotionItems = promotionsData.map((promo: any, index: number) => ({
+          // Convert promotions to shop-like items
+          const shopItems = promotionsData.map((promo: any, index: number) => ({
             id: `promo_${promo.promotionId}`,
             name: promo.promotionName,
             imageUrl: promo.promotionImageLink,
             description: promo.description,
             discount: promo.discount,
             merchantId: promo.fK_MerchantId,
-            merchantName: promo.merchantName,
             minOrder: promo.minimumOrderCount,
             fromDate: promo.promotionFromDate,
-            toDate: promo.promotionToDate,
-            type: 'promotion' // Add type to identify as promotion
+            toDate: promo.promotionToDate
           }));
 
-          // Set ALL promotions to featured shops
-          setFeaturedShops(allPromotionItems);
+          // Randomly distribute between featured and new arrivals
+          const shuffled = [...shopItems].sort(() => 0.5 - Math.random());
+          const midPoint = Math.ceil(shuffled.length / 2);
           
-          // You can set new arrivals to a subset or different data
-          // For now, setting it to the last half of promotions
-          const midPoint = Math.ceil(allPromotionItems.length / 2);
-          setNewArrivals(allPromotionItems.slice(midPoint));
+          setFeaturedShops(shuffled.slice(0, midPoint));
+          setNewArrivals(shuffled.slice(midPoint));
           
-          console.log("All promotions set to featured shops:", allPromotionItems.length);
-          console.log("New arrivals from promotions:", allPromotionItems.slice(midPoint).length);
+          console.log("Featured shops from promotions:", shuffled.slice(0, midPoint).length);
+          console.log("New arrivals from promotions:", shuffled.slice(midPoint).length);
         }
       }
     } catch (error) {
@@ -259,42 +148,33 @@ const ShopScreen: React.FC = () => {
     }
   };
 
+  // NEW: fetch global tags from backend
+  const fetchTags = async () => {
+    try {
+      console.log("Fetching tags...");
+      const response = await callMerchantApi(
+        'GetAllTags',
+        {},
+        'mobile-app-tags',
+        ''
+      );
+      console.log("=== FULL GetAllTags RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      if (response.statusCode === 200) {
+        const tagsData = response.data || response.payload || [];
+        setTags(Array.isArray(tagsData) ? tagsData : []);
+        console.log("Tags loaded:", tagsData.length);
+      } else {
+        setTags([]);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      setTags([]);
+    }
+  };
+  
   const handleShopPress = (shop: any) => {
     navigation.navigate('ShopDetailsScreen', { shop });
-  };
-
-  // Enhanced banner selection function
-  const getCurrentBannerPromotion = () => {
-    const validPromotions = filteredPromotions.filter(promo => 
-      promo.promotionImageLink && promo.promotionImageLink.trim() !== ''
-    );
-    
-    if (validPromotions.length === 0) return null;
-    
-    return validPromotions[currentBannerIndex % validPromotions.length];
-  };
-
-  // Manual banner navigation functions
-  const goToPreviousBanner = () => {
-    const validPromotions = filteredPromotions.filter(promo => 
-      promo.promotionImageLink && promo.promotionImageLink.trim() !== ''
-    );
-    
-    if (validPromotions.length > 1) {
-      setCurrentBannerIndex(prevIndex => 
-        prevIndex === 0 ? validPromotions.length - 1 : prevIndex - 1
-      );
-    }
-  };
-
-  const goToNextBanner = () => {
-    const validPromotions = filteredPromotions.filter(promo => 
-      promo.promotionImageLink && promo.promotionImageLink.trim() !== ''
-    );
-    
-    if (validPromotions.length > 1) {
-      setCurrentBannerIndex(prevIndex => (prevIndex + 1) % validPromotions.length);
-    }
   };
 
   if (loading) {
@@ -308,42 +188,22 @@ const ShopScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-       {/* Enhanced Search */}
+       {/* Search */}
         <View style={styles.searchBarContainer}>
           <View style={styles.searchBar}>
             <TextInput
               placeholder="Find your favourite Shop"
               placeholderTextColor="#999"
               style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCorrect={false}
-              autoCapitalize="none"
             />
-            {searchQuery ? (
-              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color="#999" />
-              </TouchableOpacity>
-            ) : (
-              <Ionicons name="search-outline" size={20} color="#999" />
-            )}
+            <Ionicons name="search-outline" size={20} color="#999" />
           </View>
         </View>
-
-        {/* Show search results count when filtering */}
-        {searchQuery && (
-          <View style={styles.searchResultsContainer}>
-            <Text style={styles.searchResultsText}>
-              Found: {filteredCategories.length} categories, {filteredFeaturedShops.length} featured shops, {filteredNewArrivals.length} new arrivals
-            </Text>
-          </View>
-        )}
-
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-          {filteredCategories.length > 0 ? filteredCategories.map((category, index) => (
+          {categories.length > 0 ? categories.map((category, index) => (
             <TouchableOpacity key={category.categoryId || index} style={styles.categoryButton}>
               <Text style={styles.categoryText}>
                 {category.categoryName || category.name || `Category ${index + 1}`}
@@ -351,210 +211,137 @@ const ShopScreen: React.FC = () => {
             </TouchableOpacity>
           )) : (
             <View style={styles.emptyCategoriesContainer}>
-              <Text style={styles.emptyCategoriesText}>
-                {searchQuery ? 'No categories match your search' : 'No categories available'}
-              </Text>
+              <Text style={styles.emptyCategoriesText}>No categories available</Text>
             </View>
           )}
         </ScrollView>
 
-        {/* Enhanced Rotating Promo Banner */}
-        {filteredPromotions.length > 0 ? (
-          (() => {
-            const currentPromotion = getCurrentBannerPromotion();
-            const validPromotions = filteredPromotions.filter(promo => 
-              promo.promotionImageLink && promo.promotionImageLink.trim() !== ''
-            );
-            
-            return currentPromotion ? (
-              <View style={styles.bannerWrapper}>
-                <TouchableOpacity 
-                  style={styles.bannerContainer}
-                  onPress={() => {
-                    console.log('Promotion pressed:', currentPromotion);
-                    // Navigate to promotion details
-                  }}
-                >
-                  <OptimizedImage
-                    source={{ uri: currentPromotion.promotionImageLink }}
-                    style={styles.bannerImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    priority="high"
-                    showLoadingIndicator={true}
-                  />
-                  <View style={styles.bannerOverlay}>
-                    <Text style={styles.bannerTitle} numberOfLines={2}>
-                      {currentPromotion.promotionName}
-                    </Text>
-                    {currentPromotion.discount && currentPromotion.discount > 0 && (
-                      <Text style={styles.bannerDiscount}>
-                        {currentPromotion.discount}% OFF
-                      </Text>
-                    )}
-                    {currentPromotion.description && (
-                      <Text style={styles.bannerDescription} numberOfLines={2}>
-                        {currentPromotion.description}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-
-                {/* Navigation arrows for multiple promotions */}
-                {validPromotions.length > 1 && (
-                  <>
-                    <TouchableOpacity 
-                      style={styles.bannerArrowLeft}
-                      onPress={goToPreviousBanner}
-                    >
-                      <Ionicons name="chevron-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.bannerArrowRight}
-                      onPress={goToNextBanner}
-                    >
-                      <Ionicons name="chevron-forward" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {/* Dots indicator for multiple promotions */}
-                {validPromotions.length > 1 && (
-                  <View style={styles.bannerDotsContainer}>
-                    {validPromotions.map((_, index) => (
-                      <TouchableOpacity 
-                        key={index}
-                        style={[
-                          styles.bannerDot,
-                          index === currentBannerIndex && styles.bannerDotActive
-                        ]}
-                        onPress={() => setCurrentBannerIndex(index)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={styles.emptyBannerContainer}>
-                <Ionicons name="image-outline" size={40} color="#ccc" />
-                <Text style={styles.emptyBannerText}>
-                  {searchQuery ? 'No promotions with images match your search' : 'No promotion images available'}
-                </Text>
-              </View>
-            );
-          })()
+        {/* Promo Banner - Show latest promotion with text overlay */}
+        {promotions.length > 0 && promotions[0].promotionImageLink ? (
+          <View style={styles.bannerContainer}>
+            <OptimizedImage
+              source={{ uri: promotions[0].promotionImageLink }}
+              style={styles.bannerImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              showLoadingIndicator={true}
+            />
+            <View style={styles.bannerOverlay}>
+              <Text style={styles.bannerTitle}>{promotions[0].promotionName}</Text>
+              <Text style={styles.bannerDiscount}>{promotions[0].discount}% OFF</Text>
+              <Text style={styles.bannerDescription}>{promotions[0].description}</Text>
+            </View>
+          </View>
         ) : (
           <View style={styles.emptyBannerContainer}>
-            <Ionicons name="megaphone-outline" size={40} color="#ccc" />
-            <Text style={styles.emptyBannerText}>
-              {searchQuery ? 'No promotions match your search' : 'No promotions available'}
-            </Text>
+            <Text style={styles.emptyBannerText}>No promotions available</Text>
           </View>
         )}
 
-            {/* Featured */}
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>
-                Featured {searchQuery && `(${filteredFeaturedShops.length})`}
-              </Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
-              {filteredFeaturedShops.length > 0 ? filteredFeaturedShops.map((shop, index) => (
-                <TouchableOpacity key={shop.id || index} style={styles.shopCard} onPress={() => handleShopPress(shop)}>
-                  {shop.imageUrl ? (
-                    <OptimizedImage
-                      source={{ uri: shop.imageUrl }}
-                      style={styles.shopImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  ) : (
-                    <View style={styles.noImagePlaceholder}>
-                      <Ionicons name="image-outline" size={30} color="#ccc" />
-                    </View>
-                  )}
-                  <View style={styles.shopCardOverlay}>
-                    <Text style={styles.shopName} numberOfLines={1}>{shop.name || 'Unknown Shop'}</Text>
-                    {shop.discount && shop.discount > 0 && (
-                      <Text style={styles.shopDiscount}>{shop.discount}% OFF</Text>
-                    )}
-                    {shop.merchantName && (
-                      <Text style={styles.merchantName} numberOfLines={1}>{shop.merchantName}</Text>
-                    )}
-                    {shop.description && (
-                      <Text style={styles.shopDescription} numberOfLines={2}>{shop.description}</Text>
-                    )}
-                    {shop.minOrder && (
-                      <Text style={styles.minOrder}>Min order: {shop.minOrder}</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )) : (
-                <View style={styles.emptySection}>
-                  <Ionicons name="storefront-outline" size={40} color="#ccc" />
-                  <Text style={styles.emptySectionText}>
-                    {searchQuery ? 'No featured shops match your search' : 'No featured shops available'}
-                  </Text>
+        {/* Featured */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Featured</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
+          {featuredShops.length > 0 ? featuredShops.map((shop, index) => (
+            <TouchableOpacity 
+              key={shop.id || index} 
+              style={styles.shopCard}
+              onPress={() => handleShopPress(shop)}
+            >
+              {shop.imageUrl ? (
+                <OptimizedImage 
+                  source={{ uri: shop.imageUrl }} 
+                  style={styles.shopImage}
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  showLoadingIndicator={true}
+                  fallbackIcon="storefront-outline"
+                  fallbackText="Shop Image"
+                />
+              ) : (
+                <View style={styles.noImagePlaceholder}>
+                  <Ionicons name="image-outline" size={40} color="#ccc" />
+                  <Text style={styles.noImageText}>No Image</Text>
                 </View>
               )}
-            </ScrollView>
-    
-            {/* New Arrivals */}
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>
-                New Arrivals {searchQuery && `(${filteredNewArrivals.length})`}
-              </Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
-              {filteredNewArrivals.length > 0 ? filteredNewArrivals.map((item, index) => (
-                <TouchableOpacity key={item.id || index} style={styles.shopCard} onPress={() => handleShopPress(item)}>
-                  {item.imageUrl ? (
-                    <OptimizedImage
-                      source={{ uri: item.imageUrl }}
-                      style={styles.shopImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  ) : (
-                    <View style={styles.noImagePlaceholder}>
-                      <Ionicons name="image-outline" size={30} color="#ccc" />
-                    </View>
-                  )}
-                  <View style={styles.shopCardOverlay}>
-                    <Text style={styles.shopName} numberOfLines={1}>{item.name || 'Unknown Item'}</Text>
-                    {item.discount && item.discount > 0 && (
-                      <Text style={styles.shopDiscount}>{item.discount}% OFF</Text>
-                    )}
-                    {item.merchantName && (
-                      <Text style={styles.merchantName} numberOfLines={1}>{item.merchantName}</Text>
-                    )}
-                    {item.description && (
-                      <Text style={styles.shopDescription} numberOfLines={2}>{item.description}</Text>
-                    )}
-                    {item.minOrder && (
-                      <Text style={styles.minOrder}>Min order: {item.minOrder}</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )) : (
-                <View style={styles.emptySection}>
-                  <Ionicons name="sparkles-outline" size={40} color="#ccc" />
-                  <Text style={styles.emptySectionText}>
-                    {searchQuery ? 'No new arrivals match your search' : 'No new arrivals available'}
+              <View style={styles.shopCardOverlay}>
+                <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
+                {shop.discount && (
+                  <Text style={styles.shopDiscount}>{shop.discount}% OFF</Text>
+                )}
+                {shop.description && (
+                  <Text style={styles.shopDescription} numberOfLines={2}>
+                    {shop.description}
                   </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          )) : (
+            <View style={styles.emptySection}>
+              <Text style={styles.emptySectionText}>No featured shops available</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* New Arrivals */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>New Arrivals</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
+          {newArrivals.length > 0 ? newArrivals.map((item, index) => (
+            <TouchableOpacity 
+              key={item.id || index} 
+              style={styles.shopCard}
+              onPress={() => handleShopPress(item)}
+            >
+              {item.imageUrl ? (
+                <OptimizedImage 
+                  source={{ uri: item.imageUrl }} 
+                  style={styles.shopImage}
+                  cachePolicy="memory-disk"
+                  priority="normal"
+                  showLoadingIndicator={true}
+                  fallbackIcon="bag-outline"
+                  fallbackText="Product Image"
+                />
+              ) : (
+                <View style={styles.noImagePlaceholder}>
+                  <Ionicons name="image-outline" size={40} color="#ccc" />
+                  <Text style={styles.noImageText}>No Image</Text>
                 </View>
               )}
-            </ScrollView>
-    
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      );
-    };
-    
-    const styles = StyleSheet.create({
-      safeArea: {
+              <View style={styles.shopCardOverlay}>
+                <Text style={styles.shopName} numberOfLines={1}>{item.name}</Text>
+                {item.discount && (
+                  <Text style={styles.shopDiscount}>{item.discount}% OFF</Text>
+                )}
+                {item.description && (
+                  <Text style={styles.shopDescription} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          )) : (
+            <View style={styles.emptySection}>
+              <Text style={styles.emptySectionText}>No new arrivals available</Text>
+            </View>
+          )}
+        </ScrollView>
+      </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default ShopScreen;
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
   },
   container: {
     flex: 1,
@@ -585,18 +372,6 @@ const ShopScreen: React.FC = () => {
     flex: 1,
     fontSize: 14,
     color: '#000',
-  },
-  clearButton: {
-    padding: 4,
-  },
-  searchResultsContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  searchResultsText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
   },
   categoryScroll: {
     marginVertical: 12,
@@ -725,25 +500,11 @@ const ShopScreen: React.FC = () => {
     color: '#FFD700',
     marginBottom: 2,
   },
-  merchantName: {
-    textAlign: 'center',
-    fontSize: 10,
-    color: '#FFD700',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
   shopDescription: {
     textAlign: 'center',
     fontSize: 10,
     color: '#fff',
     opacity: 0.9,
-  },
-  minOrder: {
-    textAlign: 'center',
-    fontSize: 9,
-    color: '#fff',
-    opacity: 0.8,
-    marginTop: 2,
   },
   navItem: {
     alignItems: 'center',
@@ -797,55 +558,4 @@ const ShopScreen: React.FC = () => {
     color: '#999',
     textAlign: 'center',
   },
-  bannerWrapper: {
-    position: 'relative',
-    width: '100%',
-    alignItems: 'center',
-  },
-  bannerDotsContainer: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 10,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  bannerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginHorizontal: 3,
-  },
-  bannerDotActive: {
-    backgroundColor: '#fff',
-  },
-  bannerArrowLeft: {
-    position: 'absolute',
-    left: 10,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerArrowRight: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 });
-
-export default ShopScreen;
