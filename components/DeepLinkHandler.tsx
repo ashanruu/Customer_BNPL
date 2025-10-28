@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   OrderPageScreen: { saleCode?: string; merchantId?: string; url?: string };
@@ -37,10 +38,23 @@ const DeepLinkHandler: React.FC = () => {
     };
   }, []);
 
-  const handleDeepLink = (url: string) => {
+  const handleDeepLink = async (url: string) => {
     console.log('Deep link received:', url);
     
     try {
+      // Check if user is authenticated
+      const bearerToken = await AsyncStorage.getItem('bearerToken');
+      const isAuthenticated = !!bearerToken;
+      
+      console.log('User authenticated:', isAuthenticated);
+      
+      if (!isAuthenticated) {
+        // Store the deep link for later use after authentication
+        await AsyncStorage.setItem('pendingDeepLink', url);
+        console.log('Stored pending deep link:', url);
+        // Don't navigate yet, let the auth flow handle it
+        return;
+      }
       // Handle custom scheme: bnplcustomer://order?saleCode=123&merchantId=32
       if (url.startsWith('bnplcustomer://')) {
         const urlObj = new URL(url);
@@ -63,24 +77,40 @@ const DeepLinkHandler: React.FC = () => {
       const pathname = urlObj.pathname;
       const searchParams = urlObj.searchParams;
 
-      // Handle static QR: https://shop.bnplqr.hexdive.com/merchant/32
-      if (hostname === 'shop.bnplqr.hexdive.com' && pathname.startsWith('/merchant/')) {
-        const merchantId = pathname.split('/merchant/')[1];
-        if (merchantId) {
-          navigation.navigate('OrderPageScreen', {
-            merchantId: merchantId,
-            url: url
-          });
-          return;
+      // Handle verified domain: https://merchant.bnpl.hexdive.com/...
+      if (hostname === 'merchant.bnpl.hexdive.com') {
+        // Handle merchant URLs with sale codes
+        if (pathname.startsWith('/sale/')) {
+          const saleCode = pathname.split('/sale/')[1];
+          if (saleCode) {
+            navigation.navigate('OrderPageScreen', {
+              saleCode: saleCode,
+              url: url
+            });
+            return;
+          }
         }
-      }
-
-      // Handle dynamic QR: https://bnplqr.hexdive.com?salecode=32
-      if (hostname === 'bnplqr.hexdive.com') {
-        const saleCode = searchParams.get('salecode');
-        if (saleCode) {
+        
+        // Handle merchant URLs with merchant ID
+        if (pathname.startsWith('/merchant/')) {
+          const merchantId = pathname.split('/merchant/')[1];
+          if (merchantId) {
+            navigation.navigate('OrderPageScreen', {
+              merchantId: merchantId,
+              url: url
+            });
+            return;
+          }
+        }
+        
+        // Handle query parameters
+        const saleCode = searchParams.get('salecode') || searchParams.get('saleCode');
+        const merchantId = searchParams.get('merchantId') || searchParams.get('merchantid');
+        
+        if (saleCode || merchantId) {
           navigation.navigate('OrderPageScreen', {
-            saleCode: saleCode,
+            saleCode: saleCode || undefined,
+            merchantId: merchantId || undefined,
             url: url
           });
           return;

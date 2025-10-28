@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { callMerchantApi } from '../../scripts/api';
+import { callMerchantApi, callMobileApi } from '../../scripts/api';
 import OptimizedImage from '../../components/OptimizedImage';
 import ImageCacheManager from '../../utils/ImageCacheManager';
 
@@ -45,6 +45,7 @@ const ShopScreen: React.FC = () => {
     fetchPromotions();
     fetchCategories();
     fetchTags(); // NEW
+    fetchStores(); // NEW
   }, []);
 
   const fetchPromotions = async () => {
@@ -70,7 +71,7 @@ const ShopScreen: React.FC = () => {
         // Preload promotion images for better performance
         await ImageCacheManager.preloadPromotionImages(promotionsData);
         
-        // Use promotions data for featured shops and new arrivals
+        // Use promotions data for featured shops only
         if (promotionsData.length > 0) {
           // Convert promotions to shop-like items
           const shopItems = promotionsData.map((promo: any, index: number) => ({
@@ -85,22 +86,15 @@ const ShopScreen: React.FC = () => {
             toDate: promo.promotionToDate
           }));
 
-          // Randomly distribute between featured and new arrivals
-          const shuffled = [...shopItems].sort(() => 0.5 - Math.random());
-          const midPoint = Math.ceil(shuffled.length / 2);
-          
-          setFeaturedShops(shuffled.slice(0, midPoint));
-          setNewArrivals(shuffled.slice(midPoint));
-          
-          console.log("Featured shops from promotions:", shuffled.slice(0, midPoint).length);
-          console.log("New arrivals from promotions:", shuffled.slice(midPoint).length);
+          // Use all promotions for featured shops
+          setFeaturedShops(shopItems);
+          console.log("Featured shops from promotions:", shopItems.length);
         }
       }
     } catch (error) {
       console.error("Error fetching promotions:", error);
       setPromotions([]);
       setFeaturedShops([]);
-      setNewArrivals([]);
     } finally {
       setLoading(false);
     }
@@ -172,8 +166,53 @@ const ShopScreen: React.FC = () => {
       setTags([]);
     }
   };
+
+  // NEW: fetch stores for New Arrivals section
+  const fetchStores = async () => {
+    try {
+      console.log("Fetching stores for New Arrivals...");
+      
+      const response = await callMobileApi(
+        'GetStoreInTagAndCat',
+        {},
+        'mobile-app-stores',
+        '',
+        'customer'
+      );
+
+      console.log("=== FULL GetStoreInTagAndCat RESPONSE ===");
+      console.log(JSON.stringify(response, null, 2));
+      console.log("=== END RESPONSE ===");
+
+      if (response.statusCode === 200) {
+        const storesData = response.data || [];
+        console.log("Stores data received:", storesData.length);
+        
+        // Transform store data to match the expected format
+        const transformedStores = storesData.map((store: any, index: number) => ({
+          id: `store_${index}`,
+          name: store.storeName,
+          imageUrl: store.storeProfileImageUrl,
+          storeType: store.storeType,
+          categoryId: store.fk_CategoryId,
+          tagId: store.fK_PtagId,
+          description: `${store.storeType} Store`
+        }));
+
+        setNewArrivals(transformedStores);
+        console.log("New arrivals updated with stores:", transformedStores.length);
+      } else {
+        console.log("Failed to fetch stores, status:", response.statusCode);
+        setNewArrivals([]);
+      }
+    } catch (error) {
+      console.error("Error fetching stores:", error);
+      setNewArrivals([]);
+    }
+  };
   
   const handleShopPress = (shop: any) => {
+    console.log("Shop pressed:", shop);
     navigation.navigate('ShopDetailsScreen', { shop });
   };
 
@@ -285,9 +324,9 @@ const ShopScreen: React.FC = () => {
           )}
         </ScrollView>
 
-        {/* New Arrivals */}
+        {/* New Arrivals - Stores */}
         <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>New Arrivals</Text>
+          <Text style={styles.sectionTitle}>New Stores</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
           {newArrivals.length > 0 ? newArrivals.map((item, index) => (
@@ -326,7 +365,7 @@ const ShopScreen: React.FC = () => {
             </TouchableOpacity>
           )) : (
             <View style={styles.emptySection}>
-              <Text style={styles.emptySectionText}>No new arrivals available</Text>
+              <Text style={styles.emptySectionText}>No stores available</Text>
             </View>
           )}
         </ScrollView>

@@ -23,8 +23,7 @@
     "ios": {
       "supportsTablet": true,
       "associatedDomains": [
-        "applinks:shop.bnplqr.hexdive.com",
-        "applinks:bnplqr.hexdive.com"
+        "applinks:merchant.bnpl.hexdive.com"
       ],
       "bundleIdentifier": "com.shi000123.customerbnpl"
     },
@@ -49,11 +48,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "shop.bnplqr.hexdive.com"
-            },
-            {
-              "scheme": "https", 
-              "host": "bnplqr.hexdive.com"
+              "host": "merchant.bnpl.hexdive.com"
             }
           ],
           "category": [

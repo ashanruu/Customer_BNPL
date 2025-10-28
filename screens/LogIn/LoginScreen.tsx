@@ -110,6 +110,69 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
+  const parsePendingDeepLink = (url: string) => {
+    try {
+      // Handle custom scheme: bnplcustomer://order?saleCode=123&merchantId=32
+      if (url.startsWith('bnplcustomer://')) {
+        const urlObj = new URL(url);
+        const searchParams = urlObj.searchParams;
+        
+        const saleCode = searchParams.get('saleCode') || searchParams.get('salecode');
+        const merchantId = searchParams.get('merchantId') || searchParams.get('merchantid');
+        
+        return {
+          saleCode: saleCode || undefined,
+          merchantId: merchantId || undefined,
+          url: url
+        };
+      }
+
+      // Handle HTTPS URLs
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      const pathname = urlObj.pathname;
+      const searchParams = urlObj.searchParams;
+
+      // Handle verified domain: https://merchant.bnpl.hexdive.com/...
+      if (hostname === 'merchant.bnpl.hexdive.com') {
+        // Handle merchant URLs with sale codes
+        if (pathname.startsWith('/sale/')) {
+          const saleCode = pathname.split('/sale/')[1];
+          return {
+            saleCode: saleCode,
+            url: url
+          };
+        }
+        
+        // Handle merchant URLs with merchant ID
+        if (pathname.startsWith('/merchant/')) {
+          const merchantId = pathname.split('/merchant/')[1];
+          return {
+            merchantId: merchantId,
+            url: url
+          };
+        }
+        
+        // Handle query parameters
+        const saleCode = searchParams.get('salecode') || searchParams.get('saleCode');
+        const merchantId = searchParams.get('merchantId') || searchParams.get('merchantid');
+        
+        return {
+          saleCode: saleCode || undefined,
+          merchantId: merchantId || undefined,
+          url: url
+        };
+      }
+
+      // Fallback: return raw URL
+      return { url: url };
+
+    } catch (error) {
+      console.error('Error parsing deep link URL:', error);
+      return { url: url };
+    }
+  };
+
   const handleLogin = async () => {
     let hasError = false;
 
@@ -154,7 +217,29 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
           }
         }
 
-        // Navigate immediately without showing success notification
+        // Check for pending deep link after successful authentication
+        const pendingDeepLink = await AsyncStorage.getItem('pendingDeepLink');
+        
+        if (pendingDeepLink) {
+          console.log('Found pending deep link after login:', pendingDeepLink);
+          
+          // Clear the pending deep link
+          await AsyncStorage.removeItem('pendingDeepLink');
+          
+          // Navigate to OrderPageScreen with the deep link data
+          try {
+            const parsedParams = parsePendingDeepLink(pendingDeepLink);
+            navigation.navigate('OrderPageScreen', parsedParams);
+            return;
+          } catch (error) {
+            console.error('Error parsing pending deep link:', error);
+            // Fallback to OrderPageScreen with raw URL
+            navigation.navigate('OrderPageScreen', { url: pendingDeepLink });
+            return;
+          }
+        }
+
+        // Navigate to main screen if no pending deep link
         navigation.navigate('Main');
       } else {
         showError(response.message || 'Login failed');

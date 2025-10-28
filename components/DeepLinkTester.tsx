@@ -5,7 +5,7 @@ const DeepLinkTester = () => {
   const testUrls = [
     {
       name: 'Custom Scheme - Sale Code',
-      url: 'bnplcustomer://order?saleCode=123',
+      url: 'bnplcustomer://order?saleCode=44020251028180246',
       description: '✅ This should work immediately'
     },
     {
@@ -14,14 +14,14 @@ const DeepLinkTester = () => {
       description: '✅ This should work immediately'
     },
     {
-      name: 'HTTPS - Shop Link',
-      url: 'https://shop.bnplqr.hexdive.com/merchant/32',
-      description: '❌ Needs domain verification'
+      name: 'HTTPS - Verified Domain Sale',
+      url: 'https://merchant.bnpl.hexdive.com/sale/44020251028180246',
+      description: '✅ Domain verified - should work'
     },
     {
-      name: 'HTTPS - Dynamic Link',
-      url: 'https://bnplqr.hexdive.com?salecode=123',
-      description: '❌ Needs domain verification'
+      name: 'HTTPS - Verified Domain Query',
+      url: 'https://merchant.bnpl.hexdive.com?salecode=44020251028180246',
+      description: '✅ Domain verified - should work'
     }
   ];
 

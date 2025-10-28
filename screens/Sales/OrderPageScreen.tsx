@@ -54,16 +54,26 @@ const OrderPageScreen: React.FC = () => {
     try {
       const urlObj = new URL(url);
       
-      // Handle static QR: https://shop.bnplqr.hexdive.com/merchant/32
-      if (urlObj.hostname === 'shop.bnplqr.hexdive.com' && urlObj.pathname.startsWith('/merchant/')) {
-        const merchantId = urlObj.pathname.split('/merchant/')[1];
-        return merchantId || '';
-      }
-      
-      // Handle dynamic QR: https://bnplqr.hexdive.com?salecode=32
-      if (urlObj.hostname === 'bnplqr.hexdive.com') {
-        const saleCode = urlObj.searchParams.get('salecode');
-        return saleCode || '';
+      // Handle verified domain: https://merchant.bnpl.hexdive.com/...
+      if (urlObj.hostname === 'merchant.bnpl.hexdive.com') {
+        // Handle sale URLs: /sale/123
+        if (urlObj.pathname.startsWith('/sale/')) {
+          const saleCode = urlObj.pathname.split('/sale/')[1];
+          return saleCode || '';
+        }
+        
+        // Handle merchant URLs: /merchant/32
+        if (urlObj.pathname.startsWith('/merchant/')) {
+          const merchantId = urlObj.pathname.split('/merchant/')[1];
+          return merchantId || '';
+        }
+        
+        // Handle query parameters
+        const saleCode = urlObj.searchParams.get('salecode') || urlObj.searchParams.get('saleCode');
+        if (saleCode) return saleCode;
+        
+        const merchantId = urlObj.searchParams.get('merchantId') || urlObj.searchParams.get('merchantid');
+        if (merchantId) return merchantId;
       }
       
       return '';
