@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
+  BackHandler,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from 'react-i18next';
@@ -108,6 +109,43 @@ const [documents, setDocuments] = useState([
         gestureEnabled: false,
       });
     }, [navigation])
+  );
+
+  // Handle hardware back button on ProfileScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Navigate back to previous screen or show exit dialog
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // Show confirmation dialog when user tries to exit the app
+          Alert.alert(
+            t('dialogs.exitApp'),
+            t('dialogs.exitAppMessage'),
+            [
+              {
+                text: t('common.cancel'),
+                onPress: () => null,
+                style: 'cancel',
+              },
+              {
+                text: t('dialogs.exit'),
+                onPress: () => BackHandler.exitApp(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [navigation, t])
   );
 
   const fetchCustomerDetails = async () => {

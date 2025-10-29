@@ -65,12 +65,12 @@ const NotificationPreferencesScreen: React.FC = () => {
       await AsyncStorage.setItem('notificationSettings', JSON.stringify(settings));
       Alert.alert(
         t('common.success'),
-        'Notification preferences saved successfully',
+        t('notifications.preferencesUpdated'),
         [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       console.error('Error saving notification settings:', error);
-      Alert.alert(t('common.error'), 'Failed to save notification preferences');
+      Alert.alert(t('common.error'), t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -88,13 +88,15 @@ const NotificationPreferencesScreen: React.FC = () => {
     description, 
     value, 
     onToggle, 
-    icon 
+    icon,
+    color // ADD: color prop
   }: {
     title: string;
     description: string;
     value: boolean;
     onToggle: () => void;
     icon: string;
+    color?: string; // ADD: optional color prop type
   }) => (
     <View style={styles.notificationItem}>
       <View style={styles.notificationContent}>
@@ -102,11 +104,11 @@ const NotificationPreferencesScreen: React.FC = () => {
           <MaterialCommunityIcons 
             name={icon} 
             size={24} 
-            color={value ? Colors.light.tint : Colors.light.mutedText} 
+            color={value ? (color || Colors.light.tint) : Colors.light.mutedText} // USE: color prop with fallback
           />
         </View>
         <View style={styles.textContainer}>
-          <MainText size="medium" weight="semibold">
+          <MainText size="medium" weight="bold">
             {title}
           </MainText>
           <SubText size="small" style={styles.description}>
@@ -117,8 +119,8 @@ const NotificationPreferencesScreen: React.FC = () => {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: '#E5E7EB', true: Colors.light.tint + '40' }}
-        thumbColor={value ? Colors.light.tint : '#9CA3AF'}
+        trackColor={{ false: '#E5E7EB', true: (color || Colors.light.tint) + '40' }} // USE: color prop for track
+        thumbColor={value ? (color || Colors.light.tint) : '#9CA3AF'} // USE: color prop for thumb
       />
     </View>
   );
@@ -135,7 +137,7 @@ const NotificationPreferencesScreen: React.FC = () => {
         </TouchableOpacity>
         
         <MainText size="large" weight="bold" style={styles.headerTitle}>
-          Notification Preferences
+          {t('notifications.title')}
         </MainText>
       </View>
 
@@ -149,10 +151,10 @@ const NotificationPreferencesScreen: React.FC = () => {
           {/* General Settings Section */}
           <View style={styles.section}>
             <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              General Notifications
+              {t('notifications.general')}
             </MainText>
             <SubText size="small" style={styles.sectionDescription}>
-              Control how you receive notifications from our app
+              {t('notifications.generalDesc')}
             </SubText>
 
             {/* <NotificationItem
@@ -164,19 +166,21 @@ const NotificationPreferencesScreen: React.FC = () => {
             /> */}
 
             <NotificationItem
-              title="Email Notifications"
-              description="Receive notifications via email"
+              title={t('notifications.emailNotifications')}
+              description={t('notifications.emailNotificationsDesc')}
               value={settings.emailNotifications}
               onToggle={() => toggleSetting('emailNotifications')}
               icon="email-outline"
+              color={Colors.light.primary}
             />
 
             <NotificationItem
-              title="SMS Notifications"
-              description="Receive notifications via text message"
+              title={t('notifications.smsNotifications')}
+              description={t('notifications.smsNotificationsDesc')}
               value={settings.smsNotifications}
               onToggle={() => toggleSetting('smsNotifications')}
               icon="message-text-outline"
+              color={Colors.light.primary}
             />
           </View>
 
@@ -217,26 +221,28 @@ const NotificationPreferencesScreen: React.FC = () => {
           {/* Marketing Settings Section */}
           <View style={styles.section}>
             <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              Marketing & Promotions
+              {t('notifications.marketing')}
             </MainText>
             <SubText size="small" style={styles.sectionDescription}>
-              Choose what promotional content you'd like to receive
+              {t('notifications.marketingDesc')}
             </SubText>
 
             <NotificationItem
-              title="Promotional Offers"
-              description="Special deals and discounts"
+              title={t('notifications.promotionalOffers')}
+              description={t('notifications.promotionalOffersDesc')}
               value={settings.promotionalOffers}
               onToggle={() => toggleSetting('promotionalOffers')}
               icon="tag-outline"
+              color={Colors.light.primary}
             />
 
             <NotificationItem
-              title="News & Updates"
-              description="Product updates and company news"
+              title={t('notifications.newsUpdates')}
+              description={t('notifications.newsUpdatesDesc')}
               value={settings.newsUpdates}
               onToggle={() => toggleSetting('newsUpdates')}
               icon="newspaper-variant-outline"
+              color={Colors.light.secondary}
             />
           </View>
 
@@ -250,8 +256,7 @@ const NotificationPreferencesScreen: React.FC = () => {
                 style={styles.infoIcon}
               />
               <SubText size="small" style={styles.infoText}>
-                You can change these preferences anytime. Some notifications like security alerts 
-                are mandatory for account safety.
+                {t('notifications.info')}
               </SubText>
             </View>
           </View>
@@ -261,7 +266,7 @@ const NotificationPreferencesScreen: React.FC = () => {
       {/* Fixed Footer with Save Button */}
       <View style={styles.footer}>
         <CustomButton
-          title="Save Preferences"
+          title={t('common.save')}
           onPress={saveNotificationSettings}
           loading={loading}
           style={styles.saveButton}

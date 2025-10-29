@@ -13,9 +13,10 @@ import {
   Animated,
   ActivityIndicator,
   GestureResponderEvent,
+  BackHandler,
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomButton from '../../components/CustomButton';
@@ -109,7 +110,42 @@ const SalesScreen: React.FC = () => {
     }
   }, [showProgressModal, responseStatus]);
 
+  // Handle hardware back button on SalesScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Navigate back to previous screen or show exit dialog
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // Show confirmation dialog when user tries to exit the app
+          Alert.alert(
+            t('dialogs.exitApp'),
+            t('dialogs.exitAppMessage'),
+            [
+              {
+                text: t('common.cancel'),
+                onPress: () => null,
+                style: 'cancel',
+              },
+              {
+                text: t('dialogs.exit'),
+                onPress: () => BackHandler.exitApp(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+        return true; // Prevent default back action
+      };
 
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [navigation, t])
+  );
 
   const resetModalState = () => {
     setShowProgressModal(false);

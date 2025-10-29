@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Animated, Dimensions, RefreshControl, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -215,6 +215,38 @@ const HomeScreen: React.FC = () => {
       fetchCreditLimits();
       fetchLoanList();
     }, [])
+  );
+
+  // Handle hardware back button on HomeScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Show confirmation dialog when user tries to exit the app from home screen
+        Alert.alert(
+          t('dialogs.exitApp'),
+          t('dialogs.exitAppMessage'),
+          [
+            {
+              text: t('common.cancel'),
+              onPress: () => null,
+              style: 'cancel',
+            },
+            {
+              text: t('dialogs.exit'),
+              onPress: () => BackHandler.exitApp(),
+            },
+          ],
+          { cancelable: false }
+        );
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [t])
   );
 
   // Helper function to get latest active loan
@@ -577,7 +609,7 @@ const HomeScreen: React.FC = () => {
           </ScrollView>
         </View>
 
-        {/* Second Row of Promotions */}
+        {/* Special Deals */}
         <View style={styles.sectionSecond}>
           <Text style={styles.sectionTitle}>{t('home.specialDeals')}</Text>
           <ScrollView
@@ -586,8 +618,8 @@ const HomeScreen: React.FC = () => {
             style={styles.promoScrollView}
             contentContainerStyle={styles.promoScrollContent}
           >
-            {promotions.length > 0 ? promotions.map((promo, index) => (
-              <TouchableOpacity key={`special-${promo.promotionId}-${index}`} style={styles.promoCard}>
+            {/* {promotions.length > 0 ? promotions.map((promo) => (
+              <TouchableOpacity key={`special-${promo.promotionId}`} style={[styles.promoCard, styles.specialDealCard]}>
                 {promo.promotionImageLink && (
                   <OptimizedImage
                     source={{ uri: promo.promotionImageLink }}
@@ -597,23 +629,24 @@ const HomeScreen: React.FC = () => {
                     priority="normal"
                     showLoadingIndicator={true}
                     fallbackIcon="pricetag-outline"
-                    fallbackText="Special Offer"
+                    fallbackText="Special Deal"
                   />
-                )}
-                <LinearGradient
-                  colors={['transparent', 'rgba(0, 0, 0, 0.2)', 'rgba(0, 0, 0, 0.8)']}
+                )} */}
+                {/* <LinearGradient
+                  colors={['transparent', 'rgba(139, 69, 19, 0.2)', 'rgba(139, 69, 19, 0.9)']} // Different gradient for special deals
                   locations={[0, 0.5, 1]}
                   style={styles.promoOverlay}
                 >
                   <Text style={styles.promoText}>{promo.promotionName}</Text>
-                  <Text style={styles.promoBold}>{promo.discount}% OFF</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                  <Text style={[styles.promoBold, styles.specialDealBold]}>{promo.discount}% OFF</Text>
+                  <Text style={styles.specialDealLabel}>SPECIAL</Text>
+                </LinearGradient> */}
+              {/* </TouchableOpacity>
             )) : (
               <View style={styles.noPromotionsContainer}>
                 <Text style={styles.noPromotionsText}>{t('home.noSpecialDealsAvailable')}</Text>
               </View>
-            )}
+            )} */}
           </ScrollView>
         </View>
       </Animated.ScrollView>
@@ -939,4 +972,33 @@ const styles = StyleSheet.create({
   navButtonActive: { padding: 8, borderRadius: 10 },
   navLabel: { fontSize: 12, color: '#999', marginTop: 4 },
   navLabelActive: { color: '#090B1A', fontWeight: 'bold' },
+});
+
+// Add these additional styles
+const additionalStyles = StyleSheet.create({
+  specialDealCard: {
+    borderWidth: 2,
+    borderColor: '#FFD700', // Gold border for special deals
+  },
+  specialDealBold: {
+    color: '#FFD700', // Gold text for special deals
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  specialDealLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFD700',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: 'hidden',
+    textAlign: 'center',
+    marginTop: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
 });

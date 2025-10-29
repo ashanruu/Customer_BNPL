@@ -7,8 +7,9 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../../components/CustomButton';
 import { fetchOrderDetails, createLoan } from '../../scripts/api';
@@ -54,16 +55,26 @@ const OrderPageScreen: React.FC = () => {
     try {
       const urlObj = new URL(url);
       
-      // Handle static QR: https://shop.bnplqr.hexdive.com/merchant/32
-      if (urlObj.hostname === 'shop.bnplqr.hexdive.com' && urlObj.pathname.startsWith('/merchant/')) {
-        const merchantId = urlObj.pathname.split('/merchant/')[1];
-        return merchantId || '';
-      }
-      
-      // Handle dynamic QR: https://bnplqr.hexdive.com?salecode=32
-      if (urlObj.hostname === 'bnplqr.hexdive.com') {
-        const saleCode = urlObj.searchParams.get('salecode');
-        return saleCode || '';
+      // Handle verified domain: https://merchant.bnpl.hexdive.com/...
+      if (urlObj.hostname === 'merchant.bnpl.hexdive.com') {
+        // Handle sale URLs: /sale/123
+        if (urlObj.pathname.startsWith('/sale/')) {
+          const saleCode = urlObj.pathname.split('/sale/')[1];
+          return saleCode || '';
+        }
+        
+        // Handle merchant URLs: /merchant/32
+        if (urlObj.pathname.startsWith('/merchant/')) {
+          const merchantId = urlObj.pathname.split('/merchant/')[1];
+          return merchantId || '';
+        }
+        
+        // Handle query parameters
+        const saleCode = urlObj.searchParams.get('salecode') || urlObj.searchParams.get('saleCode');
+        if (saleCode) return saleCode;
+        
+        const merchantId = urlObj.searchParams.get('merchantId') || urlObj.searchParams.get('merchantid');
+        if (merchantId) return merchantId;
       }
       
       return '';
@@ -160,6 +171,43 @@ const OrderPageScreen: React.FC = () => {
       setError(t('orderPage.noOrderIdAvailable'));
     }
   }, [orderId]);
+
+  // Handle hardware back button on OrderPageScreen
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Navigate back to previous screen
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          // Show confirmation dialog when user tries to exit the app
+          Alert.alert(
+            t('dialogs.exitApp'),
+            t('dialogs.exitAppMessage'),
+            [
+              {
+                text: t('common.cancel'),
+                onPress: () => null,
+                style: 'cancel',
+              },
+              {
+                text: t('dialogs.exit'),
+                onPress: () => BackHandler.exitApp(),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+        return true; // Prevent default back action
+      };
+
+      // Add event listener for hardware back button
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
+    }, [navigation, t])
+  );
 
   const handleContinue = async () => {
     if (!orderDetails.orderId || !orderDetails.saleId) {

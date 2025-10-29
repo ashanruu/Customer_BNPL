@@ -55,7 +55,7 @@ const ManualTabNavigator: React.FC = () => {
 
     const menuItems = [
         { label: t('navigation.myTickets'), icon: 'ticket-outline', screen: 'MyTickets' },
-        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'TermsAndConditions' },
+        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'LegalTermsAndConditions' },
         { label: t('navigation.settings'), icon: 'cog-outline', screen: 'Settings' },
         { label: t('navigation.logOut'), icon: 'logout', screen: 'Login', replace: true },
     ];
@@ -132,7 +132,7 @@ const ManualTabNavigator: React.FC = () => {
     const CurrentScreen = tabs[activeTab].component;
 
     return (
-        <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.container, { backgroundColor: themeColors.primary }]}>
             {/* Hamburger menu trigger */}
             <HamburgerMenu onPress={openDrawer} />
 
@@ -142,8 +142,8 @@ const ManualTabNavigator: React.FC = () => {
             </View>
 
             {/* Bottom tab bar */}
-            <View style={[styles.tabBarContainer, { backgroundColor: themeColors.background }]}>
-                <View style={[styles.tabBar, { backgroundColor: themeColors.background }]}>
+            <View style={[styles.tabBarContainer, { backgroundColor: themeColors.primary }]}>
+                <View style={[styles.tabBar, { backgroundColor: themeColors.primary }]}>
                     {tabs.map((tab, index) => {
                         const isFocused = activeTab === index;
                         return (
@@ -180,7 +180,7 @@ const ManualTabNavigator: React.FC = () => {
                         style={[
                             styles.drawer,
                             {
-                                backgroundColor: themeColors.background,
+                                backgroundColor: themeColors.primary,
                                 transform: [{ translateX: slideAnim }],
                             },
                         ]}

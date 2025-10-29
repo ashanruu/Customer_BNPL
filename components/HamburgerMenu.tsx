@@ -64,9 +64,9 @@ const HamburgerMenu: React.FC<Props> = ({ onPress }) => {
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity style={styles.planButton}>
+        {/* <TouchableOpacity style={styles.planButton}>
           <Text style={styles.planText}>Plan</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity onPress={() => setShowLanguageModal(true)} style={styles.languageButton}>
           <Ionicons name="language" size={22} color="#fff" style={styles.icon} />
         </TouchableOpacity>
