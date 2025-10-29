@@ -290,17 +290,27 @@ const SalesScreen: React.FC = () => {
   // URL validation function for BNPL QR codes
   const isValidSaleURL = (url: string): { isValid: boolean; orderId?: string } => {
     try {
-      // Pattern: https://bnplqr.hexdive.com/sale/{orderId}
-      const pattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
-      const match = url.trim().match(pattern);
+      // Pattern 1: https://merchant.bnpl.hexdive.com/sale/{orderId}
+      const merchantPattern = /^https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/(.+)$/;
+      const merchantMatch = url.trim().match(merchantPattern);
       
-      if (match && match[1]) {
-        const orderId = match[1].trim();
-        console.log('Extracted order ID:', orderId);
+      if (merchantMatch && merchantMatch[1]) {
+        const orderId = merchantMatch[1].trim();
+        console.log('Extracted order ID from merchant URL:', orderId);
         return { isValid: true, orderId: orderId };
       }
       
-      console.log('URL does not match expected pattern:', url);
+      // Pattern 2: https://bnplqr.hexdive.com/sale/{orderId} (legacy support)
+      const bnplqrPattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
+      const bnplqrMatch = url.trim().match(bnplqrPattern);
+      
+      if (bnplqrMatch && bnplqrMatch[1]) {
+        const orderId = bnplqrMatch[1].trim();
+        console.log('Extracted order ID from bnplqr URL:', orderId);
+        return { isValid: true, orderId: orderId };
+      }
+      
+      console.log('URL does not match expected patterns:', url);
       return { isValid: false };
     } catch (error) {
       console.error('URL validation error:', error);

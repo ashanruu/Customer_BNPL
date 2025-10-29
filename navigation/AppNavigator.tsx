@@ -50,11 +50,11 @@ const AppNavigator = () => {
       initialRouteName="Splash"
       screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen
-        name="Splash"
-        component={SplashScreen}
-        options={{ gestureEnabled: false }}
-      />
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+          options={{ gestureEnabled: false }}
+        />
 
       <Stack.Screen name="Main" component={ManualTabNavigator} />
 
