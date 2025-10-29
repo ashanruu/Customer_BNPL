@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import OptimizedImage from '../../components/OptimizedImage';
 import { callMobileApi } from '../../scripts/api';
 
@@ -30,6 +31,7 @@ interface StoreDetails {
 }
 
 const ShopDetailsScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { merchant, merchantId } = route.params;
@@ -95,30 +97,30 @@ const ShopDetailsScreen: React.FC = () => {
   const handleStoreLink = (storeLink: string, storeType: string) => {
     if (storeLink && storeLink.trim() !== '') {
       Linking.openURL(storeLink).catch(() => {
-        Alert.alert('Error', `Could not open ${storeType.toLowerCase()} store link`);
+        Alert.alert(t('shop.errorOpeningLink'), t('shop.couldNotOpenLink', { type: storeType.toLowerCase() }));
       });
     } else {
-      Alert.alert('Not Available', `${storeType} store link is not available`);
+      Alert.alert(t('shop.notAvailable'), t('shop.linkNotAvailable', { type: storeType }));
     }
   };
 
   const handleCall = (phoneNumber: string) => {
     if (phoneNumber && phoneNumber.trim() !== '') {
       Linking.openURL(`tel:${phoneNumber}`).catch(() => {
-        Alert.alert('Error', 'Could not make phone call');
+        Alert.alert(t('shop.errorOpeningLink'), t('shop.couldNotMakeCall'));
       });
     } else {
-      Alert.alert('Not Available', 'Phone number is not available');
+      Alert.alert(t('shop.notAvailable'), t('shop.phoneNotAvailable'));
     }
   };
 
   const handleEmail = (email: string) => {
     if (email && email.trim() !== '') {
       Linking.openURL(`mailto:${email}`).catch(() => {
-        Alert.alert('Error', 'Could not open email client');
+        Alert.alert(t('shop.errorOpeningLink'), t('shop.couldNotOpenEmail'));
       });
     } else {
-      Alert.alert('Not Available', 'Email address is not available');
+      Alert.alert(t('shop.notAvailable'), t('shop.emailNotAvailable'));
     }
   };
 
@@ -126,17 +128,17 @@ const ShopDetailsScreen: React.FC = () => {
     if (address && address.trim() !== '') {
       const url = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
       Linking.openURL(url).catch(() => {
-        Alert.alert('Error', 'Could not open maps');
+        Alert.alert(t('shop.errorOpeningLink'), t('shop.couldNotOpenMaps'));
       });
     } else {
-      Alert.alert('Not Available', 'Store address is not available');
+      Alert.alert(t('shop.notAvailable'), t('shop.addressNotAvailable'));
     }
   };
 
   const formatOperatingHours = (hours: number) => {
-    if (hours === 0) return 'Not specified';
-    if (hours === 24) return '24 hours';
-    return `${hours} hours`;
+    if (hours === 0) return t('shop.notSpecified');
+    if (hours === 24) return t('shop.hours24');
+    return t('shop.hoursFormat', { hours });
   };
 
   const formatDate = (dateString: string) => {
@@ -165,14 +167,14 @@ const ShopDetailsScreen: React.FC = () => {
         </TouchableOpacity>
 
         <View style={styles.titleSection}>
-          <Text style={styles.headerTitle}>{merchant?.name || 'Store Details'}</Text>
+          <Text style={styles.headerTitle}>{merchant?.name || t('shop.storeDetails')}</Text>
         </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
-          <Text style={styles.loadingText}>Loading store details...</Text>
+          <Text style={styles.loadingText}>{t('shop.loadingStoreDetails')}</Text>
         </View>
       ) : (
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -215,14 +217,14 @@ const ShopDetailsScreen: React.FC = () => {
                       </Text>
                     </View>
                     <Text style={styles.storeAddedDate}>
-                      Added: {formatDate(store.dateAdded)}
+                      {t('shop.added')} {formatDate(store.dateAdded)}
                     </Text>
                   </View>
 
                   <View style={styles.storeStatus}>
                     <View style={[styles.statusBadge, { backgroundColor: store.isActive ? '#10B981' : '#EF4444' }]}>
                       <Text style={styles.statusText}>
-                        {store.isActive ? 'Active' : 'Inactive'}
+                        {store.isActive ? t('shop.active') : t('shop.inactive')}
                       </Text>
                     </View>
                   </View>
@@ -240,7 +242,7 @@ const ShopDetailsScreen: React.FC = () => {
                         <Ionicons name="call-outline" size={18} color="#6B7280" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>Phone</Text>
+                        <Text style={styles.detailLabel}>{t('shop.phone')}</Text>
                         <Text style={styles.detailValue}>{store.storeContactNumber}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
@@ -257,7 +259,7 @@ const ShopDetailsScreen: React.FC = () => {
                         <Ionicons name="mail-outline" size={18} color="#6B7280" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>Email</Text>
+                        <Text style={styles.detailLabel}>{t('shop.email')}</Text>
                         <Text style={styles.detailValue}>{store.storeEmail}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
@@ -274,7 +276,7 @@ const ShopDetailsScreen: React.FC = () => {
                         <Ionicons name="location-outline" size={18} color="#6B7280" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>Address</Text>
+                        <Text style={styles.detailLabel}>{t('shop.address')}</Text>
                         <Text style={styles.detailValue}>{store.storeAddress}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
@@ -288,8 +290,8 @@ const ShopDetailsScreen: React.FC = () => {
                         <Ionicons name="time-outline" size={18} color="#6B7280" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>Operating Hours</Text>
-                        <Text style={styles.detailValue}>{formatOperatingHours(store.operatingHours)}</Text>
+                        <Text style={styles.detailLabel}>{t('shop.operatingHours')}</Text>
+                        <Text style={styles.detailValue}>{store.operatingHours}</Text>
                       </View>
                     </View>
                   )}
@@ -304,7 +306,7 @@ const ShopDetailsScreen: React.FC = () => {
                         <Ionicons name="link-outline" size={18} color="#6B7280" />
                       </View>
                       <View style={styles.detailContent}>
-                        <Text style={styles.detailLabel}>{store.storeType} Store Link</Text>
+                        <Text style={styles.detailLabel}>{store.storeType} {t('shop.storeLink')}</Text>
                         <Text style={styles.detailValue} numberOfLines={1}>{store.storeLink}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
@@ -321,7 +323,7 @@ const ShopDetailsScreen: React.FC = () => {
                     >
                       <Ionicons name={getStoreTypeIcon(store.storeType)} size={16} color="#fff" />
                       <Text style={styles.actionButtonText}>
-                        Visit {store.storeType} Store
+                        {t('shop.visitStore', { storeType: store.storeType })}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -331,9 +333,9 @@ const ShopDetailsScreen: React.FC = () => {
           ) : (
             <View style={styles.noDataContainer}>
               <Ionicons name="storefront-outline" size={60} color="#C7C7CC" />
-              <Text style={styles.noDataTitle}>No Store Details</Text>
+              <Text style={styles.noDataTitle}>{t('shop.noStoreDetails')}</Text>
               <Text style={styles.noDataText}>
-                No detailed information is available for this merchant's stores.
+                {t('shop.noStoreDetailsDesc')}
               </Text>
             </View>
           )}

@@ -71,12 +71,12 @@ const PrivacySettingsScreen: React.FC = () => {
       await AsyncStorage.setItem('privacySettings', JSON.stringify(settings));
       Alert.alert(
         t('common.success'),
-        'Privacy settings saved successfully',
+        t('privacy.settingsUpdated'),
         [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       console.error('Error saving privacy settings:', error);
-      Alert.alert(t('common.error'), 'Failed to save privacy settings');
+      Alert.alert(t('common.error'), t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -91,16 +91,16 @@ const PrivacySettingsScreen: React.FC = () => {
 
   const handleDataDeletion = () => {
     Alert.alert(
-      'Delete Personal Data',
-      'This will permanently delete all your personal data. This action cannot be undone. Are you sure you want to continue?',
+      t('privacy.deletePersonalData'),
+      t('privacy.deleteDataConfirm'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Data Deletion Request',
+              t('common.success'),
               'Your data deletion request has been submitted. You will receive a confirmation email within 24 hours.',
               [{ text: t('common.ok') }]
             );
@@ -112,15 +112,15 @@ const PrivacySettingsScreen: React.FC = () => {
 
   const handleDataExport = () => {
     Alert.alert(
-      'Export Personal Data',
-      'We will prepare your personal data and send you a download link via email within 48 hours.',
+      t('privacy.exportPersonalData'),
+      t('privacy.exportDataConfirm'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Export',
+          text: t('common.ok'),
           onPress: () => {
             Alert.alert(
-              'Export Request Submitted',
+              t('common.success'),
               'You will receive an email with your data export link within 48 hours.',
               [{ text: t('common.ok') }]
             );
@@ -130,13 +130,15 @@ const PrivacySettingsScreen: React.FC = () => {
     );
   };
 
+  // FIXED: Updated PrivacyItem component to handle color prop
   const PrivacyItem = ({ 
     title, 
     description, 
     value, 
     onToggle, 
     icon,
-    isRequired = false
+    isRequired = false,
+    color // ADD: color prop
   }: {
     title: string;
     description: string;
@@ -144,6 +146,7 @@ const PrivacySettingsScreen: React.FC = () => {
     onToggle: () => void;
     icon: string;
     isRequired?: boolean;
+    color?: string; // ADD: optional color prop type
   }) => (
     <View style={styles.privacyItem}>
       <View style={styles.privacyContent}>
@@ -151,17 +154,17 @@ const PrivacySettingsScreen: React.FC = () => {
           <MaterialCommunityIcons 
             name={icon} 
             size={22} 
-            color={value ? Colors.light.tint : Colors.light.mutedText} 
+            color={value ? (color || Colors.light.tint) : Colors.light.mutedText} // USE: color prop with fallback
           />
         </View>
         <View style={styles.textContainer}>
           <View style={styles.titleRow}>
-            <MainText size="medium" weight="semibold">
+            <MainText size="medium" weight="bold">
               {title}
             </MainText>
             {isRequired && (
               <View style={styles.requiredBadge}>
-                <SubText size="xsmall" style={styles.requiredText}>
+                <SubText size="small" style={styles.requiredText}>
                   Required
                 </SubText>
               </View>
@@ -175,8 +178,11 @@ const PrivacySettingsScreen: React.FC = () => {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: '#E5E7EB', true: Colors.light.tint + '40' }}
-        thumbColor={value ? Colors.light.tint : '#9CA3AF'}
+        trackColor={{ 
+          false: '#E5E7EB', 
+          true: (color || Colors.light.tint) + '40' // USE: color prop for track
+        }}
+        thumbColor={value ? (color || Colors.light.tint) : '#9CA3AF'} // USE: color prop for thumb
         disabled={isRequired}
       />
     </View>
@@ -205,7 +211,7 @@ const PrivacySettingsScreen: React.FC = () => {
           />
         </View>
         <View style={styles.textContainer}>
-          <MainText size="medium" weight="semibold" style={isDanger && styles.dangerText}>
+          <MainText size="medium" weight="bold" style={isDanger ? styles.dangerText : undefined}>
             {title}
           </MainText>
           <SubText size="small" style={styles.description}>
@@ -223,18 +229,18 @@ const PrivacySettingsScreen: React.FC = () => {
 
   const ProfileVisibilitySelector = () => (
     <View style={styles.visibilitySection}>
-      <MainText size="medium" weight="semibold" style={styles.visibilityTitle}>
-        Profile Visibility
+      <MainText size="medium" weight="bold" style={styles.visibilityTitle}>
+        {t('privacy.profileVisibility')}
       </MainText>
       <SubText size="small" style={styles.visibilityDescription}>
-        Choose who can see your profile information
+        {t('privacy.profileVisibilityDesc')}
       </SubText>
       
       <View style={styles.visibilityOptions}>
         {[
-          { key: 'public', label: 'Public', description: 'Anyone can see your profile' },
-          { key: 'private', label: 'Private', description: 'Only you can see your profile' },
-          { key: 'friends', label: 'Friends Only', description: 'Only your connections can see' }
+          { key: 'public', label: t('privacy.profilePublic'), description: t('privacy.profilePublicDesc') },
+          { key: 'private', label: t('privacy.profilePrivate'), description: t('privacy.profilePrivateDesc') },
+          { key: 'friends', label: t('privacy.profileFriends'), description: t('privacy.profileFriendsDesc') }
         ].map((option) => (
           <TouchableOpacity
             key={option.key}
@@ -245,7 +251,7 @@ const PrivacySettingsScreen: React.FC = () => {
             onPress={() => toggleSetting('profileVisibility', option.key)}
           >
             <View style={styles.visibilityOptionContent}>
-              <MainText size="medium" weight="medium">
+              <MainText size="medium" weight="normal">
                 {option.label}
               </MainText>
               <SubText size="small" style={styles.visibilityOptionDescription}>
@@ -278,7 +284,7 @@ const PrivacySettingsScreen: React.FC = () => {
         </TouchableOpacity>
         
         <MainText size="large" weight="bold" style={styles.headerTitle}>
-          Privacy Settings
+          {t('privacy.title')}
         </MainText>
       </View>
 
@@ -289,146 +295,150 @@ const PrivacySettingsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          {/* Data Collection Section */}
-          {/* <View style={styles.section}>
-            <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              Data Collection & Usage
-            </MainText>
-            <SubText size="small" style={styles.sectionDescription}>
-              Control how we collect and use your data
-            </SubText>
-
-            <PrivacyItem
-              title="Essential Data Collection"
-              description="Required for app functionality and security"
-              value={settings.dataCollection}
-              onToggle={() => toggleSetting('dataCollection')}
-              icon="database-outline"
-              isRequired={true}
-            />
-
-            <PrivacyItem
-              title="Analytics & Performance"
-              description="Help us improve the app with usage analytics"
-              value={settings.analytics}
-              onToggle={() => toggleSetting('analytics')}
-              icon="chart-line"
-            />
-
-            <PrivacyItem
-              title="Crash Reporting"
-              description="Automatically send crash reports to improve stability"
-              value={settings.crashReporting}
-              onToggle={() => toggleSetting('crashReporting')}
-              icon="bug-outline"
-            />
-
-            <PrivacyItem
-              title="Activity Tracking"
-              description="Track your app usage patterns for personalization"
-              value={settings.activityTracking}
-              onToggle={() => toggleSetting('activityTracking')}
-              icon="timeline-outline"
-            />
-          </View> */}
-
           {/* Permissions Section */}
           <View style={styles.section}>
             <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              App Permissions
+              {t('privacy.permissions')}
             </MainText>
             <SubText size="small" style={styles.sectionDescription}>
-              Manage what the app can access on your device
+              {t('privacy.permissionsDesc')}
             </SubText>
 
             <PrivacyItem
-              title="Location Access"
-              description="Use your location for location-based services"
+              title={t('privacy.locationTracking')}
+              description={t('privacy.locationTrackingDesc')}
               value={settings.locationTracking}
               onToggle={() => toggleSetting('locationTracking')}
               icon="map-marker-outline"
+              color={Colors.light.primary}
             />
 
             <PrivacyItem
-              title="Camera Access"
-              description="Access camera for QR scanning and photos"
+              title={t('privacy.cameraAccess')}
+              description={t('privacy.cameraAccessDesc')}
               value={settings.cameraAccess}
               onToggle={() => toggleSetting('cameraAccess')}
               icon="camera-outline"
+              color={Colors.light.primary}
             />
 
             <PrivacyItem
-              title="Storage Access"
-              description="Save and access files on your device"
+              title={t('privacy.storageAccess')}
+              description={t('privacy.storageAccessDesc')}
               value={settings.storageAccess}
               onToggle={() => toggleSetting('storageAccess')}
               icon="folder-outline"
+              color={Colors.light.primary} // This will now work properly
             />
 
             <PrivacyItem
-              title="Contacts Access"
-              description="Access your contacts for referrals and invites"
+              title={t('privacy.contactsAccess')}
+              description={t('privacy.contactsAccessDesc')}
               value={settings.contactsAccess}
               onToggle={() => toggleSetting('contactsAccess')}
               icon="contacts-outline"
+              color={Colors.light.primary}
             />
           </View>
 
-          {/* Profile Visibility Section
-          <View style={styles.section}>
-            <ProfileVisibilitySelector />
-          </View> */}
-
-          {/* Sharing & Marketing Section
+          {/* Data Management Section */}
           <View style={styles.section}>
             <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              Sharing & Marketing
+              {t('privacy.dataManagement')}
             </MainText>
             <SubText size="small" style={styles.sectionDescription}>
-              Control how your data is shared and used for marketing
+              {t('privacy.dataManagementDesc')}
             </SubText>
 
             <PrivacyItem
-              title="Third-party Sharing"
-              description="Allow sharing data with trusted partners"
+              title={t('privacy.dataCollection')}
+              description={t('privacy.dataCollectionDesc')}
+              value={settings.dataCollection}
+              onToggle={() => toggleSetting('dataCollection')}
+              icon="database-outline"
+              color={Colors.light.primary}
+            />
+
+            <PrivacyItem
+              title={t('privacy.analytics')}
+              description={t('privacy.analyticsDesc')}
+              value={settings.analytics}
+              onToggle={() => toggleSetting('analytics')}
+              icon="chart-line"
+              color={Colors.light.primary}
+            />
+
+            <PrivacyItem
+              title={t('privacy.crashReporting')}
+              description={t('privacy.crashReportingDesc')}
+              value={settings.crashReporting}
+              onToggle={() => toggleSetting('crashReporting')}
+              icon="bug-outline"
+              color={Colors.light.primary}
+            />
+          </View>
+
+          {/* Data Sharing Section */}
+          <View style={styles.section}>
+            <MainText size="medium" weight="bold" style={styles.sectionTitle}>
+              {t('privacy.sharing')}
+            </MainText>
+            <SubText size="small" style={styles.sectionDescription}>
+              {t('privacy.sharingDesc')}
+            </SubText>
+
+            <PrivacyItem
+              title={t('privacy.thirdPartySharing')}
+              description={t('privacy.thirdPartySharingDesc')}
               value={settings.thirdPartySharing}
               onToggle={() => toggleSetting('thirdPartySharing')}
               icon="share-variant-outline"
+              color={Colors.light.primary}
             />
 
             <PrivacyItem
-              title="Marketing Communications"
-              description="Receive personalized marketing emails"
+              title={t('privacy.marketingEmails')}
+              description={t('privacy.marketingEmailsDesc')}
               value={settings.marketingEmails}
               onToggle={() => toggleSetting('marketingEmails')}
               icon="email-newsletter"
+              color={Colors.light.primary}
             />
-          </View> */}
 
-          {/* Data Management Section
+            <PrivacyItem
+              title={t('privacy.activityTracking')}
+              description={t('privacy.activityTrackingDesc')}
+              value={settings.activityTracking}
+              onToggle={() => toggleSetting('activityTracking')}
+              icon="history"
+              color={Colors.light.primary}
+            />
+
+            {/* Profile Visibility Selector */}
+            <ProfileVisibilitySelector />
+          </View>
+
+          {/* Data Actions Section */}
           <View style={styles.section}>
             <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              Data Management
+              Data Actions
             </MainText>
-            <SubText size="small" style={styles.sectionDescription}>
-              Manage your personal data and privacy rights
-            </SubText>
-
+            
             <ActionItem
-              title="Export My Data"
-              description="Download a copy of all your personal data"
+              title={t('privacy.exportPersonalData')}
+              description={t('privacy.exportDataDesc')}
               onPress={handleDataExport}
               icon="download-outline"
             />
 
             <ActionItem
-              title="Delete My Data"
-              description="Permanently delete all your personal data"
+              title={t('privacy.deletePersonalData')}
+              description={t('privacy.deleteDataDesc')}
               onPress={handleDataDeletion}
               icon="delete-outline"
               isDanger={true}
             />
-          </View> */}
+          </View>
 
           {/* Info Section */}
           <View style={styles.infoSection}>
@@ -440,8 +450,7 @@ const PrivacySettingsScreen: React.FC = () => {
                 style={styles.infoIcon}
               />
               <SubText size="small" style={styles.infoText}>
-                We are committed to protecting your privacy. For more details about how we 
-                handle your data, please read our Privacy Policy and Terms of Service.
+                {t('privacy.info')}
               </SubText>
             </View>
           </View>
@@ -451,7 +460,7 @@ const PrivacySettingsScreen: React.FC = () => {
       {/* Fixed Footer with Save Button */}
       <View style={styles.footer}>
         <CustomButton
-          title="Save Privacy Settings"
+          title={t('common.save')}
           onPress={savePrivacySettings}
           loading={loading}
           style={styles.saveButton}

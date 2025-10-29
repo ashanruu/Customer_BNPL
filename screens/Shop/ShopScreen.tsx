@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { callMerchantApi, callMobileApi } from '../../scripts/api';
 import OptimizedImage from '../../components/OptimizedImage';
@@ -56,6 +57,7 @@ const NavButton: React.FC<NavButtonProps> = ({ label, icon, active, onPress }) =
 );
 
 const ShopScreen: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('ShopScreen');
   const [promotions, setPromotions] = useState<any[]>([]);
@@ -64,7 +66,7 @@ const ShopScreen: React.FC = () => {
   const [featuredShops, setFeaturedShops] = useState<any[]>([]);
   const [newArrivals, setNewArrivals] = useState<any[]>([]); // Original shop data
   
-  // NEW: Filtered data states
+  // Filtered data states for search only
   const [filteredMerchants, setFilteredMerchants] = useState<any[]>([]);
   const [filteredPromotions, setFilteredPromotions] = useState<any[]>([]);
   
@@ -72,11 +74,8 @@ const ShopScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [shopsLoading, setShopsLoading] = useState(false);
   
-  // NEW: Filter states
+  // Search state only (removed category/tag filter states)
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
-  const [filterLoading, setFilterLoading] = useState(false);
   
   // Banner transition states
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -105,24 +104,18 @@ const ShopScreen: React.FC = () => {
     fetchShops();
   }, []);
 
-  // NEW: Apply all filters when search query, category, or tag changes
+  // Apply search filter only
   useEffect(() => {
-    applyAllFilters();
-  }, [searchQuery, selectedCategoryId, selectedTagId, newArrivals, promotions]);
+    applySearchFilter();
+  }, [searchQuery, newArrivals, promotions]);
 
-  // NEW: Comprehensive filter function for both shops and promotions
-  const applyAllFilters = async () => {
+  // Search filter function (no category/tag filtering on home screen)
+  const applySearchFilter = () => {
     try {
       let baseShops = newArrivals;
       let basePromotions = promotions;
 
-      // Step 1: Apply category or tag filter if selected
-      if (selectedCategoryId || selectedTagId) {
-        baseShops = await fetchFilteredShops();
-        // Note: Promotions don't have category/tag filters in the current API
-      }
-
-      // Step 2: Apply search filter
+      // Apply search filter only
       if (searchQuery.trim()) {
         // Filter merchants
         const searchFiltered = baseShops.filter((merchant: any) => {
@@ -158,29 +151,28 @@ const ShopScreen: React.FC = () => {
         setFilteredMerchants(searchFiltered);
         setFilteredPromotions(promotionFiltered);
       } else {
-        // No search query, show base data
+        // No search query, show all data
         setFilteredMerchants(baseShops);
         setFilteredPromotions(basePromotions);
       }
     } catch (error) {
-      console.error("Error applying filters:", error);
+      console.error("Error applying search filter:", error);
       setFilteredMerchants([]);
       setFilteredPromotions([]);
     }
   };
 
-  // UPDATED: Function to fetch filtered shops (returns data instead of setting state)
-  const fetchFilteredShops = async (): Promise<any[]> => {
+  // UPDATED: Check if category/tag has results and navigate accordingly
+  const checkAndNavigateToFilter = async (filterType: 'category' | 'tag', filterId: number, filterName: string) => {
     try {
-      setFilterLoading(true);
-      console.log("Fetching filtered shops...");
+      console.log(`Checking ${filterType}:`, filterId, filterName);
       
-      // Prepare payload based on selected filter
+      // Prepare payload based on filter type
       let payload = {};
-      if (selectedCategoryId) {
-        payload = { categoryId: selectedCategoryId };
-      } else if (selectedTagId) {
-        payload = { tagId: selectedTagId };
+      if (filterType === 'category') {
+        payload = { categoryId: filterId };
+      } else {
+        payload = { tagId: filterId };
       }
 
       const response = await callMobileApi(
@@ -191,99 +183,57 @@ const ShopScreen: React.FC = () => {
         'customer'
       );
 
-      console.log("=== FILTER RESPONSE ===");
+      console.log("=== FILTER CHECK RESPONSE ===");
       console.log("Payload:", payload);
       console.log("Response:", JSON.stringify(response, null, 2));
 
       if (response.statusCode === 200 && response.data && Array.isArray(response.data)) {
-        const merchantsData = response.data;
-        const groupedMerchants: any[] = [];
+        const storesData = response.data;
+        
+        // FIXED: Check if we have any valid stores (the response contains stores directly, not merchants)
+        const validStores = storesData.filter((store: any) => 
+          store.storeId && 
+          store.fK_MerchantId && 
+          store.storeName && 
+          store.isActive !== false
+        );
 
-        // Process filtered merchants same as fetchShops
-        merchantsData.forEach((merchant: Merchant) => {
-          if (merchant.stores && Array.isArray(merchant.stores) && merchant.stores.length > 0) {
-            const storeTypes: string[] = [];
-            let prioritizedImage: string | null = null;
-            let merchantName: string = '';
-            
-            const sortedStores = merchant.stores.sort((a: Store, b: Store) => {
-              const priority: { [key: string]: number } = { 'Physical': 1, 'Online': 2, 'FB': 3 };
-              return (priority[a.storeType || ''] || 999) - (priority[b.storeType || ''] || 999);
-            });
+        console.log(`Found ${validStores.length} valid stores for ${filterType}: ${filterName}`);
 
-            sortedStores.forEach((store: Store) => {
-              if (store.storeType && !storeTypes.includes(store.storeType)) {
-                storeTypes.push(store.storeType);
-              }
-              
-              if (!merchantName && store.storeName) {
-                merchantName = store.storeName;
-              }
-              
-              if (!prioritizedImage && store.storeProfileImageUrl && store.storeProfileImageUrl.trim() !== '') {
-                prioritizedImage = store.storeProfileImageUrl;
-              }
-            });
-
-            if (merchantName && storeTypes.length > 0) {
-              const groupedMerchant = {
-                id: `merchant_${merchant.merchantId}`,
-                merchantId: merchant.merchantId,
-                name: merchantName,
-                storeTypes: storeTypes,
-                imageUrl: prioritizedImage,
-                stores: sortedStores,
-                hasMultipleTypes: storeTypes.length > 1,
-              };
-
-              groupedMerchants.push(groupedMerchant);
-            }
-          }
-        });
-
-        console.log("Filtered merchants:", groupedMerchants.length);
-        return groupedMerchants;
-
+        if (validStores.length > 0) {
+          console.log(`Navigating to CategoryShopsScreen with ${validStores.length} stores...`);
+          // Navigate to filter results screen
+          navigation.navigate('CategoryShopsScreen', {
+            filterId: filterId,
+            filterName: filterName,
+            filterType: filterType,
+            payload: payload
+          });
+        } else {
+          console.log(`No valid stores found for ${filterType}: ${filterName}. Staying on home screen.`);
+          // Optional: Show a toast or alert message
+          // You can add a toast notification here if needed
+        }
       } else {
-        console.log("No filtered data found");
-        return [];
+        console.log(`No data found for ${filterType}: ${filterName}. Staying on home screen.`);
+        // Optional: Show a message to user
       }
     } catch (error) {
-      console.error("Error fetching filtered shops:", error);
-      return [];
-    } finally {
-      setFilterLoading(false);
+      console.error(`Error checking ${filterType} filter:`, error);
+      // Stay on home screen on error
     }
   };
 
-  // NEW: Handle category filter
-  const handleCategoryFilter = (categoryId: number, categoryName: string) => {
-    console.log("Selected category:", categoryId, categoryName);
-    
-    if (selectedCategoryId === categoryId) {
-      // If same category clicked, clear filter
-      setSelectedCategoryId(null);
-      setSelectedTagId(null);
-    } else {
-      // Set new category filter and clear tag filter
-      setSelectedCategoryId(categoryId);
-      setSelectedTagId(null);
-    }
+  // NEW: Handle category press
+  const handleCategoryPress = (categoryId: number, categoryName: string) => {
+    console.log("Category pressed:", categoryId, categoryName);
+    checkAndNavigateToFilter('category', categoryId, categoryName);
   };
 
-  // NEW: Handle tag filter
-  const handleTagFilter = (tagId: number, tagName: string) => {
-    console.log("Selected tag:", tagId, tagName);
-    
-    if (selectedTagId === tagId) {
-      // If same tag clicked, clear filter
-      setSelectedTagId(null);
-      setSelectedCategoryId(null);
-    } else {
-      // Set new tag filter and clear category filter
-      setSelectedTagId(tagId);
-      setSelectedCategoryId(null);
-    }
+  // NEW: Handle tag press
+  const handleTagPress = (tagId: number, tagName: string) => {
+    console.log("Tag pressed:", tagId, tagName);
+    checkAndNavigateToFilter('tag', tagId, tagName);
   };
 
   // Handle search input change
@@ -293,13 +243,6 @@ const ShopScreen: React.FC = () => {
 
   // Clear search
   const clearSearch = () => {
-    setSearchQuery('');
-  };
-
-  // NEW: Clear all filters
-  const clearAllFilters = () => {
-    setSelectedCategoryId(null);
-    setSelectedTagId(null);
     setSearchQuery('');
   };
 
@@ -563,7 +506,7 @@ const ShopScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('shop.loading')}</Text>
       </View>
     );
   }
@@ -571,11 +514,11 @@ const ShopScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* UPDATED: Enhanced Search Bar with clear functionality */}
+        {/* Search Bar */}
         <View style={styles.searchBarContainer}>
           <View style={styles.searchBar}>
             <TextInput
-              placeholder="Search shops, promotions..."
+              placeholder={t('shop.searchPlaceholder')}
               placeholderTextColor="#999"
               style={styles.searchInput}
               value={searchQuery}
@@ -591,49 +534,20 @@ const ShopScreen: React.FC = () => {
             )}
           </View>
           
-          {/* NEW: Active Filters Indicator */}
-          {(selectedCategoryId || selectedTagId || searchQuery) && (
-            <View style={styles.activeFiltersContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {searchQuery && (
-                  <View style={styles.activeFilterTag}>
-                    <Text style={styles.activeFilterText}>Search: "{searchQuery}"</Text>
-                  </View>
-                )}
-                
-                {selectedCategoryId && (
-                  <View style={styles.activeFilterTag}>
-                    <Text style={styles.activeFilterText}>
-                      Category: {categories.find(c => c.categoryId === selectedCategoryId)?.categoryName || 'Selected'}
-                    </Text>
-                  </View>
-                )}
-                
-                {selectedTagId && (
-                  <View style={styles.activeFilterTag}>
-                    <Text style={styles.activeFilterText}>
-                      Tag: {tags.find(t => t.tagId === selectedTagId)?.tagName || 'Selected'}
-                    </Text>
-                  </View>
-                )}
-                
-                <TouchableOpacity style={styles.clearAllFiltersButton} onPress={clearAllFilters}>
-                  <Text style={styles.clearAllFiltersText}>Clear All</Text>
-                  <Ionicons name="close" size={16} color="#ff6b6b" />
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          )}
-          
-          {/* NEW: Search Results Summary */}
+          {/* Search Results Summary */}
           {searchQuery && (
             <View style={styles.searchResultsContainer}>
               <Text style={styles.searchResultsText}>
-                Found {filteredMerchants.length} {filteredMerchants.length === 1 ? 'shop' : 'shops'} and {filteredPromotions.length} {filteredPromotions.length === 1 ? 'promotion' : 'promotions'}
+                {t('shop.foundResults', {
+                  shopCount: filteredMerchants.length,
+                  shopText: filteredMerchants.length === 1 ? t('shop.shop') : t('shop.shops'),
+                  promoCount: filteredPromotions.length,
+                  promoText: filteredPromotions.length === 1 ? t('shop.promotion') : t('shop.promotions')
+                })}
               </Text>
               {filteredMerchants.length === 0 && filteredPromotions.length === 0 && (
                 <Text style={styles.noResultsText}>
-                  Try searching with different keywords
+                  {t('shop.noResultsFound')}
                 </Text>
               )}
             </View>
@@ -641,75 +555,45 @@ const ShopScreen: React.FC = () => {
         </View>
         
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
-          {/* NEW: Filter Bar - Categories */}
+          {/* UPDATED: Categories - Now navigates to separate screen */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>Categories</Text>
+            <Text style={styles.filterTitle}>{t('shop.categories')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <TouchableOpacity 
-                style={[
-                  styles.filterButton, 
-                  (!selectedCategoryId && !selectedTagId) && styles.filterButtonActive
-                ]}
-                onPress={() => {
-                  setSelectedCategoryId(null);
-                  setSelectedTagId(null);
-                }}
-              >
-                <Text style={[
-                  styles.filterText,
-                  (!selectedCategoryId && !selectedTagId) && styles.filterTextActive
-                ]}>
-                  All
-                </Text>
-              </TouchableOpacity>
-              
               {categories.length > 0 ? categories.map((category, index) => (
                 <TouchableOpacity 
-                  key={category.categoryId || index} 
-                  style={[
-                    styles.filterButton,
-                    (selectedCategoryId === category.categoryId) && styles.filterButtonActive
-                  ]}
-                  onPress={() => handleCategoryFilter(category.categoryId, category.categoryName)}
+                  key={category.productCategoryId || index} 
+                  style={styles.filterButton}
+                  onPress={() => handleCategoryPress(category.productCategoryId, category.categoryName)}
                 >
-                  <Text style={[
-                    styles.filterText,
-                    (selectedCategoryId === category.categoryId) && styles.filterTextActive
-                  ]}>
-                    {category.categoryName || category.name || `Category ${index + 1}`}
+                  <Text style={styles.filterText}>
+                    {category.categoryName || `Category ${index + 1}`}
                   </Text>
                 </TouchableOpacity>
               )) : (
                 <View style={styles.emptyFilterContainer}>
-                  <Text style={styles.emptyFilterText}>No categories</Text>
+                  <Text style={styles.emptyFilterText}>{t('shop.noCategories')}</Text>
                 </View>
               )}
             </ScrollView>
           </View>
 
-          {/* NEW: Filter Bar - Tags */}
+          {/* UPDATED: Tags - Now navigates to separate screen */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>Tags</Text>
+            <Text style={styles.filterTitle}>{t('shop.tags')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
               {tags.length > 0 ? tags.map((tag, index) => (
                 <TouchableOpacity 
                   key={tag.tagId || index} 
-                  style={[
-                    styles.filterButton,
-                    (selectedTagId === tag.tagId) && styles.filterButtonActive
-                  ]}
-                  onPress={() => handleTagFilter(tag.tagId, tag.tagName)}
+                  style={styles.filterButton}
+                  onPress={() => handleTagPress(tag.tagId, tag.tagName)}
                 >
-                  <Text style={[
-                    styles.filterText,
-                    (selectedTagId === tag.tagId) && styles.filterTextActive
-                  ]}>
-                    {tag.tagName || tag.name || `Tag ${index + 1}`}
+                  <Text style={styles.filterText}>
+                    {tag.tagName || `Tag ${index + 1}`}
                   </Text>
                 </TouchableOpacity>
               )) : (
                 <View style={styles.emptyFilterContainer}>
-                  <Text style={styles.emptyFilterText}>No tags</Text>
+                  <Text style={styles.emptyFilterText}>{t('shop.noTags')}</Text>
                 </View>
               )}
             </ScrollView>
@@ -765,13 +649,13 @@ const ShopScreen: React.FC = () => {
             </View>
           )}
 
-          {/* UPDATED: Featured - Now shows filtered promotions */}
+          {/* Featured - Shows filtered promotions */}
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>
-              {searchQuery ? 'Filtered Promotions' : 'Featured'}
+              {searchQuery ? t('shop.filteredPromotions') : t('shop.featured')}
             </Text>
             <Text style={styles.resultCount}>
-              {filteredPromotions.length} {filteredPromotions.length === 1 ? 'promotion' : 'promotions'}
+              {filteredPromotions.length} {filteredPromotions.length === 1 ? t('shop.promotion') : t('shop.promotions')}
             </Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
@@ -822,23 +706,22 @@ const ShopScreen: React.FC = () => {
             )) : (
               <View style={styles.emptySection}>
                 <Text style={styles.emptySectionText}>
-                  {searchQuery ? `No promotions found for "${searchQuery}"` : "No promotions available"}
+                  {searchQuery ? t('shop.noPromotionsFoundFor', { query: searchQuery }) : t('shop.noPromotionsAvailable')}
                 </Text>
               </View>
             )}
           </ScrollView>
 
-          {/* UPDATED: New Arrivals - Now shows filtered shops */}
+          {/* New Arrivals - Shows filtered shops */}
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>
-              {searchQuery ? 'Filtered Shops' : 
-               (selectedCategoryId || selectedTagId) ? 'Filtered Shops' : 'New Arrivals'}
+              {searchQuery ? t('shop.searchResults') : t('shop.newArrivals')}
             </Text>
             <Text style={styles.resultCount}>
-              {filteredMerchants.length} {filteredMerchants.length === 1 ? 'shop' : 'shops'}
+              {filteredMerchants.length} {filteredMerchants.length === 1 ? t('shop.shop') : t('shop.shops')}
             </Text>
-            {(shopsLoading || filterLoading) && (
-              <Text style={styles.loadingText}>Loading...</Text>
+            {shopsLoading && (
+              <Text style={styles.loadingText}>{t('shop.loading')}</Text>
             )}
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalCards}>
@@ -905,9 +788,8 @@ const ShopScreen: React.FC = () => {
             )) : (
               <View style={styles.emptySection}>
                 <Text style={styles.emptySectionText}>
-                  {(shopsLoading || filterLoading) ? "Loading shops..." : 
-                   searchQuery ? `No shops found for "${searchQuery}"` :
-                   (selectedCategoryId || selectedTagId) ? "No shops found for this filter" : "No merchants available"}
+                  {shopsLoading ? t('shop.loadingShops') : 
+                   searchQuery ? t('shop.noShopsFoundFor', { query: searchQuery }) : t('shop.noMerchantsAvailable')}
                 </Text>
               </View>
             )}
@@ -920,7 +802,7 @@ const ShopScreen: React.FC = () => {
 
 export default ShopScreen;
 
-// UPDATED: Styles with new filter functionality
+// Styles remain the same as before...
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -939,7 +821,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   
-  // UPDATED: Enhanced search bar styles
+  // Search bar styles
   searchBarContainer: {
     paddingHorizontal: 16,
     marginTop: 10,
@@ -958,45 +840,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
   },
-  
-  // Clear button style
   clearButton: {
     padding: 2,
-  },
-  
-  // NEW: Active filters styles
-  activeFiltersContainer: {
-    marginTop: 8,
-    paddingBottom: 4,
-  },
-  activeFilterTag: {
-    backgroundColor: '#090B1A',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  activeFilterText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  clearAllFiltersButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ff6b6b',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  clearAllFiltersText: {
-    color: '#ff6b6b',
-    fontSize: 12,
-    fontWeight: '500',
-    marginRight: 4,
   },
   
   // Search results indicator styles
@@ -1016,7 +861,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // NEW: Filter bar styles
+  // Filter bar styles
   filterSection: {
     marginVertical: 6,
     paddingLeft: 16,
@@ -1045,18 +890,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  filterButtonActive: {
-    backgroundColor: '#090B1A',
-    borderColor: '#090B1A',
-  },
   filterText: {
     color: '#666',
     fontSize: 12,
     fontWeight: '500',
-  },
-  filterTextActive: {
-    color: '#fff',
-    fontWeight: '600',
   },
   emptyFilterContainer: {
     paddingHorizontal: 10,
@@ -1068,27 +905,11 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // NEW: Result count style
+  // Result count style
   resultCount: {
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
-  },
-  
-  categoryScroll: {
-    marginVertical: 8,
-    paddingLeft: 16,
-  },
-  categoryButton: {
-    backgroundColor: '#090B1A',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  categoryText: {
-    color: '#fff',
-    fontSize: 13,
   },
   
   // Auto slideshow banner styles

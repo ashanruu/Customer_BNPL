@@ -11,12 +11,14 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { callMobileApi, fetchCustomerCard, payInstallment } from '../../scripts/api';
 
 const OrderDetailsScreen = ({ route }: any) => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const { order, screenType } = route.params;
 
   const [loanData, setLoanData] = useState<any>(null);
@@ -50,20 +52,20 @@ const OrderDetailsScreen = ({ route }: any) => {
         circle: styles.circleCancelled,
         tag: { backgroundColor: "#FF5722" },
         text: { color: "#fff" },
-        settleLabel: "Cancelled:"
+        settleLabel: t('orderDetails.cancelled')
       };
     } else if (screenType === 'history') {
       return {
         tag: getStatusTagStyle(status),
         text: getStatusTextStyle(status),
-        settleLabel: "Settled:"
+        settleLabel: t('orderDetails.settled')
       };
     } else {
       // ongoing
       return {
         tag: getStatusTagStyle(status),
         text: getStatusTextStyle(status),
-        settleLabel: "Settled:"
+        settleLabel: t('orderDetails.settled')
       };
     }
   };
@@ -78,7 +80,7 @@ const OrderDetailsScreen = ({ route }: any) => {
 
       if (!loanData || !loanData.fK_CusId) {
         console.error('Customer ID not found in loan data');
-        Alert.alert('Error', 'Customer ID not found in loan data');
+        Alert.alert(t('common.error'), t('orderDetails.customerIdNotFound'));
         setPaymentOptions([]);
         return;
       }
@@ -171,13 +173,19 @@ const OrderDetailsScreen = ({ route }: any) => {
         setInstallments(updated);
 
         Alert.alert(
-          'Date Updated',
-          `Installment ${selectedInstallment + 1} has been rescheduled to ${date.toLocaleDateString()}`
+          t('orderDetails.dateUpdated'),
+          t('orderDetails.dateUpdatedDesc', { 
+            number: selectedInstallment + 1, 
+            date: date.toLocaleDateString() 
+          })
         );
       } else {
         Alert.alert(
-          'Invalid Date',
-          `Please select a date between ${constraints.minimumDate.toLocaleDateString()} and ${constraints.maximumDate.toLocaleDateString()}`
+          t('orderDetails.invalidDate'),
+          t('orderDetails.invalidDateDesc', { 
+            min: constraints.minimumDate.toLocaleDateString(), 
+            max: constraints.maximumDate.toLocaleDateString() 
+          })
         );
       }
     }
@@ -190,12 +198,12 @@ const OrderDetailsScreen = ({ route }: any) => {
 
   const handleRefill = async () => {
     if (selectedInstallment === null || !loanData) {
-      Alert.alert('Error', 'Invalid installment selection');
+      Alert.alert(t('common.error'), t('orderDetails.invalidSelection'));
       return;
     }
 
     if (paymentOptions.length === 0 || selectedPayment === null) {
-      Alert.alert('Error', 'Please select a payment method');
+      Alert.alert(t('common.error'), t('orderDetails.selectPaymentMethodError'));
       return;
     }
 
@@ -211,7 +219,7 @@ const OrderDetailsScreen = ({ route }: any) => {
       const saleId = loanData.fK_SaleId;
 
       if (!saleId) {
-        Alert.alert('Error', 'Sale ID not found in loan data');
+        Alert.alert(t('common.error'), t('orderDetails.saleIdNotFound'));
         return;
       }
 
@@ -219,11 +227,11 @@ const OrderDetailsScreen = ({ route }: any) => {
 
       if (response.statusCode === 200) {
         Alert.alert(
-          'Payment Successful',
-          'Your installment payment has been processed successfully.',
+          t('orderDetails.paymentSuccessful'),
+          t('orderDetails.paymentSuccessfulDesc'),
           [
             {
-              text: 'OK',
+              text: t('common.ok'),
               onPress: () => {
                 setModalVisible(false);
                 fetchLoanDetails();
@@ -232,13 +240,13 @@ const OrderDetailsScreen = ({ route }: any) => {
           ]
         );
       } else {
-        Alert.alert('Payment Failed', response.message || 'Unable to process payment. Please try again.');
+        Alert.alert(t('orderDetails.paymentFailed'), response.message || t('orderDetails.paymentFailedDesc'));
       }
     } catch (error: any) {
       console.error('Payment processing error:', error);
       Alert.alert(
-        'Payment Error',
-        error.response?.data?.message || 'Failed to process payment. Please check your connection and try again.'
+        t('orderDetails.paymentError'),
+        error.response?.data?.message || t('orderDetails.paymentErrorDesc')
       );
     } finally {
       setPaymentProcessing(false);
@@ -246,7 +254,7 @@ const OrderDetailsScreen = ({ route }: any) => {
   };
 
   const formatCardText = (card: any) => {
-    if (!card || !card.cardNumber) return 'Invalid Card';
+    if (!card || !card.cardNumber) return t('orderDetails.invalidCard');
 
     const cardType = card.brand || card.type;
     const last4 = card.last4 || card.cardNumber?.slice(-4);
@@ -317,11 +325,11 @@ const OrderDetailsScreen = ({ route }: any) => {
         console.log(`Total paid amount: ${responseData.totalPaidAmount}`);
       } else {
         console.error('Failed to fetch loan details:', response.message);
-        Alert.alert('Error', 'Failed to load loan details');
+        Alert.alert(t('common.error'), t('orderDetails.errorLoadingDetails'));
       }
     } catch (error: any) {
       console.error('GetLoanDetail error:', error);
-      Alert.alert('Error', 'Failed to load loan details. Please try again.');
+      Alert.alert(t('common.error'), t('orderDetails.errorLoadingDetailsDesc'));
     } finally {
       setLoading(false);
     }
@@ -397,11 +405,11 @@ const OrderDetailsScreen = ({ route }: any) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <MaterialIcons name="arrow-back" size={24} color="#1a1a1a" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Loading...</Text>
+          <Text style={styles.headerTitle}>{t('orderDetails.loading')}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2C2C2E" />
-          <Text style={styles.loadingText}>Loading loan details...</Text>
+          <Text style={styles.loadingText}>{t('orderDetails.loadingLoanDetails')}</Text>
         </View>
       </View>
     );
@@ -425,7 +433,7 @@ const OrderDetailsScreen = ({ route }: any) => {
         <View style={styles.loanSummary}>
           <View style={styles.topRow}>
             <View style={styles.loanAmountSection}>
-              <Text style={styles.loanAmountLabel}>Loan Amount</Text>
+              <Text style={styles.loanAmountLabel}>{t('orderDetails.loanAmount')}</Text>
               <View style={styles.loanAmountRow}>
                 <Text style={styles.loanAmount}>
                   {loanData ? formatAmount(loanData.totLoanValue) : order.price}
@@ -441,7 +449,7 @@ const OrderDetailsScreen = ({ route }: any) => {
             </View>
 
             <View style={styles.loanDateSection}>
-              <Text style={styles.loanDateLabel}>Loan Date</Text>
+              <Text style={styles.loanDateLabel}>{t('orderDetails.loanDate')}</Text>
               <Text style={styles.loanDate}>
                 {loanData?.createdOn ? formatDate(loanData.createdOn) : 'N/A'}
               </Text>
@@ -451,17 +459,17 @@ const OrderDetailsScreen = ({ route }: any) => {
           {loanData && screenType === 'ongoing' && (
             <View style={styles.detailsGrid}>
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Installments</Text>
+                <Text style={styles.detailLabel}>{t('orderDetails.installments')}</Text>
                 <Text style={styles.detailValue}>{loanData ? `${numOfPaidInstallments}/${loanData.noOfInstallments}` : 'N/A'}</Text>
               </View>
 
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Due Amount</Text>
+                <Text style={styles.detailLabel}>{t('orderDetails.dueAmount')}</Text>
                 <Text style={styles.detailValue}>{formatAmount(loanData.totCreditValue)}</Text>
               </View>
 
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Paid Amount</Text>
+                <Text style={styles.detailLabel}>{t('orderDetails.paidAmount')}</Text>
                 <Text style={styles.detailValue}>{formatAmount(totalPaidAmount)}</Text>
               </View>
             </View>
@@ -470,7 +478,7 @@ const OrderDetailsScreen = ({ route }: any) => {
           <View style={styles.divider} />
         </View>
 
-        <Text style={styles.sectionTitle}>Payment Schedule</Text>
+        <Text style={styles.sectionTitle}>{t('orderDetails.paymentSchedule')}</Text>
       </View>
 
       {/* Scrollable content - Installments */}
@@ -548,13 +556,13 @@ const OrderDetailsScreen = ({ route }: any) => {
                               style={styles.actionButton}
                               onPress={() => openPaymentModal(index)}
                             >
-                              <Text style={styles.actionButtonText}>Pay Now</Text>
+                              <Text style={styles.actionButtonText}>{t('orderDetails.payButton')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[styles.actionButton, styles.rescheduleButton]}
                               onPress={() => openDatePicker(index)}
                             >
-                              <Text style={styles.rescheduleButtonText}>Reschedule</Text>
+                              <Text style={styles.rescheduleButtonText}>{t('orderDetails.reschedule')}</Text>
                             </TouchableOpacity>
                           </>
                         )}
@@ -567,7 +575,7 @@ const OrderDetailsScreen = ({ route }: any) => {
           </View>
         ) : (
           <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No installment data available</Text>
+            <Text style={styles.noDataText}>{t('orderDetails.noInstallmentData')}</Text>
           </View>
         )}
       </ScrollView>
@@ -582,12 +590,12 @@ const OrderDetailsScreen = ({ route }: any) => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Payment Method</Text>
+              <Text style={styles.modalTitle}>{t('orderDetails.selectPaymentMethod')}</Text>
 
               {paymentLoading ? (
                 <View style={styles.paymentLoadingContainer}>
                   <ActivityIndicator size="small" color="#2C2C2E" />
-                  <Text style={styles.paymentLoadingText}>Loading payment methods...</Text>
+                  <Text style={styles.paymentLoadingText}>{t('orderDetails.loadingPaymentMethods')}</Text>
                 </View>
               ) : paymentOptions.length > 0 ? (
                 paymentOptions.map((option, index) => (
@@ -623,16 +631,16 @@ const OrderDetailsScreen = ({ route }: any) => {
                 <View style={styles.noPaymentMethodsContainer}>
                   <MaterialIcons name="credit-card-off" size={48} color="#E8E8E8" />
                   <Text style={styles.noPaymentMethodsText}>
-                    No payment methods found
+                    {t('orderDetails.noPaymentMethods')}
                   </Text>
                   <Text style={styles.noPaymentMethodsSubtext}>
-                    Add a payment method to continue
+                    {t('orderDetails.addPaymentMethod')}
                   </Text>
                 </View>
               )}
 
               <View style={styles.amountSection}>
-                <Text style={styles.amountLabel}>Amount</Text>
+                <Text style={styles.amountLabel}>{t('orderDetails.amount')}</Text>
                 <Text style={styles.amountText}>
                   {selectedInstallment !== null && installments[selectedInstallment]
                     ? formatAmount(installments[selectedInstallment].instAmount)
@@ -652,11 +660,11 @@ const OrderDetailsScreen = ({ route }: any) => {
                 {paymentProcessing ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.payButtonText}>Processing...</Text>
+                    <Text style={styles.payButtonText}>{t('orderDetails.processing')}</Text>
                   </View>
                 ) : (
                   <Text style={styles.payButtonText}>
-                    {paymentOptions.length === 0 ? 'No Payment Method' : 'Pay Now'}
+                    {paymentOptions.length === 0 ? t('orderDetails.noPaymentMethods') : t('orderDetails.payNow')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -665,7 +673,7 @@ const OrderDetailsScreen = ({ route }: any) => {
                 style={styles.cancelButton}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('orderDetails.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
