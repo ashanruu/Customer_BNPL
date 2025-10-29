@@ -8,10 +8,15 @@ import {
   Alert,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
+  Image,
+  FlatList,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { callMobileApi } from "../../scripts/api";
 import CustomButton from "../../components/CustomButton";
 
@@ -25,7 +30,57 @@ const RaiseTicketsScreen = () => {
   const [transactionId, setTransactionId] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [document, setDocument] = useState(""); // For uploaded documents
+  const [selectedFile, setSelectedFile] = useState<{
+    type: 'image' | 'document' | null;
+    data: ImagePicker.ImagePickerAsset | DocumentPicker.DocumentPickerAsset | null;
+  }>({ type: null, data: null });
+
+  // Image picker function
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedFile({ type: 'image', data: result.assets[0] });
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  // Document picker function
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedFile({ type: 'document', data: result.assets[0] });
+      }
+    } catch (error) {
+      console.error('Document picker error:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
+
+  // Remove file function
+  const removeFile = () => {
+    setSelectedFile({ type: null, data: null });
+  };
 
   // Create ticket function directly in the component
   const createTicket = async (payload: {
@@ -67,7 +122,7 @@ const RaiseTicketsScreen = () => {
         MainReason: title.trim() || "Technical", // Use title as MainReason or default to "Technical"
         transactionId: transactionId.trim() || null,
         message: message.trim(),
-        document: document || null
+        document: selectedFile.data ? JSON.stringify(selectedFile) : null
       };
 
       const response = await createTicket(payload);
@@ -85,7 +140,7 @@ const RaiseTicketsScreen = () => {
                 setTitle('');
                 setTransactionId('');
                 setMessage('');
-                setDocument('');
+                setSelectedFile({ type: null, data: null });
                 // Navigate back or to tickets list
                 navigation.goBack();
               }
@@ -111,7 +166,7 @@ const RaiseTicketsScreen = () => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.fixedHeader}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -127,6 +182,12 @@ const RaiseTicketsScreen = () => {
         </View>
 
         {/* Content Area */}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.content}>
           {/* Input Fields */}
           <View style={styles.inputSection}>
@@ -172,14 +233,71 @@ const RaiseTicketsScreen = () => {
               />
             </View>
 
-            <Text style={styles.label}>Upload Screenshots (If Any)</Text>
-            <TouchableOpacity style={styles.uploadWrapper}>
-              <Ionicons name="cloud-upload-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
-              <View style={styles.uploadTextContainer}>
-                <Text style={styles.uploadTitle}>Upload Screenshots</Text>
-                <Text style={styles.uploadSubtitle}>Tap to select images (PNG, JPG)</Text>
+            <Text style={styles.label}>Upload File (Image or Document)</Text>
+            
+            {!selectedFile.data ? (
+              <View style={styles.uploadOptionsContainer}>
+                <TouchableOpacity style={styles.uploadWrapper} onPress={pickImage}>
+                  <Ionicons name="image-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
+                  <View style={styles.uploadTextContainer}>
+                    <Text style={styles.uploadTitle}>Upload Image</Text>
+                    <Text style={styles.uploadSubtitle}>Tap to select image (PNG, JPG)</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <Text style={styles.orText}>OR</Text>
+
+                <TouchableOpacity style={styles.uploadWrapper} onPress={pickDocument}>
+                  <Ionicons name="document-outline" size={24} color="#bdbdbd" style={styles.uploadIcon} />
+                  <View style={styles.uploadTextContainer}>
+                    <Text style={styles.uploadTitle}>Upload Document</Text>
+                    <Text style={styles.uploadSubtitle}>Tap to select document (PDF, Images)</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            ) : (
+              <View style={styles.selectedFilesContainer}>
+                {selectedFile.type === 'image' && selectedFile.data && (
+                  <View style={styles.selectedFileItem}>
+                    <Image 
+                      source={{ uri: (selectedFile.data as ImagePicker.ImagePickerAsset).uri }} 
+                      style={styles.imagePreview} 
+                    />
+                    <View style={styles.fileInfo}>
+                      <Text style={styles.fileType}>Image</Text>
+                      <Text style={styles.fileName}>
+                        {(selectedFile.data as ImagePicker.ImagePickerAsset).fileName || 'image.jpg'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.removeDocButton} onPress={removeFile}>
+                      <Ionicons name="trash-outline" size={18} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                
+                {selectedFile.type === 'document' && selectedFile.data && (
+                  <View style={styles.selectedFileItem}>
+                    <View style={styles.documentIcon}>
+                      <Ionicons name="document" size={24} color="#666" />
+                    </View>
+                    <View style={styles.fileInfo}>
+                      <Text style={styles.fileType}>Document</Text>
+                      <Text style={styles.fileName} numberOfLines={1}>
+                        {(selectedFile.data as DocumentPicker.DocumentPickerAsset).name}
+                      </Text>
+                      <Text style={styles.fileSize}>
+                        {(selectedFile.data as DocumentPicker.DocumentPickerAsset).size 
+                          ? `${((selectedFile.data as DocumentPicker.DocumentPickerAsset).size! / 1024).toFixed(1)} KB` 
+                          : ''}
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.removeDocButton} onPress={removeFile}>
+                      <Ionicons name="trash-outline" size={18} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Submit Button */}
@@ -193,6 +311,7 @@ const RaiseTicketsScreen = () => {
             />
           </View>
         </View>
+        </ScrollView>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -328,5 +447,110 @@ const styles = StyleSheet.create({
     width: '75%',
     paddingTop: 20,
     paddingBottom: 40,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  selectedFilesContainer: {
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: 'white',
+    borderRadius: 10,
+  },
+  documentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  documentInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  documentName: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  documentSize: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
+  },
+  removeDocButton: {
+    padding: 4,
+  },
+  uploadOptionsContainer: {
+    gap: 12,
+  },
+  orText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    marginVertical: 8,
+  },
+  selectedFileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  documentIcon: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#e5e5e5',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  fileInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  fileType: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  fileName: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  fileSize: {
+    fontSize: 12,
+    color: '#666',
   },
 });

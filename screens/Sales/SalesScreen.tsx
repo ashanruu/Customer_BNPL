@@ -273,12 +273,25 @@ const SalesScreen: React.FC = () => {
       }
     } catch (error: any) {
       console.error('ValidateSale API Error:', error);
+      console.log('Full error object:', JSON.stringify(error, null, 2));
       
-      // Extract error message from API response if available
-      const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.error ||
-                          error?.message ||
-                          'Network error. Please check your connection and try again.';
+      // Check for specific error messages from the API
+      let errorMessage = 'Network error. Please check your connection and try again.';
+      
+      // Extract error message from various possible locations
+      const apiErrorData = error?.response?.data?.data || error?.response?.data || error?.data;
+      const apiErrorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      
+      // Check if the error is related to missing card
+      if (typeof apiErrorData === 'string' && apiErrorData.includes("Customer didn't add a card")) {
+        errorMessage = t('sales.addCardFirst') || 'Please add a payment card first before making a purchase. Go to Profile > Cards to add your card.';
+      } else if (typeof apiErrorMessage === 'string' && apiErrorMessage.toLowerCase().includes('card')) {
+        errorMessage = t('sales.addCardFirst') || 'Please add a payment card first before making a purchase. Go to Profile > Cards to add your card.';
+      } else if (apiErrorMessage) {
+        errorMessage = apiErrorMessage;
+      } else if (error?.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again later or contact support.';
+      }
       
       return { 
         success: false, 
@@ -507,10 +520,10 @@ const SalesScreen: React.FC = () => {
                 
                 <View style={styles.simpleActionButtons}>
                   <TouchableOpacity
-                    style={styles.simpleTryAgainButton}
-                    onPress={handleTryAgain}
+                    style={styles.simpleCloseButton}
+                    onPress={closeModal}
                   >
-                    <Text style={styles.simpleTryAgainText}>Try Again</Text>
+                    <Text style={styles.simpleCloseText}>Close</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity

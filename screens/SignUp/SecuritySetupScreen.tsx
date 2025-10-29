@@ -53,30 +53,10 @@ const SecuritySetupScreen: React.FC = () => {
     biometricEnabled: false,
   });
   const [isRegistering, setIsRegistering] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     // Check if biometric authentication is available
     checkBiometricAvailability();
-
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
   }, []);
 
   const checkBiometricAvailability = async () => {
@@ -429,15 +409,15 @@ const SecuritySetupScreen: React.FC = () => {
         <View style={styles.biometricBenefits}>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="lightning-bolt" size={20} />
-            <SubText size="medium"  style={styles.benefitText}>Faster login</SubText>
+            <SubText size="medium" color={Colors.light.primary} style={styles.benefitText}>Faster login</SubText>
           </View>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="shield-check" size={20} />
-            <SubText size="medium" style={styles.benefitText}>Enhanced security</SubText>
+            <SubText size="medium" color={Colors.light.primary} style={styles.benefitText}>Enhanced security</SubText>
           </View>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="gesture-tap" size={20} />
-            <SubText size="medium" style={styles.benefitText}>One-touch access</SubText>
+            <SubText size="medium" color={Colors.light.primary} style={styles.benefitText}>One-touch access</SubText>
           </View>
         </View>
       )}
@@ -476,13 +456,13 @@ const SecuritySetupScreen: React.FC = () => {
         {securitySettings.pinEnabled && (
           <View style={styles.summaryItem}>
             <MaterialCommunityIcons name="check" size={20} />
-            <SubText size="medium" align="left" style={styles.summaryText}>6-digit PIN created</SubText>
+            <SubText size="medium" align="left" color={Colors.light.primary} style={styles.summaryText}>6-digit PIN created</SubText>
           </View>
         )}
         {securitySettings.biometricEnabled && (
           <View style={styles.summaryItem}>
             <MaterialCommunityIcons name="check" size={20} />
-            <SubText size="medium" align="left" style={styles.summaryText}>Biometric authentication enabled</SubText>
+            <SubText size="medium" align="left" color={Colors.light.primary} style={styles.summaryText}>Biometric authentication enabled</SubText>
           </View>
         )}
       </View>
@@ -544,11 +524,10 @@ const SecuritySetupScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={[styles.contentWrapper, { paddingBottom: keyboardHeight > 0 ? keyboardHeight / 3 : 20 }]}>
+          <View style={styles.contentWrapper}>
             {/* Back Button */}
             <TouchableOpacity
               style={styles.backButton}
@@ -599,6 +578,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 20,
   },
   centeredBox: {
     width: '100%',
@@ -675,19 +655,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   pinPadContainer: {
-    width: 250, // Fixed width instead of 100%
+    width: 250,
     alignSelf: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between', // Changed from 'center' to 'space-between'
+    justifyContent: 'space-between',
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   pinButton: {
-    width: 60, // Fixed width
-    height: 60, // Fixed height
-    marginVertical: 8, // Fixed vertical margin
-    marginHorizontal: 5, // Fixed horizontal margin
+    width: 60,
+    height: 60,
+    marginVertical: 8,
+    marginHorizontal: 5,
     borderRadius: 30,
     backgroundColor: '#F8F9FA',
     justifyContent: 'center',
@@ -698,11 +678,11 @@ const styles = StyleSheet.create({
   emptyButton: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
-    width: 60, // Ensure same width as other buttons
-    height: 60, // Ensure same height as other buttons
+    width: 60,
+    height: 60,
   },
   pinButtonText: {
-    fontSize: 22, // Slightly reduced for better fit
+    fontSize: 22,
     fontWeight: '600',
     color: '#374151',
   },

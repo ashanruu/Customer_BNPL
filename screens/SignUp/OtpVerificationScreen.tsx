@@ -109,7 +109,7 @@ const OtpVerificationScreen: React.FC = ({ navigation, route }: any) => {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <MainText size="xlarge" weight="bold" align="left">
+                    <MainText size="xlarge" weight="bold" align="left" color={Colors.light.primary}>
                         Enter Verification Code
                     </MainText>
                     <SubText size="medium" align="left" style={styles.subtitle}>
@@ -124,7 +124,14 @@ const OtpVerificationScreen: React.FC = ({ navigation, route }: any) => {
 
                 {/* OTP Input */}
                 <View style={styles.otpInputWrapper}>
-                    <VerificationCodeInput length={6} onCodeComplete={handleCodeComplete} onCodeChange={setOtp} />
+                    <VerificationCodeInput 
+                        length={6} 
+                        onCodeComplete={handleCodeComplete} 
+                        onCodeChange={setOtp}
+                        boxStyle={styles.otpBoxStyle}
+                        boxFocusedStyle={styles.otpBoxFocusedStyle}
+                        textStyle={styles.otpTextStyle}
+                    />
                     {!!error && <Text style={styles.errorText}>{error}</Text>}
                 </View>
 
@@ -180,6 +187,7 @@ const styles = StyleSheet.create({
         marginTop: 8,
         fontSize: 14,
         textAlign: 'center',
+        color: '#EF4444',
     },
     verifyButton: {
         marginTop: 16,
@@ -189,7 +197,23 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         alignSelf: 'center',
     },
-
+    // Add OTP box styling
+    otpBoxStyle: {
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D1D5DB',
+        borderWidth: 1,
+        borderRadius: 8,
+    },
+    otpBoxFocusedStyle: {
+        backgroundColor: '#FFFFFF',
+        borderColor: Colors.light.tint,
+        borderWidth: 2,
+    },
+    otpTextStyle: {
+        color: '#1F2937',
+        fontSize: 18,
+        fontWeight: '600',
+    },
 });
 
 export default OtpVerificationScreen;

@@ -1023,10 +1023,6 @@ const styles = StyleSheet.create({
     borderColor: "#4CAF50", // Reverted to original green border
   },
   
-  // Update loading spinner colors only (keep positioning)
-  circleCancelled: {
-    backgroundColor: "#8B4513" // Changed to brown
-  },
   
   // Fix payment modal styling
   modalOverlay: {
@@ -1068,11 +1064,7 @@ const styles = StyleSheet.create({
     borderStyle: "solid",
   },
   
-  paymentOptionSelected: {
-    backgroundColor: "#E8F5E8", // Light green background
-    borderColor: "#4CAF50", // Green border
-    borderWidth: 2,
-  },
+
   
   paymentIcon: {
     marginRight: 12,
@@ -1150,14 +1142,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   
-  // Fix pay button
-  payButton: {
-    backgroundColor: '#000000', // Keep black background
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 12,
-  },
+
   
   payButtonDisabled: {
     backgroundColor: '#E8E8E8',

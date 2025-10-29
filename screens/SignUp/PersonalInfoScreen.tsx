@@ -434,7 +434,7 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
 
                             {/* Header */}
                             <View style={styles.header}>
-                                <MainText size="xlarge" weight="bold" align="left">
+                                <MainText size="xlarge" weight="bold" align="left" color={Colors.light.primary}>
                                     {t('signup.startBasics')}
                             </MainText>
                             <SubText size="medium" align="left" style={styles.subtitle}>
@@ -595,12 +595,19 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                         error={errors.confirmPassword}
                                     />
 
-                                    <CustomButton
-                                        title={t('common.next')}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sendButton,
+                                            loading && styles.disabledButton
+                                        ]}
                                         onPress={handleNext}
-                                        loading={loading}
-                                        style={styles.sendButton}
-                                    />
+                                        disabled={loading}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={styles.buttonText}>
+                                            {loading ? t('common.loading') || 'Loading...' : t('common.next')}
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         </ScrollView>
@@ -695,6 +702,33 @@ const styles = StyleSheet.create({
     sendButton: {
         marginTop: 24,
         marginBottom: 40, // Add bottom margin for better spacing
+        backgroundColor: Colors.light.tint || Colors.light.primary,
+        paddingVertical: 16,
+        paddingHorizontal: 32,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 52,
+        // Shadow for iOS
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 3.84,
+        // Elevation for Android
+        elevation: 5,
+    },
+    disabledButton: {
+        backgroundColor: '#9CA3AF',
+        opacity: 0.6,
+    },
+    buttonText: {
+        color: Colors.light.background || '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
     },
     stepIndicatorWrapper: {
         width: '80%',

@@ -19,6 +19,9 @@ import AddressDetailsScreen from "../screens/SignUp/AddressDetailsScreen";
 import SecuritySetupScreen from "../screens/SignUp/SecuritySetupScreen";
 import TermsAndConditionsScreen from "../screens/SignUp/TermsAndConditionsScreen";
 
+// Legal
+import LegalTermsAndConditionsScreen from "../screens/Legal/LegalTermsAndConditionsScreen";
+
 // Other Screens
 import PlansScreen from "../screens/PlansScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
@@ -39,6 +42,7 @@ import WebViewScreen from "../screens/Profile/WebViewScreen";
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 import ChangePasswordScreen from "../screens/Settings/ChangePasswordScreen";
 import ShopDetailsScreen from "../screens/Shop/ShopDetailsScreen";
+import CategoryShopsScreen from "../screens/Shop/CategoryShopsScreen";
 import NotificationPreferencesScreen from "../screens/Settings/NotificationPreferencessScreen";
 import PrivacySettingsScreen from "../screens/Settings/PrivacySettingScreen";
 
@@ -74,13 +78,17 @@ const AppNavigator = () => {
       <Stack.Screen name="SecuritySetupScreen" component={SecuritySetupScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} options={{ gestureEnabled: false }} />
 
+      {/* Legal */}
+      <Stack.Screen name="LegalTermsAndConditions" component={LegalTermsAndConditionsScreen} />
+
       {/* Settings */}
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
       <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
 
-      {/* Shop Screen */}
+      {/* Shop Screens */}
       <Stack.Screen name="ShopDetailsScreen" component={ShopDetailsScreen} />
+      <Stack.Screen name="CategoryShopsScreen" component={CategoryShopsScreen} />
 
       {/* Other Screens */}
       <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />

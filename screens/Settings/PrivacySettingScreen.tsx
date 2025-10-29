@@ -25,10 +25,6 @@ interface PrivacySettings {
   cameraAccess: boolean;
   contactsAccess: boolean;
   storageAccess: boolean;
-  thirdPartySharing: boolean;
-  marketingEmails: boolean;
-  profileVisibility: 'public' | 'private' | 'friends';
-  activityTracking: boolean;
 }
 
 const PrivacySettingsScreen: React.FC = () => {
@@ -44,10 +40,6 @@ const PrivacySettingsScreen: React.FC = () => {
     cameraAccess: true,
     contactsAccess: false,
     storageAccess: true,
-    thirdPartySharing: false,
-    marketingEmails: false,
-    profileVisibility: 'private',
-    activityTracking: false,
   });
 
   useEffect(() => {
@@ -82,55 +74,13 @@ const PrivacySettingsScreen: React.FC = () => {
     }
   };
 
-  const toggleSetting = (key: keyof PrivacySettings, value?: any) => {
+  const toggleSetting = (key: keyof PrivacySettings) => {
     setSettings(prev => ({
       ...prev,
-      [key]: value !== undefined ? value : !prev[key]
+      [key]: !prev[key]
     }));
   };
 
-  const handleDataDeletion = () => {
-    Alert.alert(
-      t('privacy.deletePersonalData'),
-      t('privacy.deleteDataConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              t('common.success'),
-              'Your data deletion request has been submitted. You will receive a confirmation email within 24 hours.',
-              [{ text: t('common.ok') }]
-            );
-          }
-        }
-      ]
-    );
-  };
-
-  const handleDataExport = () => {
-    Alert.alert(
-      t('privacy.exportPersonalData'),
-      t('privacy.exportDataConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.ok'),
-          onPress: () => {
-            Alert.alert(
-              t('common.success'),
-              'You will receive an email with your data export link within 48 hours.',
-              [{ text: t('common.ok') }]
-            );
-          }
-        }
-      ]
-    );
-  };
-
-  // FIXED: Updated PrivacyItem component to handle color prop
   const PrivacyItem = ({ 
     title, 
     description, 
@@ -138,7 +88,7 @@ const PrivacySettingsScreen: React.FC = () => {
     onToggle, 
     icon,
     isRequired = false,
-    color // ADD: color prop
+    color
   }: {
     title: string;
     description: string;
@@ -146,7 +96,7 @@ const PrivacySettingsScreen: React.FC = () => {
     onToggle: () => void;
     icon: string;
     isRequired?: boolean;
-    color?: string; // ADD: optional color prop type
+    color?: string;
   }) => (
     <View style={styles.privacyItem}>
       <View style={styles.privacyContent}>
@@ -154,7 +104,7 @@ const PrivacySettingsScreen: React.FC = () => {
           <MaterialCommunityIcons 
             name={icon} 
             size={22} 
-            color={value ? (color || Colors.light.tint) : Colors.light.mutedText} // USE: color prop with fallback
+            color={value ? (color || Colors.light.tint) : Colors.light.mutedText}
           />
         </View>
         <View style={styles.textContainer}>
@@ -180,95 +130,11 @@ const PrivacySettingsScreen: React.FC = () => {
         onValueChange={onToggle}
         trackColor={{ 
           false: '#E5E7EB', 
-          true: (color || Colors.light.tint) + '40' // USE: color prop for track
+          true: (color || Colors.light.tint) + '40'
         }}
-        thumbColor={value ? (color || Colors.light.tint) : '#9CA3AF'} // USE: color prop for thumb
+        thumbColor={value ? (color || Colors.light.tint) : '#9CA3AF'}
         disabled={isRequired}
       />
-    </View>
-  );
-
-  const ActionItem = ({ 
-    title, 
-    description, 
-    onPress, 
-    icon,
-    isDanger = false
-  }: {
-    title: string;
-    description: string;
-    onPress: () => void;
-    icon: string;
-    isDanger?: boolean;
-  }) => (
-    <TouchableOpacity style={styles.actionItem} onPress={onPress}>
-      <View style={styles.privacyContent}>
-        <View style={[styles.iconContainer, isDanger && styles.dangerIconContainer]}>
-          <MaterialCommunityIcons 
-            name={icon} 
-            size={22} 
-            color={isDanger ? '#EF4444' : Colors.light.tint} 
-          />
-        </View>
-        <View style={styles.textContainer}>
-          <MainText size="medium" weight="bold" style={isDanger ? styles.dangerText : undefined}>
-            {title}
-          </MainText>
-          <SubText size="small" style={styles.description}>
-            {description}
-          </SubText>
-        </View>
-      </View>
-      <MaterialCommunityIcons 
-        name="chevron-right" 
-        size={20} 
-        color={Colors.light.mutedText} 
-      />
-    </TouchableOpacity>
-  );
-
-  const ProfileVisibilitySelector = () => (
-    <View style={styles.visibilitySection}>
-      <MainText size="medium" weight="bold" style={styles.visibilityTitle}>
-        {t('privacy.profileVisibility')}
-      </MainText>
-      <SubText size="small" style={styles.visibilityDescription}>
-        {t('privacy.profileVisibilityDesc')}
-      </SubText>
-      
-      <View style={styles.visibilityOptions}>
-        {[
-          { key: 'public', label: t('privacy.profilePublic'), description: t('privacy.profilePublicDesc') },
-          { key: 'private', label: t('privacy.profilePrivate'), description: t('privacy.profilePrivateDesc') },
-          { key: 'friends', label: t('privacy.profileFriends'), description: t('privacy.profileFriendsDesc') }
-        ].map((option) => (
-          <TouchableOpacity
-            key={option.key}
-            style={[
-              styles.visibilityOption,
-              settings.profileVisibility === option.key && styles.selectedVisibilityOption
-            ]}
-            onPress={() => toggleSetting('profileVisibility', option.key)}
-          >
-            <View style={styles.visibilityOptionContent}>
-              <MainText size="medium" weight="normal">
-                {option.label}
-              </MainText>
-              <SubText size="small" style={styles.visibilityOptionDescription}>
-                {option.description}
-              </SubText>
-            </View>
-            <View style={[
-              styles.radioButton,
-              settings.profileVisibility === option.key && styles.selectedRadioButton
-            ]}>
-              {settings.profileVisibility === option.key && (
-                <View style={styles.radioButtonInner} />
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
     </View>
   );
 
@@ -328,7 +194,7 @@ const PrivacySettingsScreen: React.FC = () => {
               value={settings.storageAccess}
               onToggle={() => toggleSetting('storageAccess')}
               icon="folder-outline"
-              color={Colors.light.primary} // This will now work properly
+              color={Colors.light.primary}
             />
 
             <PrivacyItem
@@ -376,83 +242,6 @@ const PrivacySettingsScreen: React.FC = () => {
               icon="bug-outline"
               color={Colors.light.primary}
             />
-          </View>
-
-          {/* Data Sharing Section */}
-          <View style={styles.section}>
-            <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              {t('privacy.sharing')}
-            </MainText>
-            <SubText size="small" style={styles.sectionDescription}>
-              {t('privacy.sharingDesc')}
-            </SubText>
-
-            <PrivacyItem
-              title={t('privacy.thirdPartySharing')}
-              description={t('privacy.thirdPartySharingDesc')}
-              value={settings.thirdPartySharing}
-              onToggle={() => toggleSetting('thirdPartySharing')}
-              icon="share-variant-outline"
-              color={Colors.light.primary}
-            />
-
-            <PrivacyItem
-              title={t('privacy.marketingEmails')}
-              description={t('privacy.marketingEmailsDesc')}
-              value={settings.marketingEmails}
-              onToggle={() => toggleSetting('marketingEmails')}
-              icon="email-newsletter"
-              color={Colors.light.primary}
-            />
-
-            <PrivacyItem
-              title={t('privacy.activityTracking')}
-              description={t('privacy.activityTrackingDesc')}
-              value={settings.activityTracking}
-              onToggle={() => toggleSetting('activityTracking')}
-              icon="history"
-              color={Colors.light.primary}
-            />
-
-            {/* Profile Visibility Selector */}
-            <ProfileVisibilitySelector />
-          </View>
-
-          {/* Data Actions Section */}
-          <View style={styles.section}>
-            <MainText size="medium" weight="bold" style={styles.sectionTitle}>
-              Data Actions
-            </MainText>
-            
-            <ActionItem
-              title={t('privacy.exportPersonalData')}
-              description={t('privacy.exportDataDesc')}
-              onPress={handleDataExport}
-              icon="download-outline"
-            />
-
-            <ActionItem
-              title={t('privacy.deletePersonalData')}
-              description={t('privacy.deleteDataDesc')}
-              onPress={handleDataDeletion}
-              icon="delete-outline"
-              isDanger={true}
-            />
-          </View>
-
-          {/* Info Section */}
-          <View style={styles.infoSection}>
-            <View style={styles.infoCard}>
-              <MaterialCommunityIcons 
-                name="shield-check-outline" 
-                size={20} 
-                color={Colors.light.tint}
-                style={styles.infoIcon}
-              />
-              <SubText size="small" style={styles.infoText}>
-                {t('privacy.info')}
-              </SubText>
-            </View>
           </View>
         </View>
       </ScrollView>
@@ -536,23 +325,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
   privacyContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -566,9 +338,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  dangerIconContainer: {
-    backgroundColor: '#FEF2F2',
   },
   textContainer: {
     flex: 1,
@@ -592,82 +361,6 @@ const styles = StyleSheet.create({
   description: {
     color: Colors.light.mutedText,
     lineHeight: 16,
-  },
-  dangerText: {
-    color: '#EF4444',
-  },
-  visibilitySection: {
-    marginBottom: 16,
-  },
-  visibilityTitle: {
-    color: Colors.light.text,
-    marginBottom: 4,
-  },
-  visibilityDescription: {
-    color: Colors.light.mutedText,
-    marginBottom: 16,
-  },
-  visibilityOptions: {
-    gap: 8,
-  },
-  visibilityOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  selectedVisibilityOption: {
-    borderColor: Colors.light.tint,
-    backgroundColor: Colors.light.tint + '08',
-  },
-  visibilityOptionContent: {
-    flex: 1,
-  },
-  visibilityOptionDescription: {
-    color: Colors.light.mutedText,
-    marginTop: 2,
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedRadioButton: {
-    borderColor: Colors.light.tint,
-  },
-  radioButtonInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.light.tint,
-  },
-  infoSection: {
-    marginTop: 8,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.light.tint + '10',
-    borderRadius: 12,
-    padding: 16,
-  },
-  infoIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  infoText: {
-    flex: 1,
-    color: Colors.light.text,
-    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: 20,

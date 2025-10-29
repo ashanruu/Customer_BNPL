@@ -53,30 +53,37 @@ const OrderPageScreen: React.FC = () => {
     if (!url) return '';
     
     try {
+      console.log('Processing URL for sale code extraction:', url);
       const urlObj = new URL(url);
       
       // Handle verified domain: https://merchant.bnpl.hexdive.com/...
       if (urlObj.hostname === 'merchant.bnpl.hexdive.com') {
-        // Handle sale URLs: /sale/123
+        console.log('Domain matched, checking pathname:', urlObj.pathname);
+        
+        // Handle sale URLs: /sale/154020251029085827
         if (urlObj.pathname.startsWith('/sale/')) {
-          const saleCode = urlObj.pathname.split('/sale/')[1];
-          return saleCode || '';
+          const pathParts = urlObj.pathname.split('/sale/');
+          // Get the sale code after /sale/ and remove any trailing slashes or paths
+          const saleCode = pathParts[1]?.split('/')[0]?.trim();
+          console.log('Extracted sale code from URL path:', saleCode);
+          if (saleCode) return saleCode;
         }
         
-        // Handle merchant URLs: /merchant/32
-        if (urlObj.pathname.startsWith('/merchant/')) {
-          const merchantId = urlObj.pathname.split('/merchant/')[1];
-          return merchantId || '';
+        // Handle query parameters as fallback
+        const saleCodeFromQuery = urlObj.searchParams.get('salecode') || urlObj.searchParams.get('saleCode');
+        if (saleCodeFromQuery) {
+          console.log('Extracted sale code from query params:', saleCodeFromQuery);
+          return saleCodeFromQuery;
         }
-        
-        // Handle query parameters
-        const saleCode = urlObj.searchParams.get('salecode') || urlObj.searchParams.get('saleCode');
-        if (saleCode) return saleCode;
         
         const merchantId = urlObj.searchParams.get('merchantId') || urlObj.searchParams.get('merchantid');
-        if (merchantId) return merchantId;
+        if (merchantId) {
+          console.log('Extracted merchant ID from query params:', merchantId);
+          return merchantId;
+        }
       }
       
+      console.log('No sale code found in URL');
       return '';
     } catch (error) {
       console.error('Error extracting order ID from URL:', error);

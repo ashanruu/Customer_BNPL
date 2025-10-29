@@ -66,84 +66,6 @@ const AddressDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   // Define terms content
   const termsContent = `BNPL Service Terms and Conditions
 
-1. Acceptance of Terms
-
-By using our Buy Now, Pay Later (BNPL) service, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. These terms constitute a legally binding agreement between you and our company.
-
-2. Eligibility Criteria
-
-• You must be at least 18 years old
-• You must have a valid government-issued photo identification
-• You must provide accurate and complete personal information
-• You must have a valid email address and phone number
-• You must meet our credit assessment criteria
-
-3. Payment Terms and Schedule
-
-• Initial payment: 25% of the total purchase amount due at checkout
-• Remaining payments: 3 equal installments due every 2 weeks
-• Late fee: $10 for payments overdue by more than 7 days
-• Failed payment fee: $5 per failed payment attempt
-• All payments are automatically charged to your selected payment method
-
-4. Credit Assessment
-
-We perform a soft credit check that does not affect your credit score. We may decline your application based on:
-• Credit history
-• Payment history with BNPL services
-• Current debt-to-income ratio
-• Other risk factors
-
-5. Privacy and Data Collection
-
-We collect and process your personal information including:
-• Contact information (name, address, phone, email)
-• Financial information (income, payment methods)
-• Credit information (credit score, payment history)
-• Transaction data
-Your data is protected according to our Privacy Policy and applicable data protection laws.
-
-6. Merchant Partnerships
-
-• We partner with approved merchants to offer BNPL services
-• Returns and refunds are subject to the merchant's policy
-• We are not responsible for product quality or delivery issues
-• Disputes should first be addressed with the merchant
-
-7. Account Management
-
-• You can view payment schedules and make early payments through our app
-• Update your payment methods and personal information as needed
-• Contact customer service for payment modifications or concerns
-• Account statements are available electronically
-
-8. Limitation of Liability
-
-Our liability is limited to the maximum extent permitted by law. We are not responsible for:
-• Indirect, incidental, or consequential damages
-• Lost profits or business opportunities
-• Merchant-related issues
-• Service interruptions due to technical issues
-
-9. Termination
-
-We may suspend or terminate your account if you:
-• Fail to make payments as scheduled
-• Provide false or misleading information
-• Violate these terms and conditions
-• Engage in fraudulent activity
-
-10. Changes to Terms
-
-We reserve the right to modify these terms at any time. You will be notified of significant changes via email or app notification. Continued use of our service constitutes acceptance of the modified terms.
-
-11. Contact Information
-
-Customer Service: support@bnplservice.com
-Phone: 1-800-BNPL-HELP
-Address: 123 Finance Street, City, State 12345
-
-For disputes or complaints, please contact our customer service team first. If unresolved, you may file a complaint with relevant financial authorities.
 
 Last updated: ${new Date().toLocaleDateString()}`;
 
@@ -156,8 +78,8 @@ Last updated: ${new Date().toLocaleDateString()}`;
         setTimeout(() => {
           if (scrollViewRef.current) {
             scrollViewRef.current.scrollTo({
-              y: 100,
-              animated: true,
+              y: 0,
+              animated: false,
             });
           }
         }, 100);
@@ -281,10 +203,10 @@ Last updated: ${new Date().toLocaleDateString()}`;
 
               {/* Header */}
               <View style={styles.header}>
-                <MainText size="xlarge" weight="bold" align="left">
+                <MainText size="xlarge" weight="bold" align="left" color={Colors.light.primary}>
                   Help us locate you
                 </MainText>
-                <SubText size="medium" align="left" style={styles.subtitle}>
+                <SubText size="medium" align="left" style={styles.subtitle} >
                   Your location helps us serve you better
                 </SubText>
               </View>
@@ -360,16 +282,19 @@ Last updated: ${new Date().toLocaleDateString()}`;
                     </Text>
                   </View>
 
-                  <CustomButton
-                    title="Next"
-                    onPress={handleNext}
-                    loading={loading}
-                    disabled={!acceptedTerms}
+                  <TouchableOpacity
                     style={[
                       styles.sendButton,
-                      !acceptedTerms && styles.disabledButton
+                      !acceptedTerms ? styles.disabledButton : undefined
                     ]}
-                  />
+                    onPress={handleNext}
+                    disabled={!acceptedTerms || loading}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.buttonText}>
+                      {loading ? 'Loading...' : 'Next'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </ScrollView>
@@ -437,11 +362,24 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   sendButton: {
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 60,
     marginBottom: 40,
+    minHeight: 52,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   disabledButton: {
     opacity: 0.5,
+    backgroundColor: '#cccccc',
   },
   stepIndicatorWrapper: {
     width: '80%',
@@ -463,6 +401,12 @@ const styles = StyleSheet.create({
   linkText: {
     color: Colors.light.tint,
     textDecorationLine: 'underline',
+  },
+  buttonText: {
+    color: Colors.light.background || '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

@@ -618,6 +618,8 @@ const HomeScreen: React.FC = () => {
             style={styles.promoScrollView}
             contentContainerStyle={styles.promoScrollContent}
           >
+
+            <Text style={styles.noPromotionsText}>Not Available Special Deals For Now</Text>
             {/* {promotions.length > 0 ? promotions.map((promo) => (
               <TouchableOpacity key={`special-${promo.promotionId}`} style={[styles.promoCard, styles.specialDealCard]}>
                 {promo.promotionImageLink && (
@@ -914,6 +916,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     fontWeight: '500',
+    marginTop: 10,
   },
 
   // Keep existing header styles unchanged

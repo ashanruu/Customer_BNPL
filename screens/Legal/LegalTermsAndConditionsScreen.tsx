@@ -6,61 +6,19 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { callMobileApi } from '../../scripts/api';
 
 const LegalTermsAndConditionsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [termsContent, setTermsContent] = useState<string>('');
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch terms and conditions content
-  const fetchTermsContent = async () => {
-    try {
-      setLoading(true);
-      console.log("Fetching terms and conditions...");
-
-      // Replace with your actual API call
-      const response = await callMobileApi(
-        'GetTermsAndConditions',
-        {},
-        'mobile-app-terms',
-        '',
-        'legal'
-      );
-
-      console.log("Terms and conditions response:", response);
-
-      if (response.statusCode === 200) {
-        const content = response.data?.content || response.data || response.payload?.content || response.payload;
-        setTermsContent(content || getDefaultTermsContent());
-        console.log("Terms content loaded successfully");
-      } else {
-        console.error('Failed to fetch terms:', response.message);
-        setTermsContent(getDefaultTermsContent());
-      }
-    } catch (error: any) {
-      console.error('Error fetching terms:', error);
-      setTermsContent(getDefaultTermsContent());
-      Alert.alert(
-        t('errors.fetchError'),
-        t('errors.termsLoadError'),
-        [{ text: t('common.ok') }]
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Default terms content if API fails
+  // Default terms content
   const getDefaultTermsContent = (): string => {
     return `
 TERMS AND CONDITIONS
@@ -107,13 +65,16 @@ If any provision of these terms is found to be unenforceable, the remaining prov
   };
 
   useEffect(() => {
-    fetchTermsContent();
+    setTermsContent(getDefaultTermsContent());
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setRefreshing(true);
-    await fetchTermsContent();
-    setRefreshing(false);
+    // Just refresh the content with the same default terms
+    setTimeout(() => {
+      setTermsContent(getDefaultTermsContent());
+      setRefreshing(false);
+    }, 1000);
   };
 
   const formatContent = (content: string) => {
@@ -176,40 +137,33 @@ If any provision of these terms is found to be unenforceable, the remaining prov
           />
         }
       >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading terms and conditions...</Text>
+        <View style={styles.contentContainer}>
+          {/* Header Information */}
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <Ionicons name="document-text-outline" size={24} color="#4CAF50" />
+              <Text style={styles.infoTitle}>Legal Document</Text>
+            </View>
+            <Text style={styles.infoDescription}>
+              Please read these terms and conditions carefully before using our service.
+            </Text>
           </View>
-        ) : (
-          <View style={styles.contentContainer}>
-            {/* Header Information */}
-            <View style={styles.infoCard}>
-              <View style={styles.infoHeader}>
-                <Ionicons name="document-text-outline" size={24} color="#4CAF50" />
-                <Text style={styles.infoTitle}>Legal Document</Text>
-              </View>
-              <Text style={styles.infoDescription}>
-                Please read these terms and conditions carefully before using our service.
-              </Text>
-            </View>
 
-            {/* Terms Content */}
-            <View style={styles.termsCard}>
-              {formatContent(termsContent)}
-            </View>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-              <View style={styles.footerIcon}>
-                <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
-              </View>
-              <Text style={styles.footerText}>
-                These terms are effective as of the last updated date shown above.
-              </Text>
-            </View>
+          {/* Terms Content */}
+          <View style={styles.termsCard}>
+            {formatContent(termsContent)}
           </View>
-        )}
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View style={styles.footerIcon}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
+            </View>
+            <Text style={styles.footerText}>
+              These terms are effective as of the last updated date shown above.
+            </Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -333,20 +287,6 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     lineHeight: 22,
     textAlign: 'justify',
-  },
-  
-  // Loading styles
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
   },
   
   // Footer styles

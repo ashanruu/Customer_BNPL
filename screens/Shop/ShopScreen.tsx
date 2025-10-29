@@ -538,12 +538,12 @@ const ShopScreen: React.FC = () => {
           {searchQuery && (
             <View style={styles.searchResultsContainer}>
               <Text style={styles.searchResultsText}>
-                {t('shop.foundResults', {
+                {/* {t('shop.foundResults', {
                   shopCount: filteredMerchants.length,
                   shopText: filteredMerchants.length === 1 ? t('shop.shop') : t('shop.shops'),
                   promoCount: filteredPromotions.length,
                   promoText: filteredPromotions.length === 1 ? t('shop.promotion') : t('shop.promotions')
-                })}
+                })} */}
               </Text>
               {filteredMerchants.length === 0 && filteredPromotions.length === 0 && (
                 <Text style={styles.noResultsText}>
@@ -652,7 +652,7 @@ const ShopScreen: React.FC = () => {
           {/* Featured - Shows filtered promotions */}
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>
-              {searchQuery ? t('shop.filteredPromotions') : t('shop.featured')}
+              {/* {searchQuery ? t('shop.filteredPromotions') : t('shop.featured')} */}
             </Text>
             <Text style={styles.resultCount}>
               {filteredPromotions.length} {filteredPromotions.length === 1 ? t('shop.promotion') : t('shop.promotions')}
@@ -706,7 +706,7 @@ const ShopScreen: React.FC = () => {
             )) : (
               <View style={styles.emptySection}>
                 <Text style={styles.emptySectionText}>
-                  {searchQuery ? t('shop.noPromotionsFoundFor', { query: searchQuery }) : t('shop.noPromotionsAvailable')}
+                  {/* {searchQuery ? t('shop.noPromotionsFoundFor', { query: searchQuery }) : t('shop.noPromotionsAvailable')} */}
                 </Text>
               </View>
             )}

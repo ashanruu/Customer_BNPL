@@ -47,31 +47,77 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
         const hasSecuritySetup = pinEnabled === 'true' || biometricEnabled === 'true';
         const isAuthenticated = !!hasUserToken;
         
-        console.log('Authentication status:', { isAuthenticated, hasSecuritySetup, pendingDeepLink });
+        console.log('=== SPLASH SCREEN DEBUG ===');
+        console.log('Authentication status:', { isAuthenticated, hasSecuritySetup });
+        console.log('Pending deep link found:', pendingDeepLink);
+        console.log('Is authenticated:', isAuthenticated);
+        console.log('Has pending deep link:', !!pendingDeepLink);
         
-        if (isAuthenticated && pendingDeepLink) {
-          // User is authenticated and has a pending deep link
-          console.log('Processing pending deep link:', pendingDeepLink);
+        // Check if there's a valid pending deep link
+        if (pendingDeepLink) {
+          console.log('Found pending deep link:', pendingDeepLink);
           
-          // Clear the pending deep link
-          await AsyncStorage.removeItem('pendingDeepLink');
-          
-          // Parse the deep link and navigate to OrderPageScreen
-          handlePendingDeepLink(pendingDeepLink);
-          return;
+          // Validate that the pending deep link is actually a valid URL before processing
+          if (isAuthenticated && isValidDeepLink(pendingDeepLink)) {
+            console.log('Processing valid pending deep link for authenticated user:', pendingDeepLink);
+            
+            // Clear the pending deep link
+            await AsyncStorage.removeItem('pendingDeepLink');
+            
+            // Parse the deep link and navigate to OrderPageScreen
+            handlePendingDeepLink(pendingDeepLink);
+            return;
+          } else if (isValidDeepLink(pendingDeepLink)) {
+            // Valid deep link but user not authenticated - keep it for after login
+            console.log('Valid deep link found but user not authenticated, keeping for after login');
+            navigation.replace('Login');
+            return;
+          } else {
+            // Clear invalid deep link
+            console.log('Clearing invalid pending deep link:', pendingDeepLink);
+            await AsyncStorage.removeItem('pendingDeepLink');
+          }
         }
         
-        if (isAuthenticated) {
-          navigation.replace('Main');
-        } else {
-          navigation.replace('Login');
-        }
+        // Normal app open - always require login
+        console.log('Normal app open - redirecting to login');
+        navigation.replace('Login');
 
       } catch (error) {
         console.error('Error checking authentication status:', error);
         navigation.replace('Login');
       }
     }, 2000);
+    
+    const isValidDeepLink = (url: string): boolean => {
+      if (!url || typeof url !== 'string') return false;
+      
+      try {
+        // Check for custom scheme
+        if (url.startsWith('bnplcustomer://')) {
+          return true;
+        }
+        
+        // Check for valid HTTPS URLs
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname;
+        const pathname = urlObj.pathname;
+        
+        // Valid domains and patterns
+        if (hostname === 'merchant.bnpl.hexdive.com') {
+          return pathname.startsWith('/sale/') || pathname.startsWith('/merchant/') || urlObj.searchParams.has('salecode') || urlObj.searchParams.has('saleCode') || urlObj.searchParams.has('merchantId') || urlObj.searchParams.has('merchantid');
+        }
+        
+        if (hostname === 'bnplqr.hexdive.com') {
+          return pathname.startsWith('/sale/');
+        }
+        
+        return false;
+      } catch (error) {
+        console.log('Invalid URL format:', url);
+        return false;
+      }
+    };
     
     const handlePendingDeepLink = (url: string) => {
       try {
@@ -133,6 +179,18 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
             navigation.replace('OrderPageScreen', {
               saleCode: saleCode || undefined,
               merchantId: merchantId || undefined,
+              url: url
+            });
+            return;
+          }
+        }
+
+        // Handle other QR patterns like https://bnplqr.hexdive.com/sale/{orderId}
+        if (hostname === 'bnplqr.hexdive.com' && pathname.startsWith('/sale/')) {
+          const saleCode = pathname.split('/sale/')[1];
+          if (saleCode) {
+            navigation.replace('OrderPageScreen', {
+              saleCode: saleCode,
               url: url
             });
             return;

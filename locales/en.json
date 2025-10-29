@@ -333,7 +333,8 @@
     "ok": "OK",
     "scanNew": "Scan New",
     "close": "Close",
-    "detected": "Detected shop URL: {url}"
+    "detected": "Detected shop URL: {url}",
+    "addCardFirst": "Please add a payment card first before making a purchase. Go to Profile > Cards to add your card."
   },
   "payment": {
     "processingPayment": "Processing Payment",
@@ -483,7 +484,7 @@
     "paymentErrorDesc": "Failed to process payment. Please check your connection and try again.",
     "invalidCard": "Invalid Card",
     "dateUpdated": "Date Updated",
-    "dateUpdatedDesc": "Installment {number} has been rescheduled to {date}",
+    "dateUpdatedDesc": "Installment has been rescheduled.",
     "invalidDate": "Invalid Date",
     "invalidDateDesc": "Please select a date between {min} and {max}",
     "invalidSelection": "Invalid installment selection",

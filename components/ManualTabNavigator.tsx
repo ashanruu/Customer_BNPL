@@ -132,7 +132,7 @@ const ManualTabNavigator: React.FC = () => {
     const CurrentScreen = tabs[activeTab].component;
 
     return (
-        <View style={[styles.container, { backgroundColor: themeColors.primary }]}>
+        <View style={[styles.container, { backgroundColor: '#fff' }]}>
             {/* Hamburger menu trigger */}
             <HamburgerMenu onPress={openDrawer} />
 
@@ -142,8 +142,8 @@ const ManualTabNavigator: React.FC = () => {
             </View>
 
             {/* Bottom tab bar */}
-            <View style={[styles.tabBarContainer, { backgroundColor: themeColors.primary }]}>
-                <View style={[styles.tabBar, { backgroundColor: themeColors.primary }]}>
+            <View style={[styles.tabBarContainer, { backgroundColor: '#fff' }]}>
+                <View style={[styles.tabBar, { backgroundColor: '#fff' }]}>
                     {tabs.map((tab, index) => {
                         const isFocused = activeTab === index;
                         return (
@@ -180,7 +180,7 @@ const ManualTabNavigator: React.FC = () => {
                         style={[
                             styles.drawer,
                             {
-                                backgroundColor: themeColors.primary,
+                                backgroundColor: '#fff',
                                 transform: [{ translateX: slideAnim }],
                             },
                         ]}
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         left: 0,
-        width: screenWidth * 0.8,
+        width: screenWidth * 0.65,
         height: '100%',
         paddingTop: 60,
         paddingRight: 24,

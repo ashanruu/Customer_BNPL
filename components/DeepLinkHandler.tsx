@@ -23,11 +23,15 @@ const DeepLinkHandler: React.FC = () => {
       const initialURL = await Linking.getInitialURL();
       if (initialURL) {
         setIsProcessingInitialLink(true);
+        console.log('=== DEEP LINK HANDLER ===');
         console.log('Initial deep link detected:', initialURL);
         
         // Store the deep link immediately for SplashScreen to handle
         await AsyncStorage.setItem('pendingDeepLink', initialURL);
         console.log('Stored initial deep link for splash screen processing');
+      } else {
+        console.log('=== DEEP LINK HANDLER ===');
+        console.log('No initial deep link detected - normal app open');
       }
     };
 

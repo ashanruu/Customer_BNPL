@@ -209,12 +209,12 @@ const OrdersScreen: React.FC = () => {
           {/* Product Name with Plan Tag */}
           <View style={styles.productNameMainContainer}>
             <View style={styles.productNameWithTag}>
-              <Text style={styles.productNameMain}>
+              {/* <Text style={styles.productNameMain}>
                 {item.productName || 'Product N/A'}
-              </Text>
+              </Text> */}
               <View style={styles.planTag}>
                 <Text style={styles.planTagText}>
-                  {item.planType || 'Plan N/A'}
+                  {item.planType || 'Plan-Base'}
                 </Text>
               </View>
             </View>
