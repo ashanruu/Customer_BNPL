@@ -118,7 +118,7 @@ const TermsAndConditionsScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {termsContent.map((section, index) => (
             <View key={index} style={styles.section}>
-              <MainText size="medium" weight="semibold" style={styles.sectionTitle}>
+              <MainText size="medium"  style={styles.sectionTitle}>
                 {section.title}
               </MainText>
               <SubText size="small" style={styles.sectionContent}>

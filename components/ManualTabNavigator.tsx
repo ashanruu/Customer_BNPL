@@ -142,7 +142,7 @@ const ManualTabNavigator: React.FC = () => {
             </View>
 
             {/* Bottom tab bar */}
-            <View style={[styles.tabBarContainer, { backgroundColor: '#fff' }]}>
+            <View style={[styles.tabBarContainer, { backgroundColor: '#ffffffff' }]}>
                 <View style={[styles.tabBar, { backgroundColor: '#fff' }]}>
                     {tabs.map((tab, index) => {
                         const isFocused = activeTab === index;
@@ -155,12 +155,12 @@ const ManualTabNavigator: React.FC = () => {
                             >
                                 <View style={styles.iconWrapper}>
                                     {isFocused && (
-                                        <View style={[styles.activeLine, { backgroundColor: themeColors.tint }]} />
+                                        <View style={[styles.activeLine, { backgroundColor: "#000" }]} />
                                     )}
                                     <MaterialCommunityIcons
                                         name={tab.iconName}
                                         size={isFocused ? 28 : 22}
-                                        color={isFocused ? themeColors.tabIconSelected : themeColors.tabIconDefault}
+                                        color={isFocused ? '#000' : '#888'}
                                     />
                                 </View>
                             </TouchableOpacity>

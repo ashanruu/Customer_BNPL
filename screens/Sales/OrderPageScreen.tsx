@@ -54,32 +54,44 @@ const OrderPageScreen: React.FC = () => {
     
     try {
       console.log('Processing URL for sale code extraction:', url);
+      
+      // First try regex pattern matching for better reliability
+      const merchantSalePattern = /https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/([a-zA-Z0-9]+)/;
+      const regexMatch = url.match(merchantSalePattern);
+      
+      if (regexMatch && regexMatch[1]) {
+        const saleCode = regexMatch[1].trim();
+        console.log('Extracted sale code using regex:', saleCode);
+        return saleCode;
+      }
+      
+      // Fallback to URL object parsing
       const urlObj = new URL(url);
       
       // Handle verified domain: https://merchant.bnpl.hexdive.com/...
       if (urlObj.hostname === 'merchant.bnpl.hexdive.com') {
         console.log('Domain matched, checking pathname:', urlObj.pathname);
         
-        // Handle sale URLs: /sale/154020251029085827
+        // Handle sale URLs: /sale/393220251029031337
         if (urlObj.pathname.startsWith('/sale/')) {
           const pathParts = urlObj.pathname.split('/sale/');
           // Get the sale code after /sale/ and remove any trailing slashes or paths
-          const saleCode = pathParts[1]?.split('/')[0]?.trim();
+          const saleCode = pathParts[1]?.split('/')[0]?.split('?')[0]?.trim();
           console.log('Extracted sale code from URL path:', saleCode);
-          if (saleCode) return saleCode;
+          if (saleCode && saleCode.length > 0) return saleCode;
         }
         
         // Handle query parameters as fallback
         const saleCodeFromQuery = urlObj.searchParams.get('salecode') || urlObj.searchParams.get('saleCode');
         if (saleCodeFromQuery) {
           console.log('Extracted sale code from query params:', saleCodeFromQuery);
-          return saleCodeFromQuery;
+          return saleCodeFromQuery.trim();
         }
         
         const merchantId = urlObj.searchParams.get('merchantId') || urlObj.searchParams.get('merchantid');
         if (merchantId) {
           console.log('Extracted merchant ID from query params:', merchantId);
-          return merchantId;
+          return merchantId.trim();
         }
       }
       
@@ -131,6 +143,13 @@ const OrderPageScreen: React.FC = () => {
       setError(t('orderPage.noOrderIdAvailable'));
       return;
     }
+
+    console.log('=== FETCH ORDER DETAILS DEBUG ===');
+    console.log('Order ID to fetch:', orderIdToFetch);
+    console.log('Order ID length:', orderIdToFetch.length);
+    console.log('Order ID type:', typeof orderIdToFetch);
+    console.log('Order ID characters:', orderIdToFetch.split('').join(', '));
+    console.log('================================');
 
     setLoading(true);
     setError('');

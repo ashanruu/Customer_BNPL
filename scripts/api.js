@@ -3,8 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
  
-//const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "http://192.168.1.56:5111";
+const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
+//const BASE_DOMAIN = "http://192.168.1.56:5111";
 const AUTH_DOMAIN = "https://auth.sing.hexdive.com";
 
 
@@ -248,7 +248,12 @@ export const deleteCustomerCard = async (jobId) => {
 // Convenience method for fetching order details
 export const fetchOrderDetails = async (orderId) => {
   try {
+    console.log("=== API FETCH ORDER DETAILS DEBUG ===");
     console.log("Fetching order details for ID:", orderId);
+    console.log("Sale code parameter:", { saleCode: orderId });
+    console.log("Order ID type:", typeof orderId);
+    console.log("Order ID length:", orderId ? orderId.length : 'undefined');
+    console.log("====================================");
 
     const response = await callMobileApi(
       'GetCusSaleDetailId',
@@ -262,20 +267,30 @@ export const fetchOrderDetails = async (orderId) => {
     return response;
   } catch (error) {
     console.error("Error fetching order details:", error);
+    console.error("Error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     throw error;
   }
 };
 
 // Convenience method for creating loan with payment options
-export const createLoan = async (saleId, noOfInstallment) => {
+export const createLoan = async (saleId, noOfInstallment, isPayAtOnce = null) => {
   try {
     console.log("Creating loan for sale ID:", saleId, "with installments:", noOfInstallment);
+    
+    // Determine isPayAtOnce based on installment count if not explicitly provided
+    const payAtOnce = isPayAtOnce !== null ? isPayAtOnce : (noOfInstallment === 1 ? 1 : 0);
+    console.log("Payment mode - isPayAtOnce:", payAtOnce);
 
     const response = await callMobileApi(
       'CreateLoan',
       { 
         saleId: saleId,
-        noOfinstllment: noOfInstallment  
+        noOfinstllment: noOfInstallment,
+        isPayAtOnce: payAtOnce
       },
       'mobile-app-create-loan',
       '',

@@ -1,5 +1,6 @@
 {
   "common": {
+    "mobile": "Enter your Mobile number",
     "next": "Next",
     "back": "Back",
     "cancel": "Cancel",

@@ -27,15 +27,15 @@ import { Colors } from '../../constants/Colors';
 import { callAuthApi } from '../../scripts/api';
 
 const LoginScreen: React.FC = ({ navigation }: any) => {
-  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
+  const [mobileError, setMobileError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasSecuritySetup, setHasSecuritySetup] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const emailInputRef = useRef<TextInput>(null);
+  const mobileInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
   const { notification, showError, hideNotification } = useNotification();
@@ -176,11 +176,11 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
   const handleLogin = async () => {
     let hasError = false;
 
-    if (!email.trim()) {
-      setEmailError(t('auth.emailRequired'));
+    if (!mobile.trim()) {
+      setMobileError(t('auth.mobileRequired'));
       hasError = true;
     } else {
-      setEmailError('');
+      setMobileError('');
     }
 
     if (!password.trim()) {
@@ -196,7 +196,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
 
     try {
       const payload = {
-        identifier: email.trim(),
+        identifier: mobile.trim(),
         password: password.trim(),
         userType: 2
       };
@@ -299,25 +299,25 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
           >
             <View style={styles.formContainer}>
               <TextInput
-                ref={emailInputRef}
+                ref={mobileInputRef}
                 style={styles.input}
-                placeholder={t('common.email')}
+                placeholder={t('common.mobile')}
                 placeholderTextColor="#aaa"
-                value={email}
+                value={mobile}
                 onChangeText={(text) => {
-                  setEmail(text);
-                  setEmailError('');
+                  setMobile(text);
+                  setMobileError('');
                 }}
-                keyboardType="email-address"
+                keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
                 onSubmitEditing={() => passwordInputRef.current?.focus()}
                 onFocus={() => {
-                  setTimeout(() => scrollToInput(emailInputRef), 100);
+                  setTimeout(() => scrollToInput(mobileInputRef), 100);
                 }}
               />
-              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+              {mobileError ? <Text style={styles.errorText}>{mobilerError}</Text> : null}
 
               <TextInput
                 ref={passwordInputRef}

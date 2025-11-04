@@ -595,19 +595,13 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                         error={errors.confirmPassword}
                                     />
 
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.sendButton,
-                                            loading && styles.disabledButton
-                                        ]}
+                                    <CustomButton
+                                        title={loading ? t('common.loading') || 'Loading...' : t('common.next')}
                                         onPress={handleNext}
+                                        loading={loading}
                                         disabled={loading}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={styles.buttonText}>
-                                            {loading ? t('common.loading') || 'Loading...' : t('common.next')}
-                                        </Text>
-                                    </TouchableOpacity>
+                                        style={styles.sendButton}
+                                    />
                                 </View>
                             </View>
                         </ScrollView>
