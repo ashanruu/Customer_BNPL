@@ -17,7 +17,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../../constants/Colors';
 
 import { MainText, SubText, LinkText } from '../../components/CustomText';
-import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import StepIndicator from '../../components/StepIndicator';
 import CustomCheckbox from '../../components/CustomCheckbox';
@@ -232,34 +231,7 @@ Last updated: ${new Date().toLocaleDateString()}`;
               {/* Form */}
               <View style={styles.centeredBox}>
                 <View style={styles.form}>
-                  <CustomInputField
-                    placeholder="Address Line 1"
-                    value={addressLine1}
-                    onChangeText={handleAddressLine1Change}
-                    iconName="home-outline"
-                    error={errors.addressLine1}
-                  />
-                  <CustomInputField
-                    placeholder="Address Line 2 (optional)"
-                    value={addressLine2}
-                    onChangeText={text => setAddressLine2(text)}
-                    iconName="home-outline"
-                  />
-                  <CustomInputField
-                    placeholder="City"
-                    value={city}
-                    onChangeText={handleCityChange}
-                    iconName="city"
-                    error={errors.city}
-                  />
-                  <CustomInputField
-                    placeholder="District"
-                    value={state}
-                    onChangeText={handleStateChange}
-                    iconName="map-marker-radius-outline"
-                    error={errors.state}
-                  />
-
+                  
                   {/* Terms and Conditions checkbox with clickable text */}
                   <View style={styles.termsContainer}>
                     <CustomCheckbox

@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MainText, SubText } from '../../components/CustomText';
-import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import CustomNotification from '../../components/CustomNotification';
 import { useNotification } from '../../components/useNotification';
@@ -96,19 +95,8 @@ const ForgotPasswordScreen: React.FC = ({ navigation }: any) => {
         {/* Form Box */}
         <View style={styles.centeredBox}>
           <View style={styles.form}>
-            <CustomInputField
-              placeholder="Enter your email address"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setEmailError('');
-              }}
-              iconName="email-outline"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={emailError}
-            />
-
+            
+          
             <CustomButton
               title={isLoading ? "Sending..." : "Send OTP"}
               onPress={handleForgotPassword}

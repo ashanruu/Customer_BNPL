@@ -1,48 +1,59 @@
 // components/StepIndicator.tsx
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, StyleSheet, Platform, ViewStyle } from 'react-native';
 import { Colors } from '../constants/Colors';
 
 interface StepIndicatorProps {
   currentStep: number;
   totalSteps?: number;
+  activeColor?: string;
+  inactiveColor?: string;
+  style?: ViewStyle;
+  size?: 'small' | 'medium' | 'large';
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps = 5 }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({
+  currentStep,
+  totalSteps = 4,
+  activeColor = '#0066CC',
+  inactiveColor = '#D1D5DB',
+  style,
+  size = 'medium',
+}) => {
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
+  const getSizeConfig = () => {
+    switch (size) {
+      case 'small':
+        return { dotSize: 8, spacing: 6 };
+      case 'large':
+        return { dotSize: 14, spacing: 10 };
+      default:
+        return { dotSize: 10, spacing: 8 };
+    }
+  };
+
+  const { dotSize, spacing } = getSizeConfig();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       {steps.map((step, index) => {
-        const isCompleted = step < currentStep;
-        const isCurrent = step === currentStep;
+        const isActive = step <= currentStep;
 
         return (
-          <React.Fragment key={index}>
-            <View
-              style={[
-                styles.circle,
-                isCompleted && styles.completedCircle,
-                isCurrent && styles.currentCircle,
-              ]}
-            >
-              {isCompleted ? (
-                <MaterialCommunityIcons name="check" size={10} color="#fff" />
-              ) : (
-                <View style={styles.emptyDot} />
-              )}
-            </View>
-
-            {index < totalSteps - 1 && (
-              <View
-                style={[
-                  styles.line,
-                  step < currentStep ? styles.completedLine : styles.incompleteLine,
-                ]}
-              />
-            )}
-          </React.Fragment>
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              {
+                width: dotSize,
+                height: dotSize,
+                borderRadius: dotSize / 2,
+                backgroundColor: isActive ? activeColor : inactiveColor,
+                marginHorizontal: spacing / 2,
+              },
+            ]}
+          />
         );
       })}
     </View>
@@ -53,44 +64,21 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 32,
-  },
-  circle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: Colors.light.tint,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    paddingVertical: 16,
   },
-  completedCircle: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
-  },
-  currentCircle: {
-    borderColor: Colors.light.tint,
-    backgroundColor: 'white',
-  },
-  emptyDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.light.tint,
-  },
-  line: {
-    height: 2,
-    flex: 1,
-    marginHorizontal: 4,
-    backgroundColor: '#D1D5DB', // light gray line by default
-  },
-  completedLine: {
-    backgroundColor: Colors.light.tint,
-  },
-  incompleteLine: {
-    backgroundColor: '#D1D5DB',
+  dot: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
 });
 

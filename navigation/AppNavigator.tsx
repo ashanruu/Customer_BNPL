@@ -1,7 +1,7 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import SplashScreen from "../screens/LogIn/SplashScreen";
-import ManualTabNavigator from "../components/ManualTabNavigator";
+// ManualTabNavigator intentionally not used as a screen here to avoid cycles
 
 // LogIn
 import LoginScreen from "../screens/LogIn/LoginScreen";
@@ -23,19 +23,19 @@ import TermsAndConditionsScreen from "../screens/SignUp/TermsAndConditionsScreen
 import LegalTermsAndConditionsScreen from "../screens/Legal/LegalTermsAndConditionsScreen";
 
 // Other Screens
-import PlansScreen from "../screens/PlansScreen";
-import ProfileScreen from "../screens/Profile/ProfileScreen";
-import SettingsScreen from "../screens/Settings/SettingsScreen";
-import ChangePinScreen from "../screens/Settings/ChangePinScreen";
-import MyTicketsScreen from "../screens/Tickets/MyTicketsScreen";
-import RaiseTicketsScreen from "../screens/Tickets/RaiseTicketsScreen";
-import TicketsDetailsScreen from "../screens/Tickets/TicketsDetailsScreen";
-import UserProfileScreen from "../screens/Profile/UserProfileScreen";
-import SalesScreen from "../screens/Sales/SalesScreen";
-import OrderPageScreen from "../screens/Sales/OrderPageScreen";
-import PaymentProcessScreen from "../screens/Sales/PaymentProcessScreen";
-import HomeScreen from "../screens/HomeScreen";
-import CardAddedSuccessScreen from "../screens/Cards/CardAddedSuccessScreen";
+// import PlansScreen from "../screens/PlansScreen";
+// import ProfileScreen from "../screens/Profile/ProfileScreen";
+// import SettingsScreen from "../screens/Settings/SettingsScreen";
+// import ChangePinScreen from "../screens/Settings/ChangePinScreen";
+// import MyTicketsScreen from "../screens/Tickets/MyTicketsScreen";
+// import RaiseTicketsScreen from "../screens/Tickets/RaiseTicketsScreen";
+// import TicketsDetailsScreen from "../screens/Tickets/TicketsDetailsScreen";
+// import UserProfileScreen from "../screens/Profile/UserProfileScreen";
+// import SalesScreen from "../screens/Sales/SalesScreen";
+// import OrderPageScreen from "../screens/Sales/OrderPageScreen";
+// import PaymentProcessScreen from "../screens/Sales/PaymentProcessScreen";
+// import HomeScreen from "../screens/HomeScreen";
+// import CardAddedSuccessScreen from "../screens/Cards/CardAddedSuccessScreen";
 
 //Web View Screen
 import WebViewScreen from "../screens/Profile/WebViewScreen";
@@ -46,21 +46,74 @@ import CategoryShopsScreen from "../screens/Shop/CategoryShopsScreen";
 import NotificationPreferencesScreen from "../screens/Settings/NotificationPreferencessScreen";
 import PrivacySettingsScreen from "../screens/Settings/PrivacySettingScreen";
 
+
+
+//new Screen Set
+import OpenScreen from "../screensNew/onboardScreen/openScreen";
+import IntroOneScreen from "../screensNew/onboardScreen/introOneScreen";
+import IntroTwoScreen from "../screensNew/onboardScreen/introTwoScreen";
+import IntroThreeScreen from "../screensNew/onboardScreen/introThreeScreen";
+
+import RegWithMobileNoScreen from "../screensNew/RegistrationScreen/regWithMobileNoScreen";
+import RegWithOtpScreen from "../screensNew/RegistrationScreen/regWithOtpScreen";
+import RegWithNicScreen from "../screensNew/RegistrationScreen/regWithNicScreen";
+import RegWithPersonalDetailsScreen from "../screensNew/RegistrationScreen/regWithPersonalDetailsScreen";
+import RegWithAgreementScreen from "../screensNew/RegistrationScreen/regWithAggrementScreen";
+import RegWithPasswordScreen from "../screensNew/RegistrationScreen/regWithPasswordScreen";
+import RegWithPinScreen from "../screensNew/RegistrationScreen/regWithPinScreen";
+import RegWithReEnterPinScreen from "../screensNew/RegistrationScreen/regWithReEnterPin";
+import RegWithFaceLoginScreen from "../screensNew/RegistrationScreen/regWithFaceLoginScreen";
+import RegWithFingerLoginScreen from "../screensNew/RegistrationScreen/regWithFingerLoginScreen";
+import RegWithEmailScreen from "../screensNew/RegistrationScreen/regWithEmailScreen";
+import RegWithEmailOtpScreen from "../screensNew/RegistrationScreen/regWithEmailOtpScreen";
+import RegWithLoginScreen from "../screensNew/RegistrationScreen/regWithLoginScreen";
+
+import DashboardScreen from "../screensNew/dashboardScreen/dashboardScreen";
+import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScreen";
+import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
+
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
+      initialRouteName="RegWithLoginScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={{ gestureEnabled: false }}
-        />
+    
 
-      <Stack.Screen name="Main" component={ManualTabNavigator} />
+      {/* Keep Dashboard screen registered for direct navigation if needed */}
+      <Stack.Screen
+        name="DashboardScreen"
+        component={DashboardScreen}
+        options={{ gestureEnabled: false }}
+      />
+
+      <Stack.Screen name="StoresSectionScreen" component={StoresSectionScreen} options={{ gestureEnabled: false }} />
+
+      {/* onboarding Screen */ }
+      <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IntroThreeScreen" component={IntroThreeScreen} options={{ gestureEnabled: false }} />
+
+      {/* Registration Screens */}
+      <Stack.Screen name="regWithMobileNo" component={RegWithMobileNoScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithOtpScreen" component={RegWithOtpScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithNicScreen" component={RegWithNicScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithPersonalDetailsScreen" component={RegWithPersonalDetailsScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithAgreementScreen" component={RegWithAgreementScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithPasswordScreen" component={RegWithPasswordScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithPinScreen" component={RegWithPinScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithReEnterPinScreen" component={RegWithReEnterPinScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithFaceLoginScreen" component={RegWithFaceLoginScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithFingerLoginScreen" component={RegWithFingerLoginScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithEmailScreen" component={RegWithEmailScreen} options={{ gestureEnabled: false, headerLeft: () => null }} />
+      <Stack.Screen name="RegWithEmailOtpScreen" component={RegWithEmailOtpScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithLoginScreen" component={RegWithLoginScreen} options={{ gestureEnabled: false }} />
+
+      {/* Sale Screen */}
+      <Stack.Screen name="ScanScreen" component={ScanScreen} options={{ gestureEnabled: false }} />
 
       {/* LogIn */}
       <Stack.Screen name="Login" component={LoginScreen} options={{ gestureEnabled: false, headerLeft: () => null }} />
@@ -82,8 +135,8 @@ const AppNavigator = () => {
       <Stack.Screen name="LegalTermsAndConditions" component={LegalTermsAndConditionsScreen} />
 
       {/* Settings */}
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} />
+      {/* <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="ChangePinScreen" component={ChangePinScreen} /> */}
       <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
 
       {/* Shop Screens */}
@@ -91,7 +144,7 @@ const AppNavigator = () => {
       <Stack.Screen name="CategoryShopsScreen" component={CategoryShopsScreen} />
 
       {/* Other Screens */}
-      <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
+      {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
       <Stack.Screen name="RaiseTickets" component={RaiseTicketsScreen} />
@@ -107,9 +160,9 @@ const AppNavigator = () => {
       <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       <Stack.Screen name="HomeScreen" component={HomeScreen} options={{ gestureEnabled: false }} />
       {/* <Stack.Screen name="QRProgressScreen" component={QRProgressScreen} options={{ gestureEnabled: false }} /> */}
-      <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
+      {/* <Stack.Screen name="NotificationPreferences" component={NotificationPreferencesScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
-      <Stack.Screen name="CardAddedSuccess" component={CardAddedSuccessScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="CardAddedSuccess" component={CardAddedSuccessScreen} options={{ headerShown: false }} /> */}
     </Stack.Navigator>
   );
 };
