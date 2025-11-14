@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
 
   // Button variants - matching your Figma designs
   primaryButton: {
-    backgroundColor: '#0066CC', // Blue color 
+    backgroundColor: '#006DB9', // Blue color 
   },
   secondaryButton: {
     backgroundColor: '#F3F4F6', // Light gray
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: '#0066CC', // Blue border 
+    borderColor: '#006DB9', // Blue border 
   },
   dangerButton: {
     backgroundColor: '#DC2626', // Red color

@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Platform,
   ScrollView,
   Animated,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 
 interface BottomSheetModalProps {
@@ -58,6 +60,42 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   contentPadding = 24,
   borderRadius = 24,
 }) => {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const translateY = React.useRef(new Animated.Value(0)).current;
+  const windowHeight = Dimensions.get('window').height;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onKeyboardShow = (e: any) => {
+      const h = e?.endCoordinates?.height || 0;
+      setKeyboardHeight(h);
+      Animated.timing(translateY, {
+        toValue: -h,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const onKeyboardHide = () => {
+      setKeyboardHeight(0);
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const showSub = Keyboard.addListener(showEvent, onKeyboardShow);
+    const hideSub = Keyboard.addListener(hideEvent, onKeyboardHide);
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [translateY]);
+
   const handleBackdropPress = () => {
     if (closeOnBackdropPress) {
       onClose();
@@ -81,6 +119,14 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
     }
     return height;
   };
+
+  // compute a dynamic maxHeight so when keyboard appears the sheet can extend/shift
+  const computedMaxHeight =
+    height === 'auto'
+      ? Math.max(windowHeight * 0.3, windowHeight * 0.9 - keyboardHeight) // ensure a min height
+      : height === 'full'
+      ? windowHeight - keyboardHeight
+      : (height as number);
 
   const ContentWrapper = scrollable ? ScrollView : View;
   const contentWrapperProps = scrollable
@@ -107,7 +153,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       <TouchableWithoutFeedback onPress={handleBackdropPress}>
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
-            <View
+            <Animated.View
               style={[
                 styles.container,
                 {
@@ -115,7 +161,8 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
                   borderTopLeftRadius: borderRadius,
                   borderTopRightRadius: borderRadius,
                   height: getContainerHeight(),
-                  maxHeight: height === 'auto' ? '90%' : undefined,
+                  maxHeight: computedMaxHeight,
+                  transform: [{ translateY }],
                 },
               ]}
             >
@@ -177,7 +224,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
                   {footerContent}
                 </View>
               )}
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>

@@ -20,8 +20,8 @@ import BottomSheetModal from '../../components/BottomSheetModal';
 import CustomButton from '../../components/CustomButton';
 
 type RootStackParamList = {
-  PaymentScreen: { 
-    qrData?: string; 
+  PaymentScreen: {
+    qrData?: string;
     amount?: string;
     merchant?: string;
   };
@@ -37,12 +37,16 @@ const ScanScreen: React.FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [merchantName, setMerchantName] = useState('NOLIMIT');
-  
+
   // Modal states
   const [showEnterAmountModal, setShowEnterAmountModal] = useState(false);
   const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
   const [showPaymentScheduleModal, setShowPaymentScheduleModal] = useState(false);
-  
+  const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card_1');
+  // Modal 5: Identity confirmation
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
+
   // Payment data
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('3months');
@@ -50,7 +54,7 @@ const ScanScreen: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const { status} = await Camera.requestCameraPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
   }, []);
@@ -62,11 +66,11 @@ const ScanScreen: React.FC = () => {
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     console.log('QR Code scanned:', data);
-    
+
     // Store QR data and merchant info
     setQrData(data);
     setMerchantName('NOLIMIT');
-    
+
     // Show the first modal (Enter Amount)
     setShowEnterAmountModal(true);
   };
@@ -92,19 +96,24 @@ const ScanScreen: React.FC = () => {
 
   const handlePaymentScheduleContinue = () => {
     setShowPaymentScheduleModal(false);
-    // Reset states
-    setScanned(false);
-    setPaymentAmount('');
-    setQrData('');
-    
-    // Navigate or show success message
-    Alert.alert('Payment Scheduled', `Your ${selectedPlan} payment plan has been set up successfully!`);
+    setShowPaymentMethodModal(true);
+  };
+
+  const handleSelectPaymentMethod = (id: string) => {
+    setSelectedPaymentMethod(id);
+  };
+
+  const handlePayNow = () => {
+    // Show identity confirmation modal before final navigation
+    setShowPaymentMethodModal(false);
+    setShowIdentityModal(true);
   };
 
   const closeAllModals = () => {
     setShowEnterAmountModal(false);
     setShowConfirmPaymentModal(false);
     setShowPaymentScheduleModal(false);
+    setShowPaymentMethodModal(false);
     setScanned(false);
     setPaymentAmount('');
     setQrData('');
@@ -147,7 +156,7 @@ const ScanScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -199,15 +208,15 @@ const ScanScreen: React.FC = () => {
 
       {/* Bottom Flashlight Button */}
       <View style={styles.bottomContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.flashlightButton}
           onPress={toggleFlashlight}
           activeOpacity={0.7}
         >
-          <Icon 
-            name="flashlight" 
-            size={24} 
-            color="#6B7280" 
+          <Icon
+            name="flashlight"
+            size={24}
+            color="#6B7280"
           />
         </TouchableOpacity>
       </View>
@@ -216,7 +225,7 @@ const ScanScreen: React.FC = () => {
       <BottomSheetModal
         visible={showEnterAmountModal}
         onClose={closeAllModals}
-        title="Enter Payment Amount"
+        title={''}
         showBackButton={true}
         onBackPress={closeAllModals}
         height="auto"
@@ -228,26 +237,39 @@ const ScanScreen: React.FC = () => {
             <View style={styles.merchantLogo}>
               <Text style={styles.merchantLogoText}>NOLIMIT</Text>
             </View>
-            <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitle}>Enter Payment Amount</Text>
+              <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
+            </View>
           </View>
 
           {/* Amount Input */}
           <View style={styles.amountContainer}>
-            <Text style={styles.amountLabel}>Enter Amount</Text>
-            <View style={styles.amountInputContainer}>
-              <Text style={styles.currencySymbol}>Rs.</Text>
-              <TextInput
-                style={styles.amountInput}
-                value={paymentAmount}
-                onChangeText={setPaymentAmount}
-                placeholder="00"
-                placeholderTextColor="#D1D5DB"
-                keyboardType="numeric"
-                autoFocus
-              />
-              <Text style={styles.decimalText}>.00</Text>
+            <View style={styles.dashedBox}>
+              <Text style={styles.amountPlaceholder}>Enter Amount</Text>
+
+              <View style={styles.amountRow}>
+                <Text style={styles.currencyText}>Rs.</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  value={paymentAmount}
+                  onChangeText={setPaymentAmount}
+                  placeholder="00"
+                  placeholderTextColor="#0F172A"
+                  keyboardType="numeric"
+                  autoFocus
+                />
+                <Text style={styles.decimalText}>.00</Text>
+              </View>
             </View>
+
+            {paymentAmount.trim().length > 0 && (
+              <Text style={styles.warningText}>
+                Kindly double check the amount with the merchant prior to making the payment
+              </Text>
+            )}
           </View>
+
 
           {/* Continue Button */}
           <CustomButton
@@ -260,11 +282,11 @@ const ScanScreen: React.FC = () => {
         </View>
       </BottomSheetModal>
 
-      {/* Modal 2: Confirm Payment */}
+      {/* Modal 2: Confirm Payment (updated to match Modal 1 layout) */}
       <BottomSheetModal
         visible={showConfirmPaymentModal}
         onClose={closeAllModals}
-        title="Confirm Payment"
+        title=""
         showBackButton={true}
         onBackPress={() => {
           setShowConfirmPaymentModal(false);
@@ -274,22 +296,42 @@ const ScanScreen: React.FC = () => {
         contentPadding={24}
       >
         <View style={styles.modalContent}>
-          {/* Merchant Info */}
+          {/* Merchant Info (matches Modal 1) */}
           <View style={styles.merchantContainer}>
             <View style={styles.merchantLogo}>
               <Text style={styles.merchantLogoText}>NOLIMIT</Text>
             </View>
-            <Text style={styles.merchantName}>Pay to {merchantName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalTitle}>Confirm Payment</Text>
+              <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
+            </View>
           </View>
 
-          {/* Amount Display */}
-          <View style={styles.confirmAmountContainer}>
-            <Text style={styles.amountLabel}>Amount</Text>
-            <Text style={styles.confirmAmount}>Rs. {formatAmount(paymentAmount)}</Text>
-            <Text style={styles.confirmMessage}>Confirm your payment details before proceeding.</Text>
+          {/* Amount Display (styled like Modal 1's input area) */}
+          <View style={styles.amountContainer}>
+            <View style={styles.dashedBox}>
+              <Text style={styles.amountPlaceholder}>Amount</Text>
+
+              <View style={styles.amountRow}>
+                <Text style={styles.currencyText}>Rs.</Text>
+                <Text
+                  style={[
+                    styles.amountInput,
+                    { fontSize: 36, textAlign: 'center', paddingVertical: 0 },
+                  ]}
+                >
+                  {formatAmount(paymentAmount)}
+                </Text>
+                <Text style={styles.decimalText}> </Text>
+              </View>
+            </View>
+
+            <Text style={styles.warningText}>
+              Confirm your payment details before proceeding.
+            </Text>
           </View>
 
-          {/* Action Buttons */}
+          {/* Action Buttons (same actions as before) */}
           <View style={styles.buttonContainer}>
             <CustomButton
               title="Confirm Amount"
@@ -311,7 +353,7 @@ const ScanScreen: React.FC = () => {
       <BottomSheetModal
         visible={showPaymentScheduleModal}
         onClose={closeAllModals}
-        title="Payment Schedule"
+        title=""
         showBackButton={true}
         onBackPress={() => {
           setShowPaymentScheduleModal(false);
@@ -321,28 +363,41 @@ const ScanScreen: React.FC = () => {
         contentPadding={24}
       >
         <View style={styles.modalContent}>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Schedule</Text>
+          </View>
+
           {/* Discount Option */}
-          <TouchableOpacity style={styles.discountOption}>
-            <View style={styles.radioButton}>
-              <View style={styles.radioOuter}>
-                <View style={styles.radioInner} />
-              </View>
+          <TouchableOpacity
+            style={styles.discountOptionContainer}
+            activeOpacity={0.8}
+          >
+            <View style={styles.discountRadioOuter}>
+              <View style={styles.discountRadioInner} />
             </View>
-            <View style={styles.discountContent}>
-              <View style={styles.discountHeader}>
-                <Text style={styles.discountText}>Get 5% off</Text>
-                <Text style={styles.payAtOnce}>pay at once</Text>
-                <View style={styles.badge}>
-                  <Icon name="information" size={16} color="#FFFFFF" />
-                </View>
-              </View>
-              <View style={styles.priceContainer}>
-                <Text style={styles.discountPrice}>
-                  {(parseFloat(paymentAmount) * 0.95).toFixed(2)}
+
+            <View style={styles.discountTextContainer}>
+              <View style={styles.discountRow}>
+                <Text style={styles.discountTitle}>
+                  Get <Text style={styles.discountPercent}>5% Off</Text>
                 </Text>
-                <Text style={styles.originalPrice}>{formatAmount(paymentAmount)}</Text>
+                <Text style={styles.planLabel}>pay at once</Text>
+              </View>
+
+              <View style={styles.priceRow}>
+                <Text style={styles.discountedPrice}>
+                  {(parseFloat(paymentAmount || '0') * 0.95).toFixed(2)}
+                </Text>
+                <Text style={styles.strikePrice}>
+                  {formatAmount(paymentAmount)}
+                </Text>
               </View>
             </View>
+
+            {/* <Image
+    source={require('../../assets/lollipop-ghost.png')}
+    style={styles.discountMascot}
+  /> */}
           </TouchableOpacity>
 
           {/* Payment Plans */}
@@ -356,7 +411,7 @@ const ScanScreen: React.FC = () => {
               const planDetails = getPaymentPlanDetails();
               const isSelected = selectedPlan === plan.key;
               const monthly = parseFloat(paymentAmount) / plan.months;
-              
+
               return (
                 <TouchableOpacity
                   key={plan.key}
@@ -392,6 +447,141 @@ const ScanScreen: React.FC = () => {
             variant="primary"
             style={styles.proceedButton}
           />
+        </View>
+      </BottomSheetModal>
+
+      {/* Modal 4: Payment Method */}
+      <BottomSheetModal
+        visible={showPaymentMethodModal}
+        onClose={closeAllModals}
+        title=""
+        showBackButton={true}
+        onBackPress={() => {
+          setShowPaymentMethodModal(false);
+          setShowPaymentScheduleModal(true);
+        }}
+        height="auto"
+        contentPadding={24}
+      >
+        <View style={styles.modalContent}>
+          <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
+            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Method</Text>
+          </View>
+
+          {/* Payment methods list */}
+          {[
+            { id: 'card_1', label: 'VISA •••• 3816', brand: 'VISA' },
+            { id: 'card_2', label: '•••• 2399', brand: 'Other' },
+          ].map((m) => {
+            const selected = selectedPaymentMethod === m.id;
+            return (
+              <TouchableOpacity
+                key={m.id}
+                activeOpacity={0.8}
+                style={[
+                  styles.planOption,
+                  selected && styles.planOptionSelected,
+                  // override planOption width so payment methods are full width
+                  { flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' }
+                ]}
+                onPress={() => handleSelectPaymentMethod(m.id)}
+              >
+                <View style={{ marginRight: 12 }}>
+                  <View style={[styles.radioOuter, selected && styles.radioSelected]}>
+                    {selected && <View style={styles.radioInner} />}
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{m.brand}</Text>
+                  <Text style={styles.planAmount}>{m.label}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Add new payment method */}
+          <TouchableOpacity
+            style={{
+              marginVertical: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}
+            onPress={() => {
+              // navigate to add payment method screen or open appropriate flow
+              // example: navigation.navigate('AddPaymentMethod');
+              Alert.alert('Add Payment Method', 'Open Add Payment Method flow.');
+            }}
+          >
+            <Text style={{ color: '#0F172A', fontWeight: '600' }}>Add New Payment Method</Text>
+            <View style={{
+              backgroundColor: '#F3F4F6',
+              paddingHorizontal: 18,
+              paddingVertical: 10,
+              borderRadius: 24,
+              minWidth: 72,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 16 }}>+ Add</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Pay button */}
+          <CustomButton
+            title={`Pay Rs. ${formatAmount(paymentAmount)}`}
+            onPress={handlePayNow}
+            variant="primary"
+            style={{ marginTop: 20 }}
+          />
+        </View>
+      </BottomSheetModal>
+
+      {/* Modal 5: Identity Confirmation (Face ID / Use PIN) - updated to use same modalContent styles as Modal 4 */}
+      <BottomSheetModal
+        visible={showIdentityModal}
+        onClose={() => setShowIdentityModal(false)}
+        title=""
+        showBackButton={true}
+        onBackPress={() => {
+          setShowIdentityModal(false);
+          // return to payment method selection if user presses back
+          setShowPaymentMethodModal(true);
+        }}
+        height="auto"
+        contentPadding={24}
+      >
+        <View style={styles.modalContent}>
+          <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
+            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Confirm Identity</Text>
+          </View>
+
+          <View style={{ alignItems: 'center', marginBottom: 18 }}>
+            <View style={styles.faceIconBox}>
+              <Icon name="fingerprint" size={110} color="#006DB9" />
+            </View>
+          </View>
+
+          {/* Try Face ID button  */}
+          <CustomButton
+            title={`Try again`}
+            onPress={() => Alert.alert('Face ID', 'Retrying Confirmation...')}
+            variant="outline"
+            style={{ marginTop: 20 }}
+          />
+
+          {/* Use PIN fallback (secondary) */}
+          <TouchableOpacity
+            onPress={() => { Alert.alert('Use PIN', 'Navigating to PIN entry screen...'); }}
+            activeOpacity={0.8}
+            style={{ alignItems: 'center', marginTop: 14, padding: 20 }}
+          >
+            <Text style={styles.usePinText}>
+              Having Trouble? <Text style={styles.usePinLink}>Use PIN</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </BottomSheetModal>
     </SafeAreaView>
@@ -570,7 +760,7 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   banner: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#006DB9',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -702,20 +892,18 @@ const styles = StyleSheet.create({
 
   // Modal Styles
   modalContent: {
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   merchantContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 12,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   merchantLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 54,
+    height: 54,
+    borderRadius: 40,
     backgroundColor: '#0EA5E9',
     justifyContent: 'center',
     alignItems: 'center',
@@ -723,8 +911,8 @@ const styles = StyleSheet.create({
   },
   merchantLogoText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '500',
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -734,8 +922,28 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  modalTitleCentered: {
+    textAlign: 'center',
+    alignSelf: 'center',
+    width: '100%',
+  },
   merchantName: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
     color: '#6B7280',
     ...Platform.select({
       ios: {
@@ -747,11 +955,75 @@ const styles = StyleSheet.create({
     }),
   },
   amountContainer: {
-    marginBottom: 40,
+    marginBottom: 24,
+    alignItems: 'center',
   },
+
+  dashedBox: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+
+  amountPlaceholder: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+  },
+
+  currencyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginRight: 4,
+  },
+
+  amountInput: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+    minWidth: 60,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+  },
+
+  decimalText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginLeft: 4,
+  },
+
+  continueButton: {
+    marginTop: 1,
+  },
+
+  warningText: {
+    fontSize: 14,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 12,
+    lineHeight: 20,
+  },
+
   amountLabel: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#8B93A0',
     textAlign: 'center',
     marginBottom: 16,
     ...Platform.select({
@@ -762,63 +1034,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Roboto',
       },
     }),
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'baseline',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  currencySymbol: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginRight: 8,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
-  amountInput: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#1F2937',
-    textAlign: 'center',
-    minWidth: 120,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  decimalText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginLeft: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
-  continueButton: {
-    marginTop: 20,
   },
   confirmAmountContainer: {
     alignItems: 'center',
@@ -844,7 +1059,7 @@ const styles = StyleSheet.create({
   },
   confirmMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#475569',
     textAlign: 'center',
     lineHeight: 20,
     ...Platform.select({
@@ -865,16 +1080,103 @@ const styles = StyleSheet.create({
   cancelButton: {
     marginBottom: 0,
   },
-  discountOption: {
+  discountOptionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    marginBottom: 24,
+    marginTop: 30,
   },
+
+  discountRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  discountRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+
+  discountTextContainer: {
+    flex: 1,
+  },
+
+  discountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+
+  discountTitle: {
+    fontSize: 20,
+    color: '#8B5CF6',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+
+  discountPercent: {
+    color: '#8B5CF6',
+    fontWeight: '700',
+  },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+
+  discountedPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+
+  strikePrice: {
+    fontSize: 14,
+    color: '#8B93A0',
+    textDecorationLine: 'line-through',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  discountMascot: {
+    width: 48,
+    height: 48,
+    marginLeft: 12,
+  },
+
   radioButton: {
     marginRight: 12,
   },
@@ -888,13 +1190,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioSelected: {
-    borderColor: '#2563EB',
+    borderColor: '#006DB9',
   },
   radioInner: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#006DB9',
   },
   discountContent: {
     flex: 1,
@@ -907,7 +1209,7 @@ const styles = StyleSheet.create({
   discountText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#006DB9',
     marginRight: 8,
     ...Platform.select({
       ios: {
@@ -920,7 +1222,7 @@ const styles = StyleSheet.create({
   },
   payAtOnce: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#475569',
     marginRight: 8,
     ...Platform.select({
       ios: {
@@ -935,7 +1237,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#006DB9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -959,7 +1261,7 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#8B93A0',
     textDecorationLine: 'line-through',
     ...Platform.select({
       ios: {
@@ -979,16 +1281,40 @@ const styles = StyleSheet.create({
   planOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     padding: 16,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     width: '48%',
+    backgroundColor: '#FFFFFF',
+    // subtle shadow for all options
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   planOptionSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
+    borderColor: '#004F85',
+    backgroundColor: '#FFFFFF',
+    // stronger shadow for selected option
+    ...Platform.select({
+      ios: {
+        shadowColor: '#004F85',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.10,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   planRow: {
     marginBottom: 12,
@@ -1000,7 +1326,7 @@ const styles = StyleSheet.create({
   planLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#475569',
     marginBottom: 4,
     ...Platform.select({
       ios: {
@@ -1012,7 +1338,7 @@ const styles = StyleSheet.create({
     }),
   },
   planLabelSelected: {
-    color: '#2563EB',
+    color: '#374151',
   },
   planAmount: {
     fontSize: 14,
@@ -1028,6 +1354,50 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     marginTop: 20,
+  },
+  identityModalContent: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  identityTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 18,
+  },
+  faceBox: {
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  faceIconBox: {
+    width: 112,
+    height: 112,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  tryAgainBtn: {
+    width: '100%',
+    borderRadius: 40,
+    borderWidth: 1.5,
+    borderColor: '#0B67BB',
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  tryAgainText: {
+    color: '#0B67BB',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  usePinText: {
+    color: '#475569',
+    fontSize: 14,
+  },
+  usePinLink: {
+    color: '#0B67BB',
+    fontWeight: '700',
   },
 });
 
