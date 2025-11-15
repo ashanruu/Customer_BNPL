@@ -70,6 +70,9 @@ import RegWithLoginScreen from "../screensNew/RegistrationScreen/regWithLoginScr
 
 import DashboardScreen from "../screensNew/dashboardScreen/dashboardScreen";
 import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScreen";
+import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScreen";
+import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
+import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
 import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
 
 
@@ -91,6 +94,9 @@ const AppNavigator = () => {
       />
 
       <Stack.Screen name="StoresSectionScreen" component={StoresSectionScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SelectedStoreScreen" component={SelectedStoreScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="ShoppingSelectedScreen" component={ShoppingSelectedScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="StoreWebViewScreen" component={StoreWebViewScreen} options={{ gestureEnabled: false }} />
 
       {/* onboarding Screen */ }
       <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: false }} />
