@@ -267,11 +267,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
       />
 
       {/* Fixed Welcome Section - Always Visible */}
-      <ImageBackground
-        source={require('../../assets/images/bg.jpg')}
-        style={styles.topBackground}
-        resizeMode="cover"
-      >
+      
         {/* Dark blue overlay */}
         <View style={styles.overlayContainer}>
           <View style={styles.logoContainer}>
@@ -283,7 +279,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
             </SubText>
           </View>
         </View>
-      </ImageBackground>
+      
 
       {/* Scrollable Form Section */}
       <KeyboardAvoidingView
@@ -317,7 +313,7 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
                   setTimeout(() => scrollToInput(mobileInputRef), 100);
                 }}
               />
-              {mobileError ? <Text style={styles.errorText}>{mobilerError}</Text> : null}
+             
 
               <TextInput
                 ref={passwordInputRef}

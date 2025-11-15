@@ -5,17 +5,24 @@ import {
   Text,
   StyleSheet,
   Platform,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors } from '../constants/Colors'; // Adjust path if needed
+import { Colors } from '../constants/Colors';
 
 interface CustomCheckboxProps {
   checked: boolean;
   onToggle: () => void;
-  label?: string;
+  label?: string | React.ReactNode; // Support for rich text labels
   disabled?: boolean;
   size?: 'small' | 'medium' | 'large';
-  color?: string;
+  checkboxColor?: string;
+  textColor?: string;
+  variant?: 'checkbox' | 'radio'; // Support for both checkbox and radio buttons
+  style?: ViewStyle;
+  labelStyle?: TextStyle;
+  description?: string; // For additional text below label
+  error?: boolean; // For error state
 }
 
 const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
@@ -24,73 +31,124 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
   label,
   disabled = false,
   size = 'medium',
-  color = Colors.light.tint,
+  checkboxColor = '#0066CC',
+  textColor,
+  variant = 'checkbox',
+  style,
+  labelStyle,
+  description,
+  error = false,
 }) => {
   const getCheckboxSize = () => {
     switch (size) {
       case 'small':
-        return 16;
+        return 18;
       case 'large':
-        return 24;
+        return 28;
       default:
-        return 20;
+        return 24;
     }
   };
 
   const getTextSize = () => {
     switch (size) {
       case 'small':
-        return 12;
+        return 13;
       case 'large':
-        return 16;
+        return 17;
       default:
-        return 14;
+        return 15;
     }
   };
 
   const checkboxSize = getCheckboxSize();
   const textSize = getTextSize();
 
+  // Determine border and background colors
+  const getBorderColor = () => {
+    if (error) return '#DC2626';
+    if (disabled) return '#E5E7EB';
+    if (checked) return checkboxColor;
+    return '#D1D5DB';
+  };
+
+  const getBackgroundColor = () => {
+    if (disabled) return '#F9FAFB';
+    if (checked && variant === 'radio') return '#FFFFFF';
+    if (checked && variant === 'checkbox') return checkboxColor;
+    return '#FFFFFF';
+  };
+
+  const getTextColor = () => {
+    if (textColor) return textColor;
+    if (disabled) return '#9CA3AF';
+    return '#374151';
+  };
+
   return (
     <TouchableOpacity
-      style={[styles.container, disabled && styles.containerDisabled]}
+      style={[styles.container, disabled && styles.containerDisabled, style]}
       onPress={onToggle}
       disabled={disabled}
       activeOpacity={0.7}
     >
       <View
         style={[
-          styles.checkbox,
+          variant === 'radio' ? styles.radioButton : styles.checkbox,
           {
             width: checkboxSize,
             height: checkboxSize,
-            borderColor: checked ? color : Colors.light.icon,
-            backgroundColor: checked ? color : 'transparent',
+            borderColor: getBorderColor(),
+            backgroundColor: getBackgroundColor(),
           },
-          disabled && styles.checkboxDisabled,
         ]}
       >
-        {checked && (
-          <MaterialCommunityIcons
-            name="check"
-            size={checkboxSize * 0.7}
-            color={Colors.light.background}
+        {checked && variant === 'checkbox' && (
+          // Checkmark for checkbox
+          <View style={styles.checkmark}>
+            <View style={styles.checkmarkStem} />
+            <View style={styles.checkmarkKick} />
+          </View>
+        )}
+        {checked && variant === 'radio' && (
+          // Inner circle for radio button
+          <View
+            style={[
+              styles.radioInner,
+              {
+                backgroundColor: checkboxColor,
+                width: checkboxSize * 0.5,
+                height: checkboxSize * 0.5,
+              },
+            ]}
           />
         )}
       </View>
 
       {label && (
-        <Text
-          style={[
-            styles.label,
-            {
-              fontSize: textSize,
-              color: disabled ? Colors.light.icon : Colors.light.text,
-            },
-          ]}
-        >
-          {label}
-        </Text>
+        <View style={styles.labelContainer}>
+          {typeof label === 'string' ? (
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: textSize,
+                  color: getTextColor(),
+                },
+                labelStyle,
+              ]}
+            >
+              {label}
+            </Text>
+          ) : (
+            label
+          )}
+          {description && (
+            <Text style={[styles.description, { fontSize: textSize - 2 }]}>
+              {description}
+            </Text>
+          )}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -99,27 +157,85 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    minHeight: 44, // Minimum touch target for accessibility
   },
   containerDisabled: {
     opacity: 0.5,
   },
+  
+  // Checkbox styles
   checkbox: {
     borderWidth: 2,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 12,
+    marginTop: 2, // Align with first line of text
   },
-  checkboxDisabled: {
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+  
+  // Radio button styles
+  radioButton: {
+    borderWidth: 2,
+    borderRadius: 50, // Fully rounded for circular radio
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
   },
-  label: {
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
-    fontWeight: '400',
+  
+  // Radio button inner circle (when selected)
+  radioInner: {
+    borderRadius: 50,
+  },
+  
+  // Custom checkmark for checkbox
+  checkmark: {
+    width: 12,
+    height: 12,
+    position: 'relative',
+  },
+  checkmarkStem: {
+    position: 'absolute',
+    width: 2,
+    height: 8,
+    backgroundColor: '#FFFFFF',
+    left: 6,
+    top: 2,
+    transform: [{ rotate: '45deg' }],
+  },
+  checkmarkKick: {
+    position: 'absolute',
+    width: 2,
+    height: 4,
+    backgroundColor: '#FFFFFF',
+    left: 3,
+    top: 6,
+    transform: [{ rotate: '-45deg' }],
+  },
+  
+  // Label container
+  labelContainer: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  
+  // Label text
+  label: {
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    fontWeight: '400',
+    lineHeight: 22,
+    flexShrink: 1,
+  },
+  
+  // Description text (below label)
+  description: {
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    fontWeight: '400',
+    color: '#6B7280',
+    marginTop: 4,
+    lineHeight: 18,
   },
 });
 

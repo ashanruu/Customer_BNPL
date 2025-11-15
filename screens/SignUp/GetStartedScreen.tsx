@@ -9,7 +9,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { callAuthApi, validateCustomer } from '../../scripts/api';
 import { MainText, SubText } from '../../components/CustomText';
-import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
@@ -158,22 +157,7 @@ const GetStartedScreen: React.FC = ({ navigation }: any) => {
                 <View style={styles.centeredBox}>
                     <View style={styles.form}>
 
-                        <CustomInputField
-                            placeholder={t('signup.mobileNumber')}
-                            value={phoneNumber}
-                            onChangeText={(text) => {
-                                const formatted = formatPhoneNumber(text);
-                                setPhoneNumber(formatted);
-                                // Clear error when user starts typing
-                                if (phoneError) {
-                                    setPhoneError('');
-                                }
-                            }}
-                            iconName="phone-outline"
-                            keyboardType="phone-pad"
-                            error={phoneError}
-                        />
-                        
+                       
                         {!phoneError && (
                             <SubText size="small" align="left" style={styles.helpText}>
                                 {t('signup.mobileHelp')}

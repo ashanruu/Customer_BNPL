@@ -16,17 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-
-import HomeScreen from '../screens/HomeScreen';
-import ShopScreen from '../screens/Shop/ShopScreen';
-import OrdersScreen from '../screens/Orders/OrdersScreen';
-import ProfileScreen from '../screens/Profile/ProfileScreen';
-import SalesScreen from '../screens/Sales/SalesScreen';
-// import TermsScreen from '../screens/TermsScreen';
-// import SettingsScreen from '../screens/SettingsScreen';
-// import LoginScreen from '../screens/LoginScreen';
 import { Colors } from '../constants/Colors';
-import HamburgerMenu from '../components/HamburgerMenu';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -36,8 +26,24 @@ const getFontFamily = () => {
     return 'System';
 };
 
-const ManualTabNavigator: React.FC = () => {
-    const [activeTab, setActiveTab] = useState(0);
+type ManualTabNavigatorProps = {
+    HomeComponent: React.ComponentType<any>;
+    StoreComponent?: React.ComponentType<any>;
+    ScanComponent?: React.ComponentType<any>;
+    OrdersComponent?: React.ComponentType<any>;
+    ProfileComponent?: React.ComponentType<any>;
+    initialTab?: number;
+};
+
+const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({ 
+    HomeComponent, 
+    StoreComponent,
+    ScanComponent,
+    OrdersComponent,
+    ProfileComponent,
+    initialTab = 0 
+}) => {
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [menuVisible, setMenuVisible] = useState(false);
     const slideAnim = useRef(new Animated.Value(-screenWidth)).current;
     const colorScheme = useColorScheme();
@@ -46,11 +52,11 @@ const ManualTabNavigator: React.FC = () => {
     const { t } = useTranslation();
 
     const tabs = [
-        { name: t('navigation.home'), iconName: 'home-outline', component: HomeScreen },
-        { name: t('navigation.shop'), iconName: 'cart-outline', component: ShopScreen },
-        { name: t('navigation.scan'), iconName: 'qrcode-scan', component: SalesScreen }, 
-        { name: t('navigation.orders'), iconName: 'text-box-outline', component: OrdersScreen },
-        { name: t('navigation.profile'), iconName: 'account-outline', component: ProfileScreen },
+        { name: t('navigation.home'), iconName: 'home-outline', component: HomeComponent, label: 'Home', index: 0 },
+        { name: t('navigation.shop'), iconName: 'store-outline', component: StoreComponent || HomeComponent, label: 'Store', index: 1 },
+        { name: t('navigation.scan'), iconName: 'qrcode-scan', component: ScanComponent || HomeComponent, label: 'Scan', index: 2, isCenter: true }, 
+        { name: t('navigation.orders'), iconName: 'cart-outline', component: OrdersComponent || HomeComponent, label: 'Orders', index: 3 },
+        { name: t('navigation.profile'), iconName: 'account-outline', component: ProfileComponent || HomeComponent, label: 'Profile', index: 4 },
     ];
 
     const menuItems = [
@@ -93,30 +99,19 @@ const ManualTabNavigator: React.FC = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            // Get all AsyncStorage keys
                             const allKeys = await AsyncStorage.getAllKeys();
-                            
-                            // Filter out keys to preserve (biometric/PIN data and token)
                             const keysToPreserve = [
                                 'pinEnabled',
                                 'biometricEnabled', 
                                 'userPin',
                                 'securitySetupCompleted',
                                 'securitySetupSkipped',
-                                'bearerToken'  // Preserve the authentication token
+                                'bearerToken'
                             ];
-                            
-                            // Get keys to remove (all keys except preserved keys)
                             const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
-                            
-                            // Remove all data except biometric/PIN settings and token
                             if (keysToRemove.length > 0) {
                                 await AsyncStorage.multiRemove(keysToRemove);
                             }
-                            
-                            console.log('Logout successful - biometric data and token preserved');
-                            
-                            // Close drawer and navigate to login
                             closeDrawer();
                             navigation.replace('Login');
                         } catch (error) {
@@ -133,8 +128,7 @@ const ManualTabNavigator: React.FC = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: '#fff' }]}>
-            {/* Hamburger menu trigger */}
-            <HamburgerMenu onPress={openDrawer} />
+            
 
             {/* Render selected screen */}
             <View style={styles.screenContainer}>
@@ -142,26 +136,61 @@ const ManualTabNavigator: React.FC = () => {
             </View>
 
             {/* Bottom tab bar */}
-            <View style={[styles.tabBarContainer, { backgroundColor: '#ffffffff' }]}>
-                <View style={[styles.tabBar, { backgroundColor: '#fff' }]}>
+            <View style={[styles.tabBarContainer, { backgroundColor: '#FFFFFF' }]}>
+                <View style={[styles.tabBar, { backgroundColor: '#FFFFFF' }]}>
                     {tabs.map((tab, index) => {
                         const isFocused = activeTab === index;
+                        const isCenter = tab.isCenter;
+                        
+                        // Center scan button
+                        if (isCenter) {
+                            return (
+                                <View key={index} style={styles.centerButton} pointerEvents="box-none">
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('ScanScreen')}
+                                        style={styles.centerButtonInner}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={{ backgroundColor: '#0066CC', width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' }}>
+                                            <MaterialCommunityIcons
+                                                name={tab.iconName}
+                                                size={40}
+                                                color="#FFFFFF"
+                                            />
+                                        </View>
+                                    </TouchableOpacity>
+                                </View>
+                            );
+                        }
+                        
+                        // Regular tab button
                         return (
                             <TouchableOpacity
                                 key={index}
-                                onPress={() => setActiveTab(index)}
+                                onPress={() => {
+                                    console.log('Tab pressed, index:', index, 'label:', tab.label);
+                                    setActiveTab(index);
+                                }}
                                 style={styles.tab}
                                 activeOpacity={0.7}
                             >
-                                <View style={styles.iconWrapper}>
-                                    {isFocused && (
-                                        <View style={[styles.activeLine, { backgroundColor: "#000" }]} />
-                                    )}
+                                <View style={styles.tabContent}>
                                     <MaterialCommunityIcons
                                         name={tab.iconName}
-                                        size={isFocused ? 28 : 22}
-                                        color={isFocused ? '#000' : '#888'}
+                                        size={24}
+                                        color={isFocused ? '#0066CC' : '#9CA3AF'}
                                     />
+                                    <Text
+                                        style={[
+                                            styles.tabLabel,
+                                            {
+                                                color: isFocused ? '#0066CC' : '#9CA3AF',
+                                                fontWeight: isFocused ? '600' : '400',
+                                            },
+                                        ]}
+                                    >
+                                        {tab.label}
+                                    </Text>
                                 </View>
                             </TouchableOpacity>
                         );
@@ -253,30 +282,84 @@ const ManualTabNavigator: React.FC = () => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     screenContainer: { flex: 1 },
-    tabBarContainer: { paddingBottom: 20, paddingTop: 10 },
+    
+    // Tab Bar Styles
+    tabBarContainer: {
+        paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+        paddingTop: 0,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
     tabBar: {
         flexDirection: 'row',
-        height: 60,
-        marginHorizontal: 20,
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        height: 70,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        paddingHorizontal: 10,
+        position: 'relative',
     },
-    tab: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    iconWrapper: { alignItems: 'center' },
-    activeLine: { width: 20, height: 3, marginBottom: 5, borderRadius: 2 },
+    tab: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 8,
+        zIndex: 2,
+    },
+    tabContent: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tabLabel: {
+        fontSize: 12,
+        marginTop: 4,
+        fontFamily: getFontFamily(),
+    },
+    
+    // Center Scan Button
+    centerButton: {
+        position: 'absolute',
+        top: -25,
+        left: '50%',
+        marginLeft: -40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 80,
+        height: 80,
+        zIndex: 1,
+    },
+    centerButtonInner: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0066CC',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.3,
+                shadowRadius: 16,
+            },
+            android: {
+                elevation: 12,
+            },
+        }),
+    },
+    
+    // Removed unused iconWrapper and activeLine styles
+    
+    // Drawer Styles
     overlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)', // Increased opacity
-        zIndex: 9999, // Add high z-index
-        elevation: 999, // Add high elevation for Android
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        zIndex: 9999,
+        elevation: 999,
     },
     drawer: {
         position: 'absolute',
@@ -288,8 +371,8 @@ const styles = StyleSheet.create({
         paddingRight: 24,
         borderTopRightRadius: 30,
         borderBottomRightRadius: 30,
-        elevation: 1000, // Increase elevation significantly
-        zIndex: 10000, // Add very high z-index
+        elevation: 1000,
+        zIndex: 10000,
     },
     drawerHeader: {
         marginBottom: 30,
@@ -299,7 +382,12 @@ const styles = StyleSheet.create({
         paddingLeft: 24,
         marginTop: 50,
     },
-    brandText: { fontSize: 26, fontWeight: 'bold', letterSpacing: 1 },
+    brandText: {
+        fontSize: 26,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+        fontFamily: getFontFamily(),
+    },
     menuTab: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -318,7 +406,11 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 2,
         borderBottomRightRadius: 2,
     },
-    menuText: { fontSize: 14, fontWeight: '500', fontFamily: getFontFamily() },
+    menuText: {
+        fontSize: 14,
+        fontWeight: '500',
+        fontFamily: getFontFamily(),
+    },
 });
 
 export default ManualTabNavigator;

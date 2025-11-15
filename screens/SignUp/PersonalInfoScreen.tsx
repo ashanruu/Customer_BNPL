@@ -14,7 +14,6 @@ import {
     Modal,
 } from 'react-native';
 import { MainText, SubText } from '../../components/CustomText';
-import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
@@ -463,34 +462,7 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                             {/* Form */}
                             <View style={styles.centeredBox}>
                                 <View style={styles.form}>
-                                    <CustomInputField
-                                        placeholder={t('signup.fullName')}
-                                        value={name}
-                                        onChangeText={handleNameChange}
-                                        iconName="account-outline"
-                                        error={errors.name}
-                                        autoCapitalize="words"
-                                    />
-
-                                    <CustomInputField
-                                        placeholder={t('signup.nicNumber')}
-                                        value={nic}
-                                        onChangeText={handleNicChange}
-                                        iconName="card-account-details-outline"
-                                        error={errors.nic}
-                                        autoCapitalize="characters"
-                                    />
-
-                                    <CustomInputField
-                                        placeholder={t('signup.emailAddress')}
-                                        value={email}
-                                        onChangeText={handleEmailChange}
-                                        iconName="email-outline"
-                                        keyboardType="email-address"
-                                        error={errors.email}
-                                        autoCapitalize="none"
-                                    />
-
+                                    
                                     <TouchableOpacity 
                                         style={[styles.datePickerButton, errors.dateOfBirth && styles.datePickerError]} 
                                         onPress={openDatePicker}
@@ -509,15 +481,8 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                         <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
                                     ) : null}
 
-                                    <CustomInputField
-                                        placeholder={t('common.password')}
-                                        value={password}
-                                        onChangeText={handlePasswordChange}
-                                        iconName="lock-outline"
-                                        secureTextEntry={true}
-                                        error={errors.password}
-                                    />
-
+                           
+                                  
                                     {/* Password Requirements */}
                                     {password.length > 0 && (
                                         <View style={styles.requirementsContainer}>
@@ -586,15 +551,7 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ navigation, rou
                                         </View>
                                     )}
 
-                                    <CustomInputField
-                                        placeholder={t('signup.reenterPassword')}
-                                        value={confirmPassword}
-                                        onChangeText={handleConfirmPasswordChange}
-                                        iconName="lock-check-outline"
-                                        secureTextEntry={true}
-                                        error={errors.confirmPassword}
-                                    />
-
+                                   
                                     <CustomButton
                                         title={loading ? t('common.loading') || 'Loading...' : t('common.next')}
                                         onPress={handleNext}

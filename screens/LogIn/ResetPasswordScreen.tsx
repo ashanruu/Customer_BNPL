@@ -14,7 +14,6 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../constants/Colors';
 import { MainText, SubText } from '../../components/CustomText';
-import CustomInputField from '../../components/CustomInputField';
 import CustomButton from '../../components/CustomButton';
 import CustomNotification from '../../components/CustomNotification';
 import { useNotification } from '../../components/useNotification';
@@ -232,14 +231,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               {/* Form */}
               <View style={styles.centeredBox}>
                 <View style={styles.form}>
-                  <CustomInputField
-                    placeholder="New Password"
-                    value={password}
-                    onChangeText={handlePasswordChange}
-                    iconName="lock-outline"
-                    secureTextEntry={!showPassword}
-                    error={errors.password}
-                  />
+                  
                   
                   {/* Password Requirements */}
                   {password.length > 0 && (
@@ -309,14 +301,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                     </View>
                   )}
                   
-                  <CustomInputField
-                    placeholder="Confirm New Password"
-                    value={confirmPassword}
-                    onChangeText={handleConfirmPasswordChange}
-                    iconName="lock-check-outline"
-                    secureTextEntry={!showConfirmPassword}
-                    error={errors.confirmPassword}
-                  />
+                 
 
                   <CustomButton
                     title="Reset Password"

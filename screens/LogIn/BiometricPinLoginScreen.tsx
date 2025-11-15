@@ -233,11 +233,7 @@ const BiometricPinLoginScreen: React.FC = () => {
     // Show PIN entry screen
     return (
       <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={require('../../assets/images/bg.jpg')}
-          style={styles.background}
-          resizeMode="cover"
-        >
+        
           <View style={styles.overlay}>
             {/* Back Button */}
             <TouchableOpacity
@@ -282,7 +278,7 @@ const BiometricPinLoginScreen: React.FC = () => {
               )}
             </View>
           </View>
-        </ImageBackground>
+        
       </SafeAreaView>
     );
   }
@@ -290,11 +286,7 @@ const BiometricPinLoginScreen: React.FC = () => {
   // Show biometric login screen
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require('../../assets/images/bg.jpg')}
-        style={styles.background}
-        resizeMode="cover"
-      >
+      
         <View style={styles.overlay}>
           {/* Back Button */}
           <TouchableOpacity
@@ -352,7 +344,7 @@ const BiometricPinLoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </ImageBackground>
+
     </SafeAreaView>
   );
 };

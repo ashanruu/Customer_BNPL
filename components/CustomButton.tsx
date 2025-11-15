@@ -7,6 +7,7 @@ import {
   Platform,
   ViewStyle,
   TextStyle,
+  View,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
 
@@ -15,11 +16,13 @@ interface CustomButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   size?: 'small' | 'medium' | 'large';
   style?: ViewStyle;
   textStyle?: TextStyle;
-  colorMode?: 'light' | 'dark'; // New prop for theme
+  colorMode?: 'light' | 'dark';
+  icon?: React.ReactNode; // For adding icons like arrow
+  fullWidth?: boolean; // For full width buttons
 }
 
 const CustomButton: React.FC<CustomButtonProps> = ({
@@ -32,40 +35,51 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   style,
   textStyle,
   colorMode = 'light',
+  icon,
+  fullWidth = false,
 }) => {
   const themeColors = Colors[colorMode];
 
   const getButtonStyle = (): ViewStyle[] => {
     const baseStyle: ViewStyle[] = [styles.button];
 
-    switch (size) {
-      case 'small': baseStyle.push(styles.small); break;
-      case 'medium': baseStyle.push(styles.medium); break;
-      case 'large': baseStyle.push(styles.large); break;
+    // Add full width style
+    if (fullWidth) {
+      baseStyle.push(styles.fullWidth);
     }
 
+    // Size variants
+    switch (size) {
+      case 'small':
+        baseStyle.push(styles.small);
+        break;
+      case 'medium':
+        baseStyle.push(styles.medium);
+        break;
+      case 'large':
+        baseStyle.push(styles.large);
+        break;
+    }
+
+    // Variant styles - matching Figma designs
     switch (variant) {
       case 'primary':
-        baseStyle.push({ backgroundColor: themeColors.tint });
+        baseStyle.push(styles.primaryButton);
         break;
       case 'secondary':
-        baseStyle.push({ backgroundColor: themeColors.background });
+        baseStyle.push(styles.secondaryButton);
         break;
       case 'outline':
-        baseStyle.push({
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          borderColor: themeColors.tint,
-        });
+        baseStyle.push(styles.outlineButton);
+        break;
+      case 'danger':
+        baseStyle.push(styles.dangerButton);
         break;
     }
 
+    // Disabled state
     if (disabled || loading) {
-      baseStyle.push({
-        backgroundColor: '#E5E7EB',
-        shadowOpacity: 0,
-        elevation: 0,
-      });
+      baseStyle.push(styles.disabledButton);
     }
 
     return baseStyle;
@@ -74,29 +88,47 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   const getTextStyle = (): TextStyle[] => {
     const baseStyle: TextStyle[] = [styles.buttonText];
 
+    // Size variants for text
     switch (size) {
-      case 'small': baseStyle.push(styles.smallText); break;
-      case 'medium': baseStyle.push(styles.mediumText); break;
-      case 'large': baseStyle.push(styles.largeText); break;
+      case 'small':
+        baseStyle.push(styles.smallText);
+        break;
+      case 'medium':
+        baseStyle.push(styles.mediumText);
+        break;
+      case 'large':
+        baseStyle.push(styles.largeText);
+        break;
     }
 
+    // Text color based on variant
     switch (variant) {
       case 'primary':
-        baseStyle.push({ color: '#FFFFFF' });
+        baseStyle.push(styles.primaryButtonText);
         break;
       case 'secondary':
-        baseStyle.push({ color: themeColors.text });
+        baseStyle.push(styles.secondaryButtonText);
         break;
       case 'outline':
-        baseStyle.push({ color: themeColors.tint });
+        baseStyle.push(styles.outlineButtonText);
+        break;
+      case 'danger':
+        baseStyle.push(styles.dangerButtonText);
         break;
     }
 
+    // Disabled text color
     if (disabled || loading) {
-      baseStyle.push({ color: '#9CA3AF' });
+      baseStyle.push(styles.disabledButtonText);
     }
 
     return baseStyle;
+  };
+
+  const getLoadingColor = () => {
+    if (variant === 'outline') return '#0066CC';
+    if (variant === 'primary' || variant === 'danger') return '#FFFFFF';
+    return '#374151';
   };
 
   return (
@@ -104,17 +136,15 @@ const CustomButton: React.FC<CustomButtonProps> = ({
       style={[...getButtonStyle(), style]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'primary' ? '#FFFFFF' : themeColors.tint} 
-        />
+        <ActivityIndicator size="small" color={getLoadingColor()} />
       ) : (
-        <Text style={[...getTextStyle(), textStyle]}>
-          {title}
-        </Text>
+        <View style={styles.contentContainer}>
+          <Text style={[...getTextStyle(), textStyle]}>{title}</Text>
+          {icon && <View style={styles.iconContainer}>{icon}</View>}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -122,73 +152,116 @@ const CustomButton: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 25, // More rounded to match your design
+    borderRadius: 30, // Fully rounded corners like in Figma
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    flexDirection: 'row',
+    // Elevation for Android
+    ...Platform.select({
+      android: {
+        elevation: 2,
+      },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+    }),
   },
-  
+
+  fullWidth: {
+    width: '100%',
+  },
+
+  contentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  iconContainer: {
+    marginLeft: 8,
+  },
+
   // Size variants
   small: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    minHeight: 44, // Minimum touch target for accessibility
   },
   medium: {
     paddingVertical: 16,
     paddingHorizontal: 32,
+    minHeight: 52,
   },
   large: {
     paddingVertical: 18,
     paddingHorizontal: 40,
+    minHeight: 56,
   },
-  
-  // Button variants
+
+  // Button variants - matching your Figma designs
   primaryButton: {
-    backgroundColor: '#E91E63', // Pink/Magenta color like in your image
+    backgroundColor: '#006DB9', // Blue color 
   },
   secondaryButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F3F4F6', // Light gray
   },
   outlineButton: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E91E63',
+    borderWidth: 1.5,
+    borderColor: '#006DB9', // Blue border 
+  },
+  dangerButton: {
+    backgroundColor: '#DC2626', // Red color
   },
   disabledButton: {
     backgroundColor: '#E5E7EB',
-    shadowOpacity: 0,
+    ...Platform.select({
+      android: {
+        elevation: 0,
+      },
+      ios: {
+        shadowOpacity: 0,
+      },
+    }),
   },
-  
+
   // Text styles
   buttonText: {
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
     fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  
+
   // Text size variants
   smallText: {
     fontSize: 14,
+    lineHeight: 20,
   },
   mediumText: {
     fontSize: 16,
+    lineHeight: 24,
   },
   largeText: {
     fontSize: 18,
+    lineHeight: 28,
   },
-  
+
   // Text color variants
   primaryButtonText: {
     color: '#FFFFFF',
   },
   secondaryButtonText: {
-    color: '#374151',
+    color: '#374151', // Dark gray text
   },
   outlineButtonText: {
-    color: '#E91E63',
+    color: '#374151', // Dark gray text 
+  },
+  dangerButtonText: {
+    color: '#FFFFFF',
   },
   disabledButtonText: {
     color: '#9CA3AF',
