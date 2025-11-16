@@ -17,7 +17,7 @@ import CustomButton from '../../components/CustomButton';
 import StoreCard from '../../components/StoreCard';
 import ManualTabNavigator from '../../components/ManualTabNavigator';
 import { StoresContent } from '../StoreManagement/StoresSectionScreen';
-import ScanScreen from '../QrScanScreen/scanScreen';
+import ScanScreen from '../QrScanScreen/staticQrScreens/scanScreen';
 
 // Dashboard content component
 const DashboardContent: React.FC = () => {

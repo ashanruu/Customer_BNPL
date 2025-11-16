@@ -5,130 +5,94 @@ import {
   StyleSheet,
   Platform,
   TouchableOpacity,
-  Image,
-  ImageSourcePropType,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface InstallmentCardProps {
-  // Merchant Info
-  merchantName: string;
-  merchantLogo?: ImageSourcePropType | string;
-  
-  // Installment Info
+  installmentTitle: string;
   currentInstallment: number;
-  totalInstallments: number;
-  dueDate: string; // Format: "Nov 28,2025" or "Oct 31,2025"
-  
-  // Amount
+  dueDate: string;
+  dateLabel?: string;
   amount: number;
   currency?: string;
-  
-  // Interaction
   onPress?: () => void;
   disabled?: boolean;
-  
-  // Status
   isPaid?: boolean;
   isOverdue?: boolean;
-  
-  // Customization
+  cardBrand?: string;
+  cardMask?: string;
   backgroundColor?: string;
   borderColor?: string;
 }
 
 const InstallmentCard: React.FC<InstallmentCardProps> = ({
-  merchantName,
-  merchantLogo,
+  installmentTitle,
   currentInstallment,
-  totalInstallments,
   dueDate,
+  dateLabel,
   amount,
   currency = 'Rs.',
   onPress,
   disabled = false,
   isPaid = false,
   isOverdue = false,
+  cardBrand,
+  cardMask,
   backgroundColor = '#FFFFFF',
   borderColor = '#E5E7EB',
 }) => {
-  // Format amount with comma separators
-  const formatAmount = (amount: number): string => {
-    return amount.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  const formatAmount = (val: number): string =>
+    val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const formattedAmount = formatAmount(amount);
 
-  // Determine status styles
   const getStatusStyles = () => {
     if (isPaid) {
-      return {
-        backgroundColor: '#F0FDF4',
-        borderColor: '#10B981',
-        statusText: 'Paid',
-        statusColor: '#10B981',
-      };
+      return { cardBg: '#EAF6EC', circleBg: '#A8DBB2', circleText: '#1A6629' };
     }
     if (isOverdue) {
-      return {
-        backgroundColor: '#FEF2F2',
-        borderColor: '#DC2626',
-        statusText: 'Overdue',
-        statusColor: '#DC2626',
-      };
+      return { cardBg: '#FEF2F2', circleBg: '#FEE2E2', circleText: '#991B1B' };
     }
-    return null;
+    return { cardBg: '#F8FAFB', circleBg: '#E0F2FE', circleText: '#0369A1' };
   };
 
-  const statusStyles = getStatusStyles();
+  const status = getStatusStyles();
+
+  const renderCardBrand = () => {
+    const brand = cardBrand ?? 'VISA';
+    const mask = cardMask ?? '•••• 3816';
+    return (
+      <View style={styles.cardBrandRow}>
+        <Text style={styles.cardBrandText}>{brand}</Text>
+        <Text style={styles.maskText}> {mask}</Text>
+      </View>
+    );
+  };
 
   const CardContent = (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: statusStyles?.backgroundColor || backgroundColor,
-          borderColor: statusStyles?.borderColor || borderColor,
-        },
-      ]}
-    >
-      {/* Left Section - Logo */}
+    <View style={[styles.card, { backgroundColor: status.cardBg || backgroundColor, borderColor }]}>
       <View style={styles.leftSection}>
-        {merchantLogo ? (
-          typeof merchantLogo === 'string' ? (
-            <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoText}>{merchantLogo.charAt(0).toUpperCase()}</Text>
-            </View>
-          ) : (
-            <Image source={merchantLogo} style={styles.logo} />
-          )
-        ) : (
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>{merchantName.charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
+        <View style={[styles.numberCircle, { backgroundColor: status.circleBg }]}>
+          <Text style={[styles.numberText, { color: status.circleText }]}>{currentInstallment}</Text>
+        </View>
       </View>
 
-      {/* Middle Section - Info */}
       <View style={styles.middleSection}>
-        <Text style={styles.merchantName}>{merchantName}</Text>
-        <Text style={styles.installmentText}>
-          ({currentInstallment}/{totalInstallments})
-        </Text>
-        <Text style={styles.dueDate}>Due on {dueDate}</Text>
+        <Text style={styles.installmentTitle}>{installmentTitle}</Text>
+        <Text style={styles.dueDate}>{dateLabel ?? `Due on ${dueDate}`}</Text>
+        <View style={styles.brandAndCardRow}>{renderCardBrand()}</View>
       </View>
 
-      {/* Right Section - Amount */}
       <View style={styles.rightSection}>
-        <Text style={[styles.amount, isPaid && styles.amountPaid]}>
-          {currency} {formattedAmount}
-        </Text>
-        {statusStyles && (
-          <View style={[styles.statusBadge, { backgroundColor: statusStyles.statusColor }]}>
-            <Text style={styles.statusBadgeText}>{statusStyles.statusText}</Text>
+        <Text style={styles.rightAmount}>{currency} {formattedAmount}</Text>
+        {isPaid ? (
+          <View style={styles.checkWrap}>
+            <View style={styles.checkCircle}>
+              <Icon name="check" size={16} color="#fff" />
+            </View>
           </View>
+        ) : (
+          <View style={styles.emptyRight} />
         )}
       </View>
     </View>
@@ -136,11 +100,7 @@ const InstallmentCard: React.FC<InstallmentCardProps> = ({
 
   if (onPress && !disabled) {
     return (
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.7}
-        disabled={disabled}
-      >
+      <TouchableOpacity onPress={onPress} activeOpacity={0.75} disabled={disabled}>
         {CardContent}
       </TouchableOpacity>
     );
@@ -153,142 +113,31 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderWidth: 0,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 0.8 },
     }),
   },
-  leftSection: {
-    marginRight: 12,
-  },
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  logoPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#6B7280',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  middleSection: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  merchantName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 2,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  installmentText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginBottom: 4,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  dueDate: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#9CA3AF',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
-  amountPaid: {
-    textDecorationLine: 'line-through',
-    color: '#9CA3AF',
-  },
-  statusBadge: {
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
-  },
+  leftSection: { marginRight: 10 },
+  numberCircle: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
+  numberText: { fontSize: 14, fontWeight: '600' },
+  middleSection: { flex: 1, justifyContent: 'center', alignItems: 'flex-start' },
+  installmentTitle: { fontSize: 14, fontWeight: '500', color: '#1F2937' },
+  dueDate: { fontSize: 11, color: '#6B7280', marginTop: 4 },
+  brandAndCardRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  cardBrandRow: { flexDirection: 'row', alignItems: 'center' },
+  cardBrandText: { fontSize: 13, fontWeight: '700', color: '#0B4DA0' },
+  maskText: { fontSize: 12, color: '#1F2937', marginLeft: 6, fontWeight: '600' },
+  rightSection: { width: 76, alignItems: 'flex-end', justifyContent: 'center' },
+  rightAmount: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  checkWrap: { marginTop: 8, alignItems: 'center' },
+  checkCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1D752F', alignItems: 'center', justifyContent: 'center' },
+  emptyRight: { width: 28, height: 28, marginTop: 8 },
 });
 
 export default InstallmentCard;

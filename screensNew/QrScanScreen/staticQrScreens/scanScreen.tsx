@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,19 +10,25 @@ import {
   Alert,
   TextInput,
   KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CameraView, Camera } from 'expo-camera';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import BottomSheetModal from '../../components/BottomSheetModal';
-import CustomButton from '../../components/CustomButton';
+import BottomSheetModal from '../../../components/BottomSheetModal';
+import CustomButton from '../../../components/CustomButton';
 
 type RootStackParamList = {
   PaymentScreen: {
     qrData?: string;
     amount?: string;
+    merchant?: string;
+  };
+  PaymentSuccessScreen: {
+    amount?: string;
+    qrData?: string;
     merchant?: string;
   };
 };
@@ -38,19 +44,18 @@ const ScanScreen: React.FC = () => {
   const [scanned, setScanned] = useState(false);
   const [merchantName, setMerchantName] = useState('NOLIMIT');
 
-  // Modal states
-  const [showEnterAmountModal, setShowEnterAmountModal] = useState(false);
-  const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
-  const [showPaymentScheduleModal, setShowPaymentScheduleModal] = useState(false);
-  const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card_1');
-  // Modal 5: Identity confirmation
-  const [showIdentityModal, setShowIdentityModal] = useState(false);
+  // Modal state: add 'success'
+  const [modalStep, setModalStep] = useState<'enter' | 'confirm' | 'schedule' | 'method' | 'identity' | 'success' | null>(null);
+  const fade = useRef(new Animated.Value(1)).current;
 
   // Payment data
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('3months');
   const [qrData, setQrData] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card_1');
+
+  // new: order id for success modal
+  const [orderId, setOrderId] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -58,6 +63,16 @@ const ScanScreen: React.FC = () => {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  // animate fade when modalStep changes
+  useEffect(() => {
+    fade.setValue(0);
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [modalStep, fade]);
 
   const toggleFlashlight = () => {
     setIsFlashlightOn(!isFlashlightOn);
@@ -71,32 +86,29 @@ const ScanScreen: React.FC = () => {
     setQrData(data);
     setMerchantName('NOLIMIT');
 
-    // Show the first modal (Enter Amount)
-    setShowEnterAmountModal(true);
+    // Open the modal at enter amount step
+    setModalStep('enter');
   };
 
   const handleClose = () => {
     navigation.goBack();
   };
 
-  // Modal handlers
+  // Modal navigation helpers (now use modalStep)
   const handleEnterAmountContinue = () => {
     if (!paymentAmount.trim() || parseFloat(paymentAmount) <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
-    setShowEnterAmountModal(false);
-    setShowConfirmPaymentModal(true);
+    setModalStep('confirm');
   };
 
   const handleConfirmPayment = () => {
-    setShowConfirmPaymentModal(false);
-    setShowPaymentScheduleModal(true);
+    setModalStep('schedule');
   };
 
   const handlePaymentScheduleContinue = () => {
-    setShowPaymentScheduleModal(false);
-    setShowPaymentMethodModal(true);
+    setModalStep('method');
   };
 
   const handleSelectPaymentMethod = (id: string) => {
@@ -105,18 +117,33 @@ const ScanScreen: React.FC = () => {
 
   const handlePayNow = () => {
     // Show identity confirmation modal before final navigation
-    setShowPaymentMethodModal(false);
-    setShowIdentityModal(true);
+    setModalStep('identity');
   };
 
   const closeAllModals = () => {
-    setShowEnterAmountModal(false);
-    setShowConfirmPaymentModal(false);
-    setShowPaymentScheduleModal(false);
-    setShowPaymentMethodModal(false);
+    setModalStep(null);
     setScanned(false);
     setPaymentAmount('');
     setQrData('');
+  };
+
+  const onModalBack = () => {
+    switch (modalStep) {
+      case 'confirm':
+        setModalStep('enter');
+        break;
+      case 'schedule':
+        setModalStep('confirm');
+        break;
+      case 'method':
+        setModalStep('schedule');
+        break;
+      case 'identity':
+        setModalStep('method');
+        break;
+      default:
+        closeAllModals();
+    }
   };
 
   const formatAmount = (amount: string) => {
@@ -156,7 +183,6 @@ const ScanScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -213,376 +239,367 @@ const ScanScreen: React.FC = () => {
           onPress={toggleFlashlight}
           activeOpacity={0.7}
         >
-          <Icon
-            name="flashlight"
-            size={24}
-            color="#6B7280"
-          />
+          <Icon name="flashlight" size={24} color="#6B7280" />
         </TouchableOpacity>
       </View>
 
-      {/* Modal 1: Enter Payment Amount */}
+      {/* Single BottomSheetModal used for all steps; content switches by modalStep with fade animation */}
       <BottomSheetModal
-        visible={showEnterAmountModal}
-        onClose={closeAllModals}
-        title={''}
-        showBackButton={true}
-        onBackPress={closeAllModals}
-        height="auto"
-        contentPadding={24}
-      >
-        <View style={styles.modalContent}>
-          {/* Merchant Info */}
-          <View style={styles.merchantContainer}>
-            <View style={styles.merchantLogo}>
-              <Text style={styles.merchantLogoText}>NOLIMIT</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.modalTitle}>Enter Payment Amount</Text>
-              <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
-            </View>
-          </View>
-
-          {/* Amount Input */}
-          <View style={styles.amountContainer}>
-            <View style={styles.dashedBox}>
-              <Text style={styles.amountPlaceholder}>Enter Amount</Text>
-
-              <View style={styles.amountRow}>
-                <Text style={styles.currencyText}>Rs.</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={paymentAmount}
-                  onChangeText={setPaymentAmount}
-                  placeholder="00"
-                  placeholderTextColor="#0F172A"
-                  keyboardType="numeric"
-                  autoFocus
-                />
-                <Text style={styles.decimalText}>.00</Text>
-              </View>
-            </View>
-
-            {paymentAmount.trim().length > 0 && (
-              <Text style={styles.warningText}>
-                Kindly double check the amount with the merchant prior to making the payment
-              </Text>
-            )}
-          </View>
-
-
-          {/* Continue Button */}
-          <CustomButton
-            title="Continue"
-            onPress={handleEnterAmountContinue}
-            variant="primary"
-            disabled={!paymentAmount.trim()}
-            style={styles.continueButton}
-          />
-        </View>
-      </BottomSheetModal>
-
-      {/* Modal 2: Confirm Payment (updated to match Modal 1 layout) */}
-      <BottomSheetModal
-        visible={showConfirmPaymentModal}
+        visible={!!modalStep}
         onClose={closeAllModals}
         title=""
-        showBackButton={true}
-        onBackPress={() => {
-          setShowConfirmPaymentModal(false);
-          setShowEnterAmountModal(true);
-        }}
+        showBackButton={modalStep !== 'success'}
+        onBackPress={onModalBack}
         height="auto"
         contentPadding={24}
       >
-        <View style={styles.modalContent}>
-          {/* Merchant Info (matches Modal 1) */}
-          <View style={styles.merchantContainer}>
-            <View style={styles.merchantLogo}>
-              <Text style={styles.merchantLogoText}>NOLIMIT</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.modalTitle}>Confirm Payment</Text>
-              <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
-            </View>
-          </View>
-
-          {/* Amount Display (styled like Modal 1's input area) */}
-          <View style={styles.amountContainer}>
-            <View style={styles.dashedBox}>
-              <Text style={styles.amountPlaceholder}>Amount</Text>
-
-              <View style={styles.amountRow}>
-                <Text style={styles.currencyText}>Rs.</Text>
-                <Text
-                  style={[
-                    styles.amountInput,
-                    { fontSize: 36, textAlign: 'center', paddingVertical: 0 },
-                  ]}
-                >
-                  {formatAmount(paymentAmount)}
-                </Text>
-                <Text style={styles.decimalText}> </Text>
-              </View>
-            </View>
-
-            <Text style={styles.warningText}>
-              Confirm your payment details before proceeding.
-            </Text>
-          </View>
-
-          {/* Action Buttons (same actions as before) */}
-          <View style={styles.buttonContainer}>
-            <CustomButton
-              title="Confirm Amount"
-              onPress={handleConfirmPayment}
-              variant="primary"
-              style={styles.confirmButton}
-            />
-            <CustomButton
-              title="Cancel"
-              onPress={closeAllModals}
-              variant="secondary"
-              style={styles.cancelButton}
-            />
-          </View>
-        </View>
-      </BottomSheetModal>
-
-      {/* Modal 3: Payment Schedule */}
-      <BottomSheetModal
-        visible={showPaymentScheduleModal}
-        onClose={closeAllModals}
-        title=""
-        showBackButton={true}
-        onBackPress={() => {
-          setShowPaymentScheduleModal(false);
-          setShowConfirmPaymentModal(true);
-        }}
-        height="auto"
-        contentPadding={24}
-      >
-        <View style={styles.modalContent}>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Schedule</Text>
-          </View>
-
-          {/* Discount Option */}
-          <TouchableOpacity
-            style={styles.discountOptionContainer}
-            activeOpacity={0.8}
-          >
-            <View style={styles.discountRadioOuter}>
-              <View style={styles.discountRadioInner} />
-            </View>
-
-            <View style={styles.discountTextContainer}>
-              <View style={styles.discountRow}>
-                <Text style={styles.discountTitle}>
-                  Get <Text style={styles.discountPercent}>5% Off</Text>
-                </Text>
-                <Text style={styles.planLabel}>pay at once</Text>
-              </View>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.discountedPrice}>
-                  {(parseFloat(paymentAmount || '0') * 0.95).toFixed(2)}
-                </Text>
-                <Text style={styles.strikePrice}>
-                  {formatAmount(paymentAmount)}
-                </Text>
-              </View>
-            </View>
-
-            {/* <Image
-    source={require('../../assets/lollipop-ghost.png')}
-    style={styles.discountMascot}
-  /> */}
-          </TouchableOpacity>
-
-          {/* Payment Plans */}
-          <View style={styles.planContainer}>
-            {[
-              { key: '3months', months: 3, label: '3 months' },
-              { key: '4months', months: 4, label: '4 months' },
-              { key: '6months', months: 6, label: '6 months' },
-              { key: '12months', months: 12, label: '12 months' },
-            ].map((plan, index) => {
-              const planDetails = getPaymentPlanDetails();
-              const isSelected = selectedPlan === plan.key;
-              const monthly = parseFloat(paymentAmount) / plan.months;
-
-              return (
-                <TouchableOpacity
-                  key={plan.key}
-                  style={[
-                    styles.planOption,
-                    isSelected && styles.planOptionSelected,
-                    index < 2 && styles.planRow
-                  ]}
-                  onPress={() => setSelectedPlan(plan.key)}
-                >
-                  <View style={styles.radioButton}>
-                    <View style={[styles.radioOuter, isSelected && styles.radioSelected]}>
-                      {isSelected && <View style={styles.radioInner} />}
-                    </View>
-                  </View>
-                  <View style={styles.planDetails}>
-                    <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
-                      {plan.label}
-                    </Text>
-                    <Text style={styles.planAmount}>
-                      {monthly.toFixed(2)} x {plan.months}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Proceed Button */}
-          <CustomButton
-            title={`Proceed with ${selectedPlan.replace('months', ' months')} plan`}
-            onPress={handlePaymentScheduleContinue}
-            variant="primary"
-            style={styles.proceedButton}
-          />
-        </View>
-      </BottomSheetModal>
-
-      {/* Modal 4: Payment Method */}
-      <BottomSheetModal
-        visible={showPaymentMethodModal}
-        onClose={closeAllModals}
-        title=""
-        showBackButton={true}
-        onBackPress={() => {
-          setShowPaymentMethodModal(false);
-          setShowPaymentScheduleModal(true);
-        }}
-        height="auto"
-        contentPadding={24}
-      >
-        <View style={styles.modalContent}>
-          <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
-            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Method</Text>
-          </View>
-
-          {/* Payment methods list */}
-          {[
-            { id: 'card_1', label: 'VISA •••• 3816', brand: 'VISA' },
-            { id: 'card_2', label: '•••• 2399', brand: 'Other' },
-          ].map((m) => {
-            const selected = selectedPaymentMethod === m.id;
-            return (
-              <TouchableOpacity
-                key={m.id}
-                activeOpacity={0.8}
-                style={[
-                  styles.planOption,
-                  selected && styles.planOptionSelected,
-                  // override planOption width so payment methods are full width
-                  { flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' }
-                ]}
-                onPress={() => handleSelectPaymentMethod(m.id)}
-              >
-                <View style={{ marginRight: 12 }}>
-                  <View style={[styles.radioOuter, selected && styles.radioSelected]}>
-                    {selected && <View style={styles.radioInner} />}
-                  </View>
+        <Animated.View style={[styles.modalContent, { opacity: fade }]}>
+          {modalStep === 'enter' && (
+            <>
+              <View style={styles.merchantContainer}>
+                <View style={styles.merchantLogo}>
+                  <Text style={styles.merchantLogoText}>NOLIMIT</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{m.brand}</Text>
-                  <Text style={styles.planAmount}>{m.label}</Text>
+                  <Text style={styles.modalTitle}>Enter Payment Amount</Text>
+                  <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
+                </View>
+              </View>
+
+              <View style={styles.amountContainer}>
+                <View style={styles.dashedBox}>
+                  <Text style={styles.amountPlaceholder}>Enter Amount</Text>
+                  <View style={styles.amountRow}>
+                    <Text style={styles.currencyText}>Rs.</Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      value={paymentAmount}
+                      onChangeText={setPaymentAmount}
+                      placeholder="00"
+                      placeholderTextColor="#0F172A"
+                      keyboardType="numeric"
+                      autoFocus
+                    />
+                    <Text style={styles.decimalText}>.00</Text>
+                  </View>
+                </View>
+
+                {paymentAmount.trim().length > 0 && (
+                  <Text style={styles.warningText}>
+                    Kindly double check the amount with the merchant prior to making the payment
+                  </Text>
+                )}
+              </View>
+
+              <CustomButton
+                title="Continue"
+                onPress={handleEnterAmountContinue}
+                variant="primary"
+                disabled={!paymentAmount.trim()}
+                style={styles.continueButton}
+              />
+            </>
+          )}
+
+          {modalStep === 'confirm' && (
+            <>
+              <View style={styles.merchantContainer}>
+                <View style={styles.merchantLogo}>
+                  <Text style={styles.merchantLogoText}>NOLIMIT</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalTitle}>Confirm Payment</Text>
+                  <Text style={styles.merchantName}>Merchant: {merchantName}</Text>
+                </View>
+              </View>
+
+              <View style={styles.amountContainer}>
+                <View style={styles.dashedBox}>
+                  <Text style={styles.amountPlaceholder}>Amount</Text>
+
+                  <View style={styles.amountRow}>
+                    <Text style={styles.currencyText}>Rs.</Text>
+                    <Text
+                      style={[
+                        styles.amountInput,
+                        { fontSize: 36, textAlign: 'center', paddingVertical: 0 },
+                      ]}
+                    >
+                      {formatAmount(paymentAmount)}
+                    </Text>
+                    <Text style={styles.decimalText}> </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.warningText}>
+                  Confirm your payment details before proceeding.
+                </Text>
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <CustomButton
+                  title="Confirm Amount"
+                  onPress={handleConfirmPayment}
+                  variant="primary"
+                  style={styles.confirmButton}
+                />
+                <CustomButton
+                  title="Cancel"
+                  onPress={closeAllModals}
+                  variant="secondary"
+                  style={styles.cancelButton}
+                />
+              </View>
+            </>
+          )}
+
+          {modalStep === 'schedule' && (
+            <>
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Schedule</Text>
+              </View>
+
+              <View style={styles.planContainer}>
+                {[
+                  { key: 'once', months: 1, label: 'Pay at once', discount: 0.05 },
+                  { key: '3months', months: 3, label: '3 months' },
+                  { key: '4months', months: 4, label: '4 months' },
+                  { key: '6months', months: 6, label: '6 months' },
+                  { key: '12months', months: 12, label: '12 months' },
+                ].map((plan, index) => {
+                  const isSelected = selectedPlan === plan.key;
+
+                  // Pay-at-once shows discounted total + strike-through original
+                  if (plan.key === 'once') {
+                    const amount = parseFloat(paymentAmount || '0');
+                    const discounted = (amount * (1 - (plan.discount || 0))).toFixed(2);
+
+                    return (
+                      <TouchableOpacity
+                        key={plan.key}
+                        style={[styles.planOption, styles.planOptionFull, isSelected && styles.planOptionSelected, index < 2 && styles.planRow]}
+                        onPress={() => setSelectedPlan(plan.key)}
+                      >
+                        <View style={styles.radioButton}>
+                          <View style={[styles.radioOuter, isSelected && styles.radioSelected]}>
+                            {isSelected && <View style={styles.radioInner} />}
+                          </View>
+                        </View>
+
+                        <View style={styles.planDetails}>
+                          <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
+                            {plan.label}
+                          </Text>
+
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                            <Text style={styles.discountedPrice}>{discounted}</Text>
+                            <Text style={[styles.strikePrice, { marginLeft: 8 }]}>{formatAmount(paymentAmount)}</Text>
+                          </View>
+
+                          <Text style={{ marginTop: 6, color: '#8B5CF6', fontWeight: '700' }}>
+                            Get <Text style={styles.discountPercent}>5% Off</Text>
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  // Regular installment options
+                  const monthly = (parseFloat(paymentAmount) || 0) / plan.months;
+
+                  return (
+                    <TouchableOpacity
+                      key={plan.key}
+                      style={[styles.planOption, isSelected && styles.planOptionSelected, index < 2 && styles.planRow]}
+                      onPress={() => setSelectedPlan(plan.key)}
+                    >
+                      <View style={styles.radioButton}>
+                        <View style={[styles.radioOuter, isSelected && styles.radioSelected]}>
+                          {isSelected && <View style={styles.radioInner} />}
+                        </View>
+                      </View>
+
+                      <View style={styles.planDetails}>
+                        <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
+                          {plan.label}
+                        </Text>
+                        <Text style={styles.planAmount}>
+                          {monthly.toFixed(2)} x {plan.months}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <CustomButton
+                title={`Proceed with ${selectedPlan === 'once' ? 'Pay at once' : selectedPlan.replace('months', ' months')} plan`}
+                onPress={handlePaymentScheduleContinue}
+                variant="primary"
+                style={styles.proceedButton}
+              />
+            </>
+          )}
+
+          {modalStep === 'method' && (
+            <>
+              <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
+                <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Method</Text>
+              </View>
+
+              {[
+                { id: 'card_1', label: 'VISA •••• 3816', brand: 'VISA' },
+                { id: 'card_2', label: '•••• 2399', brand: 'Other' },
+              ].map((m) => {
+                const selected = selectedPaymentMethod === m.id;
+                return (
+                  <TouchableOpacity
+                    key={m.id}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.planOption,
+                      selected && styles.planOptionSelected,
+                      { flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' },
+                    ]}
+                    onPress={() => handleSelectPaymentMethod(m.id)}
+                  >
+                    <View style={{ marginRight: 12 }}>
+                      <View style={[styles.radioOuter, selected && styles.radioSelected]}>
+                        {selected && <View style={styles.radioInner} />}
+                      </View>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{m.brand}</Text>
+                      <Text style={styles.planAmount}>{m.label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                style={{
+                  marginVertical: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                }}
+                onPress={() => {
+                  Alert.alert('Add Payment Method', 'Open Add Payment Method flow.');
+                }}
+              >
+                <Text style={{ color: '#0F172A', fontWeight: '600' }}>Add New Payment Method</Text>
+                <View style={{
+                  backgroundColor: '#F3F4F6',
+                  paddingHorizontal: 18,
+                  paddingVertical: 10,
+                  borderRadius: 24,
+                  minWidth: 72,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 16 }}>+ Add</Text>
                 </View>
               </TouchableOpacity>
-            );
-          })}
 
-          {/* Add new payment method */}
-          <TouchableOpacity
-            style={{
-              marginVertical: 8,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-            }}
-            onPress={() => {
-              // navigate to add payment method screen or open appropriate flow
-              // example: navigation.navigate('AddPaymentMethod');
-              Alert.alert('Add Payment Method', 'Open Add Payment Method flow.');
-            }}
-          >
-            <Text style={{ color: '#0F172A', fontWeight: '600' }}>Add New Payment Method</Text>
-            <View style={{
-              backgroundColor: '#F3F4F6',
-              paddingHorizontal: 18,
-              paddingVertical: 10,
-              borderRadius: 24,
-              minWidth: 72,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 16 }}>+ Add</Text>
-            </View>
-          </TouchableOpacity>
+              <CustomButton
+                title={`Pay Rs. ${formatAmount(paymentAmount)}`}
+                onPress={handlePayNow}
+                variant="primary"
+                style={{ marginTop: 20 }}
+              />
+            </>
+          )}
 
-          {/* Pay button */}
-          <CustomButton
-            title={`Pay Rs. ${formatAmount(paymentAmount)}`}
-            onPress={handlePayNow}
-            variant="primary"
-            style={{ marginTop: 20 }}
-          />
-        </View>
-      </BottomSheetModal>
+          {modalStep === 'identity' && (
+            <>
+              <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
+                <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Confirm Identity</Text>
+              </View>
 
-      {/* Modal 5: Identity Confirmation (Face ID / Use PIN) - updated to use same modalContent styles as Modal 4 */}
-      <BottomSheetModal
-        visible={showIdentityModal}
-        onClose={() => setShowIdentityModal(false)}
-        title=""
-        showBackButton={true}
-        onBackPress={() => {
-          setShowIdentityModal(false);
-          // return to payment method selection if user presses back
-          setShowPaymentMethodModal(true);
-        }}
-        height="auto"
-        contentPadding={24}
-      >
-        <View style={styles.modalContent}>
-          <View style={{ flex: 1, alignItems: 'center', marginBottom: 30 }}>
-            <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Confirm Identity</Text>
-          </View>
+              <View style={{ alignItems: 'center', marginBottom: 18 }}>
+                <View style={styles.faceIconBox}>
+                  <Icon name="fingerprint" size={110} color="#006DB9" />
+                </View>
+              </View>
 
-          <View style={{ alignItems: 'center', marginBottom: 18 }}>
-            <View style={styles.faceIconBox}>
-              <Icon name="fingerprint" size={110} color="#006DB9" />
-            </View>
-          </View>
+              <CustomButton
+                title={`Try Again`}
+                onPress={() => {
+                  // generate order id
+                  const id = 'OE#' + Math.floor(100000 + Math.random() * 900000).toString();
+                  setOrderId(id);
 
-          {/* Try Face ID button  */}
-          <CustomButton
-            title={`Try again`}
-            onPress={() => Alert.alert('Face ID', 'Retrying Confirmation...')}
-            variant="outline"
-            style={{ marginTop: 20 }}
-          />
+                  // If user chose "Pay at once" (key 'once') show the in-modal success screen.
+                  // Otherwise navigate to the existing PaymentSuccessScreen .
+                  if (selectedPlan === 'once') {
+                    setModalStep('success');
+                  } else {
+                    navigation.navigate('PaymentSuccessScreen', {
+                      amount: paymentAmount,
+                      qrData,
+                      merchant: merchantName,
+                    });
+                    closeAllModals();
+                  }
+                }}
+                variant="outline"
+                style={{ marginTop: 20 }}
+              />
 
-          {/* Use PIN fallback (secondary) */}
-          <TouchableOpacity
-            onPress={() => { Alert.alert('Use PIN', 'Navigating to PIN entry screen...'); }}
-            activeOpacity={0.8}
-            style={{ alignItems: 'center', marginTop: 14, padding: 20 }}
-          >
-            <Text style={styles.usePinText}>
-              Having Trouble? <Text style={styles.usePinLink}>Use PIN</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                onPress={() => { Alert.alert('Use PIN', 'Navigating to PIN entry screen...'); }}
+                activeOpacity={0.8}
+                style={{ alignItems: 'center', marginTop: 14, padding: 20 }}
+              >
+                <Text style={styles.usePinText}>
+                  Having Trouble? <Text style={styles.usePinLink}>Use PIN</Text>
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* NEW: success modal (matches image style) */}
+          {modalStep === 'success' && (
+            <>
+              <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                <Text style={styles.successIntro}>Installment Payment</Text>
+                <Text style={styles.successTitle}>Successful!</Text>
+              </View>
+  
+              <View style={{ alignItems: 'center'}}>
+                <View style={styles.merchantLogo}>
+                  <Text style={styles.merchantLogoText}>NOLIMIT</Text>
+                </View>
+                <Text style={[styles.merchantName, { marginTop: 10, fontWeight: '700', color: '#0F172A' }]}>
+                  {merchantName}
+                </Text>
+  
+                <View style={styles.orderPill}>
+                  <Text style={styles.orderPillText}>Order ID: {orderId}</Text>
+                </View>
+              </View>
+  
+              <View style={{ alignItems: 'center', width: '100%', marginBottom: 16 }}>
+                <View style={styles.cardBrandRow}>
+                  <Text style={styles.cardBrandText}>
+                    {selectedPaymentMethod === 'card_1' ? 'VISA' : 'Card'}
+                  </Text>
+                  <Text style={styles.maskText}>
+                    {selectedPaymentMethod === 'card_1' ? ' **** 3816' : ' **** 2399'}
+                  </Text>
+                </View>
+  
+                <View style={styles.totalBox}>
+                  <Text style={{ color: '#6B7280', marginBottom: 6 }}>Total Amount</Text>
+                  <Text style={styles.totalAmount}>Rs. {formatAmount(paymentAmount)}</Text>
+                </View>
+              </View>
+  
+            </>
+          )}
+        </Animated.View>
       </BottomSheetModal>
     </SafeAreaView>
   );
@@ -1277,6 +1294,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     marginBottom: 32,
+    marginTop: 30,
   },
   planOption: {
     flexDirection: 'row',
@@ -1299,6 +1317,9 @@ const styles = StyleSheet.create({
         elevation: 2,
       },
     }),
+  },
+  planOptionFull: {
+    width: '100%',
   },
   planOptionSelected: {
     borderColor: '#004F85',
@@ -1398,6 +1419,79 @@ const styles = StyleSheet.create({
   usePinLink: {
     color: '#0B67BB',
     fontWeight: '700',
+  },
+
+  // success modal styles
+  successIntro: {
+    fontSize: 20,
+    fontWeight: '500',
+    lineHeight: 24,
+    marginBottom: 6,
+    color: '#2AA743',
+  },
+  successTitle: {
+    fontSize: 29,
+    fontWeight: '700',
+    lineHeight: 36,
+    marginBottom: 10,
+    color: '#2AA743',
+  },
+  orderPill: {
+        backgroundColor: '#E1EEF8',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 115,
+        marginRight: 12,
+        marginTop: 10,
+  },
+  orderPillText: {
+        color: '#004F85',
+        fontSize: 11,
+        fontWeight: '600',
+  },
+  cardBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 12,  
+  },
+  cardBrandText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0B4DA0',
+  },
+  maskText: {
+    fontSize: 14,
+    color: '#0F172A',
+    marginLeft: 6,
+    fontWeight: '600',
+  },
+  totalBox: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 12,
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 6,
+  },
+  successCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
 });
 

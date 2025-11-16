@@ -70,7 +70,10 @@ import RegWithLoginScreen from "../screensNew/RegistrationScreen/regWithLoginScr
 
 import DashboardScreen from "../screensNew/dashboardScreen/dashboardScreen";
 import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScreen";
-import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
+
+import ScanScreen from "../screensNew/QrScanScreen/staticQrScreens/scanScreen";
+import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
+import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
 
 
 const Stack = createStackNavigator();
@@ -142,6 +145,10 @@ const AppNavigator = () => {
       {/* Shop Screens */}
       <Stack.Screen name="ShopDetailsScreen" component={ShopDetailsScreen} />
       <Stack.Screen name="CategoryShopsScreen" component={CategoryShopsScreen} />
+
+      {/* Scan Screens */}
+      <Stack.Screen name="PaymentSuccessScreen" component={PaymentSuccessScreen} />
+      <Stack.Screen name="PaymentMoreInfo" component={PaymentMoreInfoScreen} />
 
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />

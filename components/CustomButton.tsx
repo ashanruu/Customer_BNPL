@@ -68,6 +68,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
         break;
       case 'secondary':
         baseStyle.push(styles.secondaryButton);
+        baseStyle.push(styles.noShadow); // <- remove shadow for secondary
         break;
       case 'outline':
         baseStyle.push(styles.outlineButton);
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#006DB9', // Blue color 
   },
   secondaryButton: {
-    backgroundColor: '#F3F4F6', // Light gray
+    backgroundColor: '#EBEBED', // Light gray
   },
   outlineButton: {
     backgroundColor: 'transparent',
@@ -218,6 +219,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: '#E5E7EB',
+    ...Platform.select({
+      android: {
+        elevation: 0,
+      },
+      ios: {
+        shadowOpacity: 0,
+      },
+    }),
+  },
+
+  // remove shadow helper
+  noShadow: {
     ...Platform.select({
       android: {
         elevation: 0,
