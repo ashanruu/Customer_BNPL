@@ -37,6 +37,7 @@ interface OnboardingCardProps {
   onSkip?: () => void;
   nextButtonText?: string;
   showSkipButton?: boolean;
+  showNextButton?: boolean;
   skipButtonText?: string;
   
   // Customization
@@ -45,6 +46,7 @@ interface OnboardingCardProps {
   descriptionColor?: string;
   nextButtonColor?: string;
   nextButtonTextColor?: string;
+  isFullScreen?: boolean;
 }
 
 const OnboardingCard: React.FC<OnboardingCardProps> = ({
@@ -63,17 +65,25 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({
   onSkip,
   nextButtonText = 'Next',
   showSkipButton = true,
+  showNextButton = true,
   skipButtonText = 'Skip',
   titleColor = '#1F2937',
   subtitleColor = '#0066CC',
   descriptionColor = '#6B7280',
   nextButtonColor = '#0066CC',
   nextButtonTextColor = '#FFFFFF',
+  isFullScreen = false,
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isFullScreen && { backgroundColor }]}>
       {/* Top Section with Image */}
-      <View style={[styles.topSection, { backgroundColor: topBackgroundColor }]}>
+      <View
+        style={[
+          styles.topSection,
+          { backgroundColor: topBackgroundColor },
+          isFullScreen && styles.topSectionFull,
+        ]}
+      >
         {/* Skip Button */}
         {showSkipButton && (
           <TouchableOpacity
@@ -98,7 +108,13 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({
       </View>
 
       {/* Bottom Section with Content */}
-      <View style={[styles.bottomSection, { backgroundColor }]}>
+      <View
+        style={[
+          styles.bottomSection,
+          { backgroundColor },
+          isFullScreen && styles.bottomSectionFull,
+        ]}
+      >
         {/* Text Content */}
         <View style={styles.contentContainer}>
           {/* Decorative Line */}
@@ -140,18 +156,20 @@ const OnboardingCard: React.FC<OnboardingCardProps> = ({
           </View>
 
           {/* Next Button */}
-          <TouchableOpacity
-            style={[styles.nextButton, { backgroundColor: nextButtonColor }]}
-            onPress={onNext}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.nextButtonText, { color: nextButtonTextColor }]}>
-              {nextButtonText}
-            </Text>
-            <View style={styles.arrowIcon}>
-              <Text style={[styles.arrowText, { color: nextButtonTextColor }]}>→</Text>
-            </View>
-          </TouchableOpacity>
+          {showNextButton && (
+            <TouchableOpacity
+              style={[styles.nextButton, { backgroundColor: nextButtonColor }]}
+              onPress={onNext}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.nextButtonText, { color: nextButtonTextColor }]}>
+                {nextButtonText}
+              </Text>
+              <View style={styles.arrowIcon}>
+                <Text style={[styles.arrowText, { color: nextButtonTextColor }]}>→</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -168,6 +186,10 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     overflow: 'hidden',
+  },
+  topSectionFull: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   statusBarSpacer: {
     height: Platform.OS === 'ios' ? 44 : 24,
@@ -235,6 +257,22 @@ const styles = StyleSheet.create({
       },
       android: {
         elevation: 8,
+      },
+    }),
+  },
+  bottomSectionFull: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    marginTop: 0,
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+      },
+      android: {
+        elevation: 0,
       },
     }),
   },

@@ -73,7 +73,7 @@ import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScre
 import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScreen";
 import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
 import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
-import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
+import ScanScreen from "../screensNew/QrScanScreen/staticQrScreens/scanScreen";
 import MyAccountScreen from "../screensNew/MyProfile/MyAccountScreen";
 import SecurityScreen from "../screensNew/Security/SecurityScreen";
 import IncreaseCreditLimitScreen from "../screensNew/CreditLimit/IncreaseCreditLimitScreen";
@@ -86,7 +86,7 @@ const Stack = createStackNavigator();
 const AppNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="RegWithLoginScreen"  //IntroOneScreen
+      initialRouteName="OpenScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
     
@@ -107,9 +107,10 @@ const AppNavigator = () => {
       <Stack.Screen name="IncreaseCreditLimitScreen" component={IncreaseCreditLimitScreen} options={{ gestureEnabled: false }} />
 
       {/* onboarding Screen */ }
-      <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: false }} />
-      <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: false }} />
-      <Stack.Screen name="IntroThreeScreen" component={IntroThreeScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="OpenScreen" component={OpenScreen} options={{ gestureEnabled: true }} />
+      <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: true }} />
+      <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: true }} />
+      <Stack.Screen name="IntroThreeScreen" component={IntroThreeScreen} options={{ gestureEnabled: true }} />
 
       {/* Registration Screens */}
       <Stack.Screen name="regWithMobileNo" component={RegWithMobileNoScreen} options={{ gestureEnabled: false }} />
