@@ -74,6 +74,9 @@ import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScr
 import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
 import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
 import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
+import MyAccountScreen from "../screensNew/MyProfile/MyAccountScreen";
+import SecurityScreen from "../screensNew/Security/SecurityScreen";
+import IncreaseCreditLimitScreen from "../screensNew/CreditLimit/IncreaseCreditLimitScreen";
 import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
 import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
 
@@ -99,6 +102,9 @@ const AppNavigator = () => {
       <Stack.Screen name="SelectedStoreScreen" component={SelectedStoreScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="ShoppingSelectedScreen" component={ShoppingSelectedScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="StoreWebViewScreen" component={StoreWebViewScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="MyAccountScreen" component={MyAccountScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SecurityScreen" component={SecurityScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IncreaseCreditLimitScreen" component={IncreaseCreditLimitScreen} options={{ gestureEnabled: false }} />
 
       {/* onboarding Screen */ }
       <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: false }} />
