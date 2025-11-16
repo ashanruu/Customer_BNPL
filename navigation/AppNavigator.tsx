@@ -149,6 +149,10 @@ const AppNavigator = () => {
       <Stack.Screen name="ShopDetailsScreen" component={ShopDetailsScreen} />
       <Stack.Screen name="CategoryShopsScreen" component={CategoryShopsScreen} />
 
+      {/* Scan Screens */}
+      <Stack.Screen name="PaymentSuccessScreen" component={PaymentSuccessScreen} />
+      <Stack.Screen name="PaymentMoreInfo" component={PaymentMoreInfoScreen} />
+
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
