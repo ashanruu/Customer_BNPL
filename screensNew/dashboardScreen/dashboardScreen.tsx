@@ -88,7 +88,11 @@ const DashboardContent: React.FC = () => {
         height: userSectionHeight,
         overflow: 'hidden'
       }]}>
-        <View style={styles.userInfo}>
+        <TouchableOpacity 
+          style={styles.userInfo}
+          onPress={() => navigation.navigate('MyAccountScreen')}
+          activeOpacity={0.7}
+        >
           <Image
             source={{ uri: 'https://via.placeholder.com/40' }}
             style={styles.avatar}
@@ -97,7 +101,7 @@ const DashboardContent: React.FC = () => {
             <Text style={styles.greeting}>Hello!</Text>
             <Text style={styles.userName}>Adeesha Perera</Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.notificationButton}>
           <Icon name="bell-outline" size={24} color="#1F2937" />
           <View style={styles.notificationDot} />
