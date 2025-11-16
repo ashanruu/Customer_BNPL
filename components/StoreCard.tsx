@@ -8,13 +8,16 @@ import {
   Image,
   ImageSourcePropType,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface StoreCardProps {
   // Content
   image: ImageSourcePropType;
   storeName: string;
-  storeType?: string; // e.g., "Website | Instore"
+  storepType?: string; // e.g., "Website | Instore"
+  storeType?: string; // Fixed: changed from boolean to string
   discount?: string; // e.g., "Upto 50% off"
+
   
   // Interaction
   onPress?: () => void;
@@ -24,31 +27,38 @@ interface StoreCardProps {
   height?: number;
   borderRadius?: number;
   showDiscount?: boolean;
+  showstorepType?: boolean;
   
   // Customization
   discountBackgroundColor?: string;
   discountTextColor?: string;
+  storeTypeBackgroundColor?: string;
+  storeTypeTextColor?: string;
 }
 
 const StoreCard: React.FC<StoreCardProps> = ({
   image,
   storeName,
-  storeType = 'Website | Instore',
+  storepType = 'Website | Instore',
+  storeType = 'Fashion & Accessories',
   discount = 'Upto 50% off',
   onPress,
   width = 200,
   height = 280,
   borderRadius = 16,
   showDiscount = true,
-  discountBackgroundColor = '#0066CC',
+  showstorepType = true,
+  discountBackgroundColor = '#106128ff',
   discountTextColor = '#FFFFFF',
+  storeTypeBackgroundColor = '#FFFFFF',
+  storeTypeTextColor = '#000000'
 }) => {
   const content = (
     <View style={[styles.card, { width, height, borderRadius }]}>
       {/* Product Image */}
       <Image
         source={image}
-        style={[styles.image, { borderRadius }]}
+        style={styles.image}
         resizeMode="cover"
       />
       
@@ -65,16 +75,31 @@ const StoreCard: React.FC<StoreCardProps> = ({
           </Text>
         </View>
       )}
+
+      {/* StoreType Badge */}
+      {showstorepType && storepType && (
+        <View
+          style={[
+            styles.storeTypeBadge,
+            { backgroundColor: storeTypeBackgroundColor },
+          ]}
+        >
+          <Icon name="shopping-bag" size={14} color={storeTypeTextColor} style={styles.storeTypeIcon} />
+          <Text style={[styles.storeTypeText, { color: storeTypeTextColor }]}>
+            {storepType}
+          </Text>
+        </View>
+      )}
       
       {/* Store Info Footer */}
       <View style={styles.footer}>
-        <View style={styles.iconContainer}>
-          <View style={styles.storeIcon} />
-        </View>
         <View style={styles.storeInfo}>
-          <Text style={styles.storeName} numberOfLines={1}>
-            {storeName}
-          </Text>
+          <View style={styles.storeNameRow}>
+            <Text style={styles.storeName} numberOfLines={1}>
+              {storeName}
+            </Text>
+            <Icon name="favorite-border" size={20} color="#232425ff" />
+          </View>
           <Text style={styles.storeType} numberOfLines={1}>
             {storeType}
           </Text>
@@ -96,7 +121,7 @@ const StoreCard: React.FC<StoreCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#dbd6d6ff',
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -113,17 +138,22 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: '100%',
+    height: '75%', // Changed: limits image height to show footer properly
     position: 'absolute',
+    top: 0,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,  
   },
   discountBadge: {
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#0f570dff',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 16,
   },
   discountText: {
     fontSize: 12,
@@ -139,42 +169,35 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  footer: {
+  storeTypeBadge: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    top: 130,
+    left: 8,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  iconContainer: {
-    width: 32,
-    height: 32,
+    paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center', // Added: centers icon and text vertically
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
-  storeIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#6B7280',
+  storeTypeIcon: {
+    marginRight: 4,
   },
-  storeInfo: {
-    flex: 1,
-  },
-  storeName: {
-    fontSize: 14,
+  storeTypeText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
+    color: '#000000',
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -185,17 +208,64 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  storeType: {
-    fontSize: 11,
-    fontWeight: '400',
-    color: '#6B7280',
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#dbd6d6ff', // Changed back to white
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  storeNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  storeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
     ...Platform.select({
       ios: {
         fontFamily: 'System',
       },
       android: {
         fontFamily: 'Roboto',
-        includeFontPadding: false,
+      },
+    }),
+  },
+  storeType: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#9CA3AF',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
       },
     }),
   },

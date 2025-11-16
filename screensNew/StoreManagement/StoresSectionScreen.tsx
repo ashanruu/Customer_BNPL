@@ -12,16 +12,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import StoreCard from '../../components/StoreCard';
+import { useNavigation } from '@react-navigation/native';
 
 // Stores content component
 export const StoresContent: React.FC = () => {
+  const navigation = useNavigation();
   const [activeCategory, setActiveCategory] = useState('Health & Beauty');
 
   const categories = [
-    { id: '1', name: 'Health & Beauty', icon: 'heart' },
-    { id: '2', name: 'Men', icon: 'account' },
-    { id: '3', name: 'Women', icon: 'account-outline' },
-    { id: '4', name: 'Electronic', icon: 'laptop' },
+    { id: '1', name: 'Health & Beauty' },
+    { id: '2', name: 'Men' },
+    { id: '3', name: 'Women' },
+    { id: '4', name: 'Electronic' },
   ];
 
   const featuredStores = [
@@ -30,45 +32,93 @@ export const StoresContent: React.FC = () => {
       name: 'Adidas',
       type: 'Fashion & Accessories',
       discount: 'Upto 50% off',
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      storepType: 'Website | Instore',       
+      image: require('../../assets/images/temp/adidas.jpg'),
+      websiteUrl: 'https://www.adidas.com/us',
+      socialMediaUrl: 'https://www.facebook.com/adidasSL',
+      locations: [
+        '50 Galle Rd, Colombo 00600',
+        '40 D. S. Senanayake MW, Colombo 00800',
+        'No. 152 High Level Rd, Nugegoda 10250',
+      ],
     },
     {
       id: '2',
       name: 'Baylee',
       type: 'Fashion & Accessories',
       discount: 'Upto 50% off',
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      storepType: 'Website | Instore',    
+      image: require('../../assets/images/temp/baylee.jpg'),
+      websiteUrl: 'https://bayleee.com/shop/dresses/?utm_source=google&utm_medium=cpc&utm_campaign=Sales-PMAX&utm_content=&utm_term=&utm_adgroup=&device=c&placement=&gad_source=1&gad_campaignid=23008147634&gbraid=0AAAAABL2e6bdcIz8VRojTk9sDCJ9Wj87O&gclid=Cj0KCQiA5uDIBhDAARIsAOxj0CHA1rAbz51eyjTtr27kZHrImI7tamSa_53rE3axDxIawPb6fqffuh8aAsgtEALw_wcB',
+      socialMediaUrl: 'https://www.instagram.com/bayleee/',
+      locations: [
+        'No. 152 High Level Rd, Nugegoda 10250',
+        '25 Main Street, Colombo 00700',
+        '15 Kandy Road, Kadawatha',
+      ],
     },
     {
       id: '3',
       name: 'KFC',
       type: 'Foods',
       discount: 'Upto 50% off',
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      storepType: 'Website | Instore',    
+      image: require('../../assets/images/temp/xxx.jpg'),
+      websiteUrl: 'https://kfc.lk',
+      socialMediaUrl: 'https://www.facebook.com/KFCSriLanka',
+      locations: [
+        '100 Galle Road, Colombo 00300',
+        '15 Kandy Road, Kadawatha',
+        '200 Main Street, Dehiwala 10350',
+      ],
     },
   ];
 
   const allStores = [
     {
       id: '1',
-      name: 'Adidas',
-      type: 'Fashion & Accessories',
-      discount: 'Save more every day',
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      name: 'Keels',
+      type: null,
+      discount: null,
+      storepType: 'Website | Instore',    
+      image: require('../../assets/images/temp/keels.jpg'),
+      websiteUrl: 'https://keells.com',
+      socialMediaUrl: 'https://www.facebook.com/Keells',
+      locations: [
+        '50 Galle Rd, Colombo 00600',
+        '40 D. S. Senanayake MW, Colombo 00800',
+        'No. 152 High Level Rd, Nugegoda 10250',
+      ],
     },
     {
       id: '2',
-      name: 'Baylee',
-      type: 'Fashion & Accessories',
+      name: 'Nolimit',
+      type: null,
       discount: null,
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      storepType: null,    
+      image: require('../../assets/images/temp/keels.jpg'),
+      websiteUrl: 'https://www.nolimit.lk/?gad_source=1&gad_campaignid=21398852630&gbraid=0AAAAADGmAxqigwp0_fS_7vIBKh7dal6AR&gclid=Cj0KCQiA5uDIBhDAARIsAOxj0CFCBFNGmMJDX4rKFd_AH194J8-XIGtG9OUzdjmtMEhxctkm5dC1xD8aAn9-EALw_wcB',
+      socialMediaUrl: 'https://www.instagram.com/nolimit.official/',
+      locations: [
+        'No. 152 High Level Rd, Nugegoda 10250',
+        '25 Kandy Road, Kadawatha',
+        '200 Main Street, Dehiwala 10350',
+      ],
     },
     {
       id: '3',
       name: 'Adidas',
-      type: 'Fashion & Accessories',
+      type: null,
       discount: null,
-      image: { uri: 'https://via.placeholder.com/300x400' },
+      storepType: null,    
+      image: require('../../assets/images/temp/keels.jpg'),
+      websiteUrl: 'https://adidas.com',
+      socialMediaUrl: 'https://www.facebook.com/adidasSL',
+      locations: [
+        '50 Galle Rd, Colombo 00600',
+        '40 D. S. Senanayake MW, Colombo 00800',
+        'No. 152 High Level Rd, Nugegoda 10250',
+      ],
     },
   ];
 
@@ -84,10 +134,10 @@ export const StoresContent: React.FC = () => {
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Icon name="magnify" size={20} color="#9CA3AF" />
+          <Icon name="magnify" size={20} color="black" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Find your fav store or product here"
+            placeholder="Find your fav store here"
             placeholderTextColor="#9CA3AF"
           />
         </View>
@@ -105,13 +155,12 @@ export const StoresContent: React.FC = () => {
                 styles.categoryBadge,
                 activeCategory === category.name && styles.categoryBadgeActive,
               ]}
-              onPress={() => setActiveCategory(category.name)}
+              onPress={() => {
+                setActiveCategory(category.name);
+                (navigation.navigate as any)('SelectedStoreScreen');
+              }}
             >
-              <Icon
-                name={category.icon}
-                size={20}
-                color={activeCategory === category.name ? '#FFFFFF' : '#666666'}
-              />
+            
               <Text
                 style={[
                   styles.categoryText,
@@ -141,9 +190,10 @@ export const StoresContent: React.FC = () => {
               storeName={store.name}
               storeType={store.type}
               discount={store.discount}
-              width={160}
-              height={220}
-              onPress={() => console.log('Store pressed:', store.name)}
+              storepType={store.storepType || undefined}
+              width={(Platform.OS === 'web' ? 160 : require('react-native').Dimensions.get('window').width - 52) / 2}
+              height={240}
+              onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { store })}
             />
           ))}
         </ScrollView>
@@ -153,22 +203,30 @@ export const StoresContent: React.FC = () => {
           <Text style={styles.sectionTitle}>All Stores</Text>
         </View>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.featuredStoresRow}
+        >
+
         <View style={styles.allStoresGrid}>
           {allStores.map((store, index) => (
             <View key={store.id + index} style={styles.gridItem}>
               <StoreCard
                 image={store.image}
                 storeName={store.name}
-                storeType={store.type}
+                //storeType={store.type}
                 discount={store.discount || undefined}
+                //storepType={store.storepType || undefined}
                 width={(styles.gridItem.width as number)}
-                height={220}
+                height={240}
                 showDiscount={!!store.discount}
-                onPress={() => console.log('Store pressed:', store.name)}
+                onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { store })}
               />
             </View>
           ))}
         </View>
+        </ScrollView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -180,7 +238,7 @@ const StoresSectionScreen = StoresContent;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingHorizontal: 20,
@@ -189,7 +247,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    //fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',
     ...Platform.select({
@@ -207,12 +265,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    backgroundColor: '#e4eaf1ff',
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#FFFFFF',
   },
   searchInput: {
     flex: 1,
@@ -282,7 +340,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    
     color: '#1F2937',
     ...Platform.select({
       ios: {
@@ -306,7 +364,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   gridItem: {
-    width: (Platform.OS === 'web' ? 300 : require('react-native').Dimensions.get('window').width - 52) / 2,
+    width: (Platform.OS === 'web' ? 160 : require('react-native').Dimensions.get('window').width - 52) / 2,
   },
 });
 
