@@ -74,6 +74,8 @@ import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScr
 import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
 import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
 import ScanScreen from "../screensNew/QrScanScreen/scanScreen";
+import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
+import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
 
 
 const Stack = createStackNavigator();
