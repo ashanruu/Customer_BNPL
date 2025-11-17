@@ -82,6 +82,19 @@ const MyAccountScreen: React.FC = () => {
       icon: 'logout',
       onPress: () => setShowLogoutModal(true),
     },
+        // New Report Account item
+    {
+      id: 10,
+      title: 'Report Account',
+      icon: 'alert-circle-outline',
+      onPress: () => navigation.navigate('ReportAccountScreen'),
+    },
+        {
+      id: 11,
+      title: 'Recover Account',
+      icon: 'alert-circle-outline',
+      onPress: () => navigation.navigate('RecoverAccountScreen'),
+    },
   ];
 
   const handleLogout = () => {

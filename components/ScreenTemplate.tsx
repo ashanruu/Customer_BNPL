@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   StatusBar,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomButton from './CustomButton'; // added
 
 interface ScreenTemplateProps {
@@ -32,6 +33,8 @@ interface ScreenTemplateProps {
   showButton?: boolean;
   buttonText?: string;
   onButtonPress?: () => void;
+  buttonText: string;
+  onButtonPress: () => void;
   buttonDisabled?: boolean;
   buttonLoading?: boolean;
   
@@ -87,7 +90,7 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
   topTitleColor = '#6B7280',
   mainTitleColor = '#1F2937',
   descriptionColor = '#757a85ff',
-  backButtonColor = '#9CA3AF',
+  backButtonColor = '#C1C0C8',
 }) => {
   const ContentWrapper = scrollable ? ScrollView : View;
   const contentWrapperProps = scrollable
@@ -118,11 +121,11 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
               onPress={onBackPress}
               activeOpacity={0.7}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Icon name="arrow-left" size={20} color="#FFFFFF" />
             </TouchableOpacity>
-          ) : (
-            <View style={styles.backButtonPlaceholder} />
-          )}
+           ) : (
+             <View style={styles.backButtonPlaceholder} />
+           )}
 
           {showSkipButton && (
             <TouchableOpacity
@@ -158,49 +161,47 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
         </ContentWrapper>
 
         {/* Footer Button(s) - stacked full width using CustomButton */}
-        {showButton && (
-          <View style={styles.footer}>
-            {showSecondaryButton ? (
-              <View>
-                <CustomButton
-                  title={secondaryButtonText}
-                  onPress={onSecondaryButtonPress ?? (() => {})}
-                  disabled={secondaryButtonDisabled}
-                  loading={secondaryButtonLoading}
-                  variant="secondary"
-                  size="medium"
-                  fullWidth
-                  style={{ backgroundColor: secondaryButtonColor }}
-                  textStyle={{ color: secondaryButtonTextColor }}
-                />
-                <View style={styles.stackedSpacer} />
-                <CustomButton
-                  title={buttonText || ''}
-                  onPress={onButtonPress ?? (() => {})}
-                  disabled={buttonDisabled}
-                  loading={buttonLoading}
-                  variant="primary"
-                  size="medium"
-                  fullWidth
-                  style={{ backgroundColor: buttonColor }}
-                  textStyle={{ color: buttonTextColor }}
-                />
-              </View>
-            ) : (
+        <View style={styles.footer}>
+          {showSecondaryButton ? (
+            <View>
               <CustomButton
-                title={buttonText || ''}
-                onPress={onButtonPress ?? (() => {})}
+                title={secondaryButtonText}
+                onPress={onSecondaryButtonPress ?? (() => {})}
+                disabled={secondaryButtonDisabled}
+                loading={secondaryButtonLoading}
+                variant="secondary"
+                size="medium"
+                fullWidth
+                style={{ backgroundColor: secondaryButtonColor }}
+                textStyle={{ color: secondaryButtonTextColor }}
+              />
+              <View style={styles.stackedSpacer} />
+              <CustomButton
+                title={buttonText}
+                onPress={onButtonPress}
                 disabled={buttonDisabled}
                 loading={buttonLoading}
                 variant="primary"
-                size="large"
+                size="medium"
                 fullWidth
                 style={{ backgroundColor: buttonColor }}
                 textStyle={{ color: buttonTextColor }}
               />
-            )}
-          </View>
-        )}
+            </View>
+          ) : (
+            <CustomButton
+              title={buttonText}
+              onPress={onButtonPress}
+              disabled={buttonDisabled}
+              loading={buttonLoading}
+              variant="primary"
+              size="large"
+              fullWidth
+              style={{ backgroundColor: buttonColor }}
+              textStyle={{ color: buttonTextColor }}
+            />
+          )}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -221,18 +222,19 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 28 : 32,
     paddingBottom: 16,
   },
+  // Back button updated to match ScanScreen modal styling
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
       },
       android: {
         elevation: 2,
@@ -240,27 +242,8 @@ const styles = StyleSheet.create({
     }),
   },
   backButtonPlaceholder: {
-    width: 48,
-    height: 48,
-  },
-  backArrow: {
-    fontSize: 22,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    height: 48,                  // match button height to center vertically
-    textAlign: 'center',
-    textAlignVertical: 'center', // Android vertical centering
-    includeFontPadding: false,
-    padding: 0,
-    marginTop: 0,                // remove iOS nudge
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
+    width: 40,
+    height: 40,
   },
   skipButton: {
     paddingHorizontal: 16,

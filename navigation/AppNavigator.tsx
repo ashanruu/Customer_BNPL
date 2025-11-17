@@ -70,7 +70,7 @@ import RegWithLoginScreen from "../screensNew/RegistrationScreen/regWithLoginScr
 
 import DashboardScreen from "../screensNew/dashboardScreen/dashboardScreen";
 import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScreen";
-import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScreen";
+import SelectedStoreScreen from "../screensNew/StoreManagement/SelectedStoreScreen";
 import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
 import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
 import ScanScreen from "../screensNew/QrScanScreen/staticQrScreens/scanScreen";
@@ -85,7 +85,12 @@ import TermsAndConditionsScreenNew from "../screensNew/Legal/TermsAndConditionsS
 import PrivacyPolicyScreen from "../screensNew/Legal/PrivacyPolicyScreen";
 import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
 import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
-
+import ReportAccountScreen from "../screensNew/ReportAccount/ReportAccountScreen";
+import ReportFormScreen from "../screensNew/ReportAccount/ReportFormScreen";
+import ReportSubmittedScreen from "../screensNew/ReportAccount/ReportSubmittedScreen";
+import RecoverAccountScreen from "../screensNew/RecoverAccount/RecoverAccountScreen";
+import RecoverFormScreen from "../screensNew/RecoverAccount/RecoverFormScreen";
+import RecoverSubmittedScreen from "../screensNew/RecoverAccount/RecoverSubmitted";
 
 const Stack = createStackNavigator();
 
@@ -95,7 +100,7 @@ const AppNavigator = () => {
       initialRouteName="DashboardScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
-    
+
 
       {/* Keep Dashboard screen registered for direct navigation if needed */}
       <Stack.Screen
@@ -118,7 +123,7 @@ const AppNavigator = () => {
       <Stack.Screen name="PaymentMethodsScreen" component={PaymentMethodsScreen} options={{ gestureEnabled: true }} />
       <Stack.Screen name="SupportScreen" component={SupportScreen} options={{ gestureEnabled: true }} />
 
-      {/* onboarding Screen */ }
+      {/* onboarding Screen */}
       <Stack.Screen name="OpenScreen" component={OpenScreen} options={{ gestureEnabled: true }} />
       <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: true }} />
       <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: true }} />
@@ -174,6 +179,16 @@ const AppNavigator = () => {
       <Stack.Screen name="PaymentSuccessScreen" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentMoreInfo" component={PaymentMoreInfoScreen} />
 
+      {/* Report Account  */}
+      <Stack.Screen name="ReportAccountScreen" component={ReportAccountScreen} />
+      <Stack.Screen name="ReportForm" component={ReportFormScreen} />
+      <Stack.Screen name="ReportSubmitted" component={ReportSubmittedScreen} />
+
+      {/* Recover Account  */}
+      <Stack.Screen name="RecoverAccountScreen" component={RecoverAccountScreen} />
+      <Stack.Screen name="RecoverFormScreen" component={RecoverFormScreen}/>
+      <Stack.Screen name="RecoverSubmittedScreen" component={RecoverSubmittedScreen}/>
+      
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
