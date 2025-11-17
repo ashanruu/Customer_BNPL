@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   StatusBar,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import CustomButton from './CustomButton'; // added
 
 interface ScreenTemplateProps {
   // Header
@@ -27,11 +29,20 @@ interface ScreenTemplateProps {
   // Content
   children: ReactNode;
   
-  // Footer Button
+  // Footer Button (primary)
   buttonText: string;
   onButtonPress: () => void;
   buttonDisabled?: boolean;
   buttonLoading?: boolean;
+  
+  // Secondary Footer Button (optional)
+  showSecondaryButton?: boolean;
+  secondaryButtonText?: string;
+  onSecondaryButtonPress?: () => void;
+  secondaryButtonDisabled?: boolean;
+  secondaryButtonLoading?: boolean;
+  secondaryButtonColor?: string;
+  secondaryButtonTextColor?: string;
   
   // Customization
   backgroundColor?: string;
@@ -60,6 +71,14 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
   onButtonPress,
   buttonDisabled = false,
   buttonLoading = false,
+  // Secondary defaults
+  showSecondaryButton = false,
+  secondaryButtonText = 'Cancel',
+  onSecondaryButtonPress,
+  secondaryButtonDisabled = false,
+  secondaryButtonLoading = false,
+  secondaryButtonColor = '#E5E7EB',
+  secondaryButtonTextColor = '#111827',
   backgroundColor = '#FFFFFF',
   buttonColor = '#0066CC',
   buttonTextColor = '#FFFFFF',
@@ -67,7 +86,7 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
   topTitleColor = '#6B7280',
   mainTitleColor = '#1F2937',
   descriptionColor = '#757a85ff',
-  backButtonColor = '#9CA3AF',
+  backButtonColor = '#C1C0C8',
 }) => {
   const ContentWrapper = scrollable ? ScrollView : View;
   const contentWrapperProps = scrollable
@@ -98,11 +117,11 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
               onPress={onBackPress}
               activeOpacity={0.7}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Icon name="arrow-left" size={20} color="#FFFFFF" />
             </TouchableOpacity>
-          ) : (
-            <View style={styles.backButtonPlaceholder} />
-          )}
+           ) : (
+             <View style={styles.backButtonPlaceholder} />
+           )}
 
           {showSkipButton && (
             <TouchableOpacity
@@ -137,22 +156,47 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
           {children}
         </ContentWrapper>
 
-        {/* Footer Button */}
+        {/* Footer Button(s) - stacked full width using CustomButton */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: buttonColor },
-              buttonDisabled && styles.buttonDisabled,
-            ]}
-            onPress={onButtonPress}
-            disabled={buttonDisabled || buttonLoading}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.buttonText, { color: buttonTextColor }]}>
-              {buttonLoading ? 'Loading...' : buttonText}
-            </Text>
-          </TouchableOpacity>
+          {showSecondaryButton ? (
+            <View>
+              <CustomButton
+                title={secondaryButtonText}
+                onPress={onSecondaryButtonPress ?? (() => {})}
+                disabled={secondaryButtonDisabled}
+                loading={secondaryButtonLoading}
+                variant="secondary"
+                size="medium"
+                fullWidth
+                style={{ backgroundColor: secondaryButtonColor }}
+                textStyle={{ color: secondaryButtonTextColor }}
+              />
+              <View style={styles.stackedSpacer} />
+              <CustomButton
+                title={buttonText}
+                onPress={onButtonPress}
+                disabled={buttonDisabled}
+                loading={buttonLoading}
+                variant="primary"
+                size="medium"
+                fullWidth
+                style={{ backgroundColor: buttonColor }}
+                textStyle={{ color: buttonTextColor }}
+              />
+            </View>
+          ) : (
+            <CustomButton
+              title={buttonText}
+              onPress={onButtonPress}
+              disabled={buttonDisabled}
+              loading={buttonLoading}
+              variant="primary"
+              size="large"
+              fullWidth
+              style={{ backgroundColor: buttonColor }}
+              textStyle={{ color: buttonTextColor }}
+            />
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -174,19 +218,19 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 28 : 32,
     paddingBottom: 16,
   },
+  // Back button updated to match ScanScreen modal styling
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 24,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
       },
       android: {
         elevation: 2,
@@ -194,29 +238,8 @@ const styles = StyleSheet.create({
     }),
   },
   backButtonPlaceholder: {
-    width: 48,
-    height: 48,
-  },
-  backArrow: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    lineHeight: 48,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-    paddingTop: 0,
-    paddingBottom: 0,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-        marginTop: -2,
-      },
-      android: {
-        fontFamily: 'Roboto',
-        includeFontPadding: false,
-      },
-    }),
+    width: 40,
+    height: 40,
   },
   skipButton: {
     paddingHorizontal: 16,
@@ -297,6 +320,31 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 12 : 50,
   },
+  footerButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonHalf: {
+    flex: 1,
+    height: 56,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  buttonSpacer: {
+    width: 12,
+  },
   button: {
     width: '100%',
     height: 56,
@@ -330,6 +378,9 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
       },
     }),
+  },
+  stackedSpacer: {
+    height: 12,
   },
 });
 
