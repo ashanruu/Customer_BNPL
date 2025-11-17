@@ -86,7 +86,7 @@ const Stack = createStackNavigator();
 const AppNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="OpenScreen"  //IntroOneScreen
+      initialRouteName="DashboardScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
     

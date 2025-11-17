@@ -176,26 +176,27 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
               {/* Header */}
               {(showBackButton || title || showCloseButton || headerRight) && (
                 <View style={styles.header}>
-                  {showBackButton && (
-                    <TouchableOpacity
-                      style={styles.backButton}
-                      onPress={handleBack}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.backArrow}>←</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  {title && (
-                    <Text
-                      style={[
-                        styles.title,
-                        showBackButton && styles.titleWithBack,
-                      ]}
-                    >
-                      {title}
-                    </Text>
-                  )}
+                  <View style={styles.headerLeft}>
+                    {showBackButton && (
+                      <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.backArrow}>←</Text>
+                      </TouchableOpacity>
+                    )}
+                    {title && (
+                      <Text
+                        style={[
+                          styles.title,
+                          showBackButton && styles.titleWithBack,
+                        ]}
+                      >
+                        {title}
+                      </Text>
+                    )}
+                  </View>
 
                   <View style={styles.headerRight}>
                     {headerRight}
@@ -266,19 +267,21 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 16,
     minHeight: 40,
-    position: 'relative',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    position: 'absolute',
-    right: 24,
   },
   backButton: {
     width: 40,
@@ -327,8 +330,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
-    textAlign: 'center',
-    flex: 1,
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
     }),
   },
   titleWithBack: {
-    textAlign: 'left',
+    flex: 1,
   },
   content: {
     flex: 1,
