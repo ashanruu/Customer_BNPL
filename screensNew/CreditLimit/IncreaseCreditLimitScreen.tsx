@@ -3,15 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Platform,
-  StatusBar,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import ScreenTemplate from '../../components/ScreenTemplate';
 
 interface CreditBoostOption {
   id: number;
@@ -108,147 +106,75 @@ const IncreaseCreditLimitScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <ScreenTemplate
+      showBackButton={true}
+      onBackPress={() => navigation.goBack()}
+      topTitle="Verify your details"
+      mainTitle="Boost Your Credit Power.."
+      buttonText="Continue"
+      showSecondaryButton={false}
+      onButtonPress={() => {
+        // Handle continue action
+        console.log('Continue pressed');
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-       
-        <View style={styles.placeholder} />
+      }}
+      scrollable={true}
+      backgroundColor="#FFFFFF"
+      buttonColor="#0066CC"
+    >
+      {/* Credit Boost Options */}
+      <View style={styles.optionsWrapper}>
+        {creditBoostOptions.map((option, index) => (
+          <TouchableOpacity
+            key={option.id}
+            style={styles.optionCard}
+            onPress={() => handleOptionPress(option)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.optionLeft}>
+             
+              <View style={styles.optionTextContainer}>
+                <Text style={styles.optionAmount}>{option.amount}</Text>
+                <Text style={styles.optionTitle}>{option.title}</Text>
+                <Text style={styles.optionDescription}>{option.description}</Text>
+              </View>
+            </View>
+            <View style={styles.actionIconContainer}>
+              <Icon 
+                name={getActionIcon(option.actionIcon)} 
+                size={20} 
+                color="#6B7280" 
+              />
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header Text */}
-        <Text style={styles.subHeaderText}>Verify your details</Text>
-        <Text style={styles.mainTitle}>Boost Your Credit Power..</Text>
-
-        {/* Credit Boost Options */}
-        <View style={styles.optionsWrapper}>
-          {creditBoostOptions.map((option, index) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.optionCard}
-              onPress={() => handleOptionPress(option)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.optionLeft}>
-               
-                <View style={styles.optionTextContainer}>
-                  <Text style={styles.optionAmount}>{option.amount}</Text>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionDescription}>{option.description}</Text>
-                </View>
-              </View>
-              <View style={styles.actionIconContainer}>
-                <Icon 
-                  name={getActionIcon(option.actionIcon)} 
-                  size={20} 
-                  color="#6B7280" 
-                />
-              </View>
-            </TouchableOpacity>
+      {/* Info Banner with Auto-Rotating Images */}
+      <View style={styles.infoBanner}>
+        <Image
+          source={bannerImages[currentImageIndex]}
+          style={styles.bannerImage}
+          resizeMode="cover"
+        />
+        {/* Pagination Dots */}
+        <View style={styles.paginationContainer}>
+          {bannerImages.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                index === currentImageIndex && styles.paginationDotActive,
+              ]}
+            />
           ))}
         </View>
-
-        {/* Info Banner with Auto-Rotating Images */}
-        <View style={styles.infoBanner}>
-          <Image
-            source={bannerImages[currentImageIndex]}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-          {/* Pagination Dots */}
-          <View style={styles.paginationContainer}>
-            {bannerImages.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.paginationDot,
-                  index === currentImageIndex && styles.paginationDotActive,
-                ]}
-              />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </ScreenTemplate>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
-  placeholder: {
-    width: 32,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-    paddingHorizontal: 16,
-  },
-  subHeaderText: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: '#1F2937',
-    marginTop: 6,
-    marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
-  mainTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
   optionsWrapper: {
     gap: 12,
   },
