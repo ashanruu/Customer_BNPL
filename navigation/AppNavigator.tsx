@@ -85,6 +85,7 @@ import ReportSubmittedScreen from "../screensNew/ReportAccount/ReportSubmittedSc
 import RecoverAccountScreen from "../screensNew/RecoverAccount/RecoverAccountScreen";
 import RecoverFormScreen from "../screensNew/RecoverAccount/RecoverFormScreen";
 import RecoverSubmittedScreen from "../screensNew/RecoverAccount/RecoverSubmitted";
+import OrderScreen from "../screensNew/OrderScreen/OrderScreen";
 
 const Stack = createStackNavigator();
 
@@ -174,9 +175,12 @@ const AppNavigator = () => {
 
       {/* Recover Account  */}
       <Stack.Screen name="RecoverAccountScreen" component={RecoverAccountScreen} />
-      <Stack.Screen name="RecoverFormScreen" component={RecoverFormScreen}/>
-      <Stack.Screen name="RecoverSubmittedScreen" component={RecoverSubmittedScreen}/>
-      
+      <Stack.Screen name="RecoverFormScreen" component={RecoverFormScreen} />
+      <Stack.Screen name="RecoverSubmittedScreen" component={RecoverSubmittedScreen} />
+
+      {/* Orders screen (new) */}
+      <Stack.Screen name="OrderScreen" component={OrderScreen} options={{ gestureEnabled: false }} />
+
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />

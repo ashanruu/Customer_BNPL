@@ -567,20 +567,20 @@ const ScanScreen: React.FC = () => {
                 <Text style={styles.successIntro}>Installment Payment</Text>
                 <Text style={styles.successTitle}>Successful!</Text>
               </View>
-  
-              <View style={{ alignItems: 'center'}}>
+
+              <View style={{ alignItems: 'center' }}>
                 <View style={styles.merchantLogo}>
                   <Text style={styles.merchantLogoText}>NOLIMIT</Text>
                 </View>
                 <Text style={[styles.merchantName, { marginTop: 10, fontWeight: '700', color: '#0F172A' }]}>
                   {merchantName}
                 </Text>
-  
+
                 <View style={styles.orderPill}>
                   <Text style={styles.orderPillText}>Order ID: {orderId}</Text>
                 </View>
               </View>
-  
+
               <View style={{ alignItems: 'center', width: '100%', marginBottom: 16 }}>
                 <View style={styles.cardBrandRow}>
                   <Text style={styles.cardBrandText}>
@@ -590,13 +590,13 @@ const ScanScreen: React.FC = () => {
                     {selectedPaymentMethod === 'card_1' ? ' **** 3816' : ' **** 2399'}
                   </Text>
                 </View>
-  
+
                 <View style={styles.totalBox}>
                   <Text style={{ color: '#6B7280', marginBottom: 6 }}>Total Amount</Text>
                   <Text style={styles.totalAmount}>Rs. {formatAmount(paymentAmount)}</Text>
                 </View>
               </View>
-  
+
             </>
           )}
         </Animated.View>
@@ -1424,36 +1424,36 @@ const styles = StyleSheet.create({
   // success modal styles
   successIntro: {
     fontSize: 20,
-    fontWeight: '500',
+    fontWeight: '400',
     lineHeight: 24,
     marginBottom: 6,
     color: '#2AA743',
   },
   successTitle: {
     fontSize: 29,
-    fontWeight: '700',
+    fontWeight: '500',
     lineHeight: 36,
     marginBottom: 10,
     color: '#2AA743',
   },
   orderPill: {
-        backgroundColor: '#E1EEF8',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 115,
-        marginRight: 12,
-        marginTop: 10,
+    backgroundColor: '#E1EEF8',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 115,
+    marginRight: 12,
+    marginTop: 10,
   },
   orderPillText: {
-        color: '#004F85',
-        fontSize: 11,
-        fontWeight: '600',
+    color: '#004F85',
+    fontSize: 11,
+    fontWeight: '600',
   },
   cardBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    marginTop: 12,  
+    marginTop: 12,
   },
   cardBrandText: {
     fontSize: 14,
@@ -1462,9 +1462,8 @@ const styles = StyleSheet.create({
   },
   maskText: {
     fontSize: 14,
-    color: '#0F172A',
-    marginLeft: 6,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#0B4DA0',
   },
   totalBox: {
     width: '100%',

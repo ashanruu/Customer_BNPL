@@ -101,15 +101,8 @@ const MyAccountScreen: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header with title */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Account</Text>
-        <View style={styles.placeholder} />
+      <View style={styles.headerMain}>
+        <Text style={styles.headerTitleMain}>My Account</Text>
       </View>
 
       <ScrollView 
@@ -600,6 +593,23 @@ const styles = StyleSheet.create({
       android: {
         fontFamily: 'Roboto',
       },
+    }),
+  },
+  /* Main screen header (centered, larger like Orders screen) */
+  headerMain: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitleMain: {
+    fontSize: 24,
+    color: '#1F2937',
+    textAlign: 'center',
+    ...Platform.select({
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
     }),
   },
 });

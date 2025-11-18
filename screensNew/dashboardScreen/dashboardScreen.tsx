@@ -20,6 +20,7 @@ import { StoresContent } from '../StoreManagement/StoresSectionScreen';
 import ScanScreen from '../QrScanScreen/staticQrScreens/scanScreen';
 import MyAccountScreen from '../MyProfile/MyAccountScreen';
 import { LinearGradient } from 'expo-linear-gradient';
+import OrderScreen from '../OrderScreen/OrderScreen';
 
 // Dashboard content component
 const DashboardContent: React.FC = () => {
@@ -355,6 +356,7 @@ const DashboardScreen: React.FC = () => {
       HomeComponent={DashboardContent} 
       StoreComponent={StoresContent}
       ScanComponent={ScanScreen}
+      OrdersComponent={OrderScreen}
       ProfileComponent={MyAccountScreen}
     />
   );
