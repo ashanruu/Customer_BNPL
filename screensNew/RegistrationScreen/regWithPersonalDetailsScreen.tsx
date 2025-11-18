@@ -15,6 +15,7 @@ import ScreenTemplate from '../../components/ScreenTemplate';
 
 type RootStackParamList = {
   RegWithPersonalDetailsScreen: { mobileNumber: string; nicNumber: string };
+  RegWithAddressDetailScreen: { mobileNumber: string; nicNumber: string; firstName: string; lastName: string; dateOfBirth: string };
   RegWithAgreementScreen: undefined;
 };
 
@@ -225,31 +226,18 @@ const RegWithPersonalDetailsScreen: React.FC = () => {
     setShowDatePicker(true);
   };
 
-   const handleNext = async () => {
-          if (!validateFields()) return;
-  
-          setLoading(true);
-  
-          try {
-              // Prepare personal info data to pass to next screen
-              const personalInfo = {
-                  firstName: firstName.trim(),
-                  lastName: lastName.trim(),
-                  dateOfBirth: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
-              };
-  
-              // Navigate to AddressDetails with personal info
-              navigation.navigate('AddressDetails', { 
-                  phoneNumber: mobileNumber,
-                  nicNumber: nicNumber,
-              });
-          } catch (error: any) {
-              console.error('Navigation error:', error);
-              Alert.alert('Error', 'Failed to proceed to next step. Please try again.');
-          } finally {
-              setLoading(false);
-          }
-      };
+  const handleNext = () => {
+    if (!isFormValid) return;
+
+    // Navigate to AddressDetails with all info
+    navigation.navigate('RegWithAddressDetailScreen', {
+      mobileNumber: mobileNumber,
+      nicNumber: nicNumber,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      dateOfBirth: dateOfBirth,
+    });
+  };
 
   const handleBackPress = () => {
     navigation.goBack();
