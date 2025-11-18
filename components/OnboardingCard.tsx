@@ -183,8 +183,8 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: 1.5,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     overflow: 'hidden',
   },
   topSectionFull: {
@@ -244,25 +244,25 @@ const styles = StyleSheet.create({
   bottomSection: {
     paddingHorizontal: 35,
     paddingTop: 32,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    marginTop: -30,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
       },
       android: {
-        elevation: 8,
+        elevation: 16,
       },
     }),
   },
   bottomSectionFull: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     marginTop: 0,
     flex: 1,
     ...Platform.select({
@@ -280,9 +280,9 @@ const styles = StyleSheet.create({
     marginBottom: 45,
   },
   decorativeLine: {
-    width: 60,
+    width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#D1D5DB',
     borderRadius: 2,
     marginBottom: 16,
     alignSelf: 'center',
@@ -340,7 +340,8 @@ const styles = StyleSheet.create({
   indicatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    borderTopLeftRadius: 24,
+    gap: 2,
   },
   indicator: {
     height: 8,

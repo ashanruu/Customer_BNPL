@@ -50,6 +50,7 @@ import PrivacySettingsScreen from "../screens/Settings/PrivacySettingScreen";
 
 //new Screen Set
 import OpenScreen from "../screensNew/onboardScreen/openScreen";
+import LanguageSelectScreen from "../screensNew/onboardScreen/languageSelect";
 import IntroOneScreen from "../screensNew/onboardScreen/introOneScreen";
 import IntroTwoScreen from "../screensNew/onboardScreen/introTwoScreen";
 import IntroThreeScreen from "../screensNew/onboardScreen/introThreeScreen";
@@ -67,30 +68,20 @@ import RegWithFingerLoginScreen from "../screensNew/RegistrationScreen/regWithFi
 import RegWithEmailScreen from "../screensNew/RegistrationScreen/regWithEmailScreen";
 import RegWithEmailOtpScreen from "../screensNew/RegistrationScreen/regWithEmailOtpScreen";
 import RegWithLoginScreen from "../screensNew/RegistrationScreen/regWithLoginScreen";
+import RegWithAddressDetailScreen from "../screensNew/RegistrationScreen/regWithAddressDetailScreen";
 
 import DashboardScreen from "../screensNew/dashboardScreen/dashboardScreen";
 import StoresSectionScreen from "../screensNew/StoreManagement/StoresSectionScreen";
-import SelectedStoreScreen from "../screensNew/StoreManagement/SelectedStoreScreen";
+import SelectedStoreScreen  from "../screensNew/StoreManagement/SelectedStoreScreen";
 import ShoppingSelectedScreen from "../screensNew/StoreManagement/ShoppingSelectedScreen";
 import StoreWebViewScreen from "../screensNew/StoreManagement/StoreWebViewScreen";
 import ScanScreen from "../screensNew/QrScanScreen/staticQrScreens/scanScreen";
 import MyAccountScreen from "../screensNew/MyProfile/MyAccountScreen";
-import AboutAppScreen from "../screensNew/MyProfile/AboutAppScreen";
-import DeleteAccountScreen from "../screensNew/MyProfile/DeleteAccountScreen";
 import SecurityScreen from "../screensNew/Security/SecurityScreen";
 import IncreaseCreditLimitScreen from "../screensNew/CreditLimit/IncreaseCreditLimitScreen";
-import PaymentMethodsScreen from "../screensNew/CreditLimit/PaymentMethodsScreen";
-import SupportScreen from "../screensNew/Support/SupportScreen";
-import TermsAndConditionsScreenNew from "../screensNew/Legal/TermsAndConditionsScreen";
-import PrivacyPolicyScreen from "../screensNew/Legal/PrivacyPolicyScreen";
 import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
 import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
-import ReportAccountScreen from "../screensNew/ReportAccount/ReportAccountScreen";
-import ReportFormScreen from "../screensNew/ReportAccount/ReportFormScreen";
-import ReportSubmittedScreen from "../screensNew/ReportAccount/ReportSubmittedScreen";
-import RecoverAccountScreen from "../screensNew/RecoverAccount/RecoverAccountScreen";
-import RecoverFormScreen from "../screensNew/RecoverAccount/RecoverFormScreen";
-import RecoverSubmittedScreen from "../screensNew/RecoverAccount/RecoverSubmitted";
+
 
 const Stack = createStackNavigator();
 
@@ -100,7 +91,7 @@ const AppNavigator = () => {
       initialRouteName="OpenScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
-
+    
 
       {/* Keep Dashboard screen registered for direct navigation if needed */}
       <Stack.Screen
@@ -109,31 +100,27 @@ const AppNavigator = () => {
         options={{ gestureEnabled: false }}
       />
 
-      <Stack.Screen name="StoresSectionScreen" component={StoresSectionScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="SelectedStoreScreen" component={SelectedStoreScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="ShoppingSelectedScreen" component={ShoppingSelectedScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="StoreWebViewScreen" component={StoreWebViewScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="MyAccountScreen" component={MyAccountScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="AboutAppScreen" component={AboutAppScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="DeleteAccountScreen" component={DeleteAccountScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="TermsAndConditionsScreen" component={TermsAndConditionsScreenNew} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="PrivacyPolicyScreen" component={PrivacyPolicyScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="SecurityScreen" component={SecurityScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="IncreaseCreditLimitScreen" component={IncreaseCreditLimitScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="PaymentMethodsScreen" component={PaymentMethodsScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="SupportScreen" component={SupportScreen} options={{ gestureEnabled: true }} />
+      <Stack.Screen name="StoresSectionScreen" component={StoresSectionScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SelectedStoreScreen" component={SelectedStoreScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="ShoppingSelectedScreen" component={ShoppingSelectedScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="StoreWebViewScreen" component={StoreWebViewScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="MyAccountScreen" component={MyAccountScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SecurityScreen" component={SecurityScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IncreaseCreditLimitScreen" component={IncreaseCreditLimitScreen} options={{ gestureEnabled: false }} />
 
-      {/* onboarding Screen */}
-      <Stack.Screen name="OpenScreen" component={OpenScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: true }} />
-      <Stack.Screen name="IntroThreeScreen" component={IntroThreeScreen} options={{ gestureEnabled: true }} />
+      {/* onboarding Screen */ }
+      <Stack.Screen name="OpenScreen" component={OpenScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="LanguageSelectScreen" component={LanguageSelectScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IntroOneScreen" component={IntroOneScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IntroTwoScreen" component={IntroTwoScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="IntroThreeScreen" component={IntroThreeScreen} options={{ gestureEnabled: false }} />
 
       {/* Registration Screens */}
       <Stack.Screen name="regWithMobileNo" component={RegWithMobileNoScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithOtpScreen" component={RegWithOtpScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithNicScreen" component={RegWithNicScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithPersonalDetailsScreen" component={RegWithPersonalDetailsScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RegWithAddressDetailScreen" component={RegWithAddressDetailScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithAgreementScreen" component={RegWithAgreementScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithPasswordScreen" component={RegWithPasswordScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="RegWithPinScreen" component={RegWithPinScreen} options={{ gestureEnabled: false }} />
@@ -179,16 +166,6 @@ const AppNavigator = () => {
       <Stack.Screen name="PaymentSuccessScreen" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentMoreInfo" component={PaymentMoreInfoScreen} />
 
-      {/* Report Account  */}
-      <Stack.Screen name="ReportAccountScreen" component={ReportAccountScreen} />
-      <Stack.Screen name="ReportForm" component={ReportFormScreen} />
-      <Stack.Screen name="ReportSubmitted" component={ReportSubmittedScreen} />
-
-      {/* Recover Account  */}
-      <Stack.Screen name="RecoverAccountScreen" component={RecoverAccountScreen} />
-      <Stack.Screen name="RecoverFormScreen" component={RecoverFormScreen}/>
-      <Stack.Screen name="RecoverSubmittedScreen" component={RecoverSubmittedScreen}/>
-      
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
