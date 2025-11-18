@@ -12,11 +12,12 @@ import {
   ScrollView,
   Keyboard,
   Animated,
+  Alert
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import CustomButton from '../../components/CustomButton';
+import { callAuthApi } from '../../scripts/api';
 
 type RootStackParamList = {
   RegWithMobileNoScreen: undefined;
@@ -64,30 +65,40 @@ const RegWithMobileNoScreen: React.FC = () => {
     };
   }, [imageHeight]);
 
-  const handleGetOTP = () => {
-    if (mobileNumber.length === 9) {
-      navigation.navigate('RegWithOtpScreen', { 
-        mobileNumber: countryCode + mobileNumber 
-      });
-    }
-  };
 
   const handleLogin = () => {
-    navigation.navigate('Login');
+    navigation.replace('Login');
   };
 
-  // Country flag icon
-  const FlagIcon = () => (
-    <View style={styles.flagContainer}>
-      <Text style={styles.flagEmoji}>🇱🇰</Text>
-      <Text style={styles.countryCodeText}>{countryCode}</Text>
-    </View>
-  );
+
+  const handleGetOTP = async () => {
+    try {
+      console.log('Sending OTP to phone number:', mobileNumber.trim());
+
+      const response = await callAuthApi(
+        "SendMobileOtp",
+        {
+          phone: mobileNumber
+        }
+      );
+
+      if (response.statusCode === 200) {
+        navigation.navigate('RegWithOtpScreen', {
+          mobileNumber: countryCode + mobileNumber
+        });
+      } else {
+        Alert.alert("Error Sending verification code. please try again later");
+      }
+    } catch (error) {
+      console.error('Error during customer validation or OTP sending:', error);
+      Alert.alert("Error during customer validation or OTP sending:");
+    }
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Top Section with Image - Animated */}
       <Animated.View style={[styles.topSection, { height: imageHeight }]}>
         {/* Image */}
@@ -110,7 +121,7 @@ const RegWithMobileNoScreen: React.FC = () => {
         >
           {/* Decorative Line */}
           <View style={styles.decorativeLine} />
-          
+
           {/* Title */}
           <Text style={styles.title}>Enter your mobile number</Text>
           <Text style={styles.subtitle}>

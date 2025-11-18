@@ -9,12 +9,12 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
 
 type RootStackParamList = {
-  RegWithPersonalDetailsScreen: undefined;
+  RegWithPersonalDetailsScreen: { mobileNumber: string; nicNumber: string };
   RegWithAgreementScreen: undefined;
 };
 
@@ -197,6 +197,9 @@ const DatePickerComponent: React.FC<DatePickerProps> = ({ selectedDate, onDateSe
 
 const RegWithPersonalDetailsScreen: React.FC = () => {
   const navigation = useNavigation<RegWithPersonalDetailsScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'RegWithPersonalDetailsScreen'>>();
+  const { mobileNumber, nicNumber } = route.params || {};
+    
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -222,12 +225,31 @@ const RegWithPersonalDetailsScreen: React.FC = () => {
     setShowDatePicker(true);
   };
 
-  const handleNext = () => {
-    if (firstName && lastName && dateOfBirth) {
-      // Navigate to next screen
-      navigation.navigate('RegWithAgreementScreen');
-    }
-  };
+   const handleNext = async () => {
+          if (!validateFields()) return;
+  
+          setLoading(true);
+  
+          try {
+              // Prepare personal info data to pass to next screen
+              const personalInfo = {
+                  firstName: firstName.trim(),
+                  lastName: lastName.trim(),
+                  dateOfBirth: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
+              };
+  
+              // Navigate to AddressDetails with personal info
+              navigation.navigate('AddressDetails', { 
+                  phoneNumber: mobileNumber,
+                  nicNumber: nicNumber,
+              });
+          } catch (error: any) {
+              console.error('Navigation error:', error);
+              Alert.alert('Error', 'Failed to proceed to next step. Please try again.');
+          } finally {
+              setLoading(false);
+          }
+      };
 
   const handleBackPress = () => {
     navigation.goBack();
