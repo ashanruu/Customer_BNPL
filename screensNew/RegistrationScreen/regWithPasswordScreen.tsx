@@ -62,7 +62,7 @@ const RegWithPasswordScreen: React.FC = () => {
           bod : route.params.dateOfBirth,
           district: route.params.district,
           password: password,
-          email:"test@gmail.com",
+          email:"shcbssdu@gmail.com", //for testing
           userType: 2
         };
   
