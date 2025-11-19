@@ -109,15 +109,8 @@ const MyAccountScreen: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header with title */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Account</Text>
-        <View style={styles.placeholder} />
+      <View style={styles.headerMain}>
+        <Text style={styles.headerTitleMain}>My Account</Text>
       </View>
 
       <ScrollView 
@@ -631,53 +624,21 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  logoutModalContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  logoutModalText: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
-    ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
-    }),
-  },
-  logoutButton: {
-    backgroundColor: '#0066CC',
-    paddingVertical: 14,
-    borderRadius: 24,
+  /* Main screen header (centered, larger like Orders screen) */
+  headerMain: {
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0066CC',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
   },
-  logoutButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  headerTitleMain: {
+    fontSize: 24,
+    color: '#1F2937',
+    textAlign: 'center',
     ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
     }),
   },
 });

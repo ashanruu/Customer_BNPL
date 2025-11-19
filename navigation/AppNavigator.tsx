@@ -81,7 +81,13 @@ import SecurityScreen from "../screensNew/Security/SecurityScreen";
 import IncreaseCreditLimitScreen from "../screensNew/CreditLimit/IncreaseCreditLimitScreen";
 import PaymentSuccessScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentSuccessScreen";
 import PaymentMoreInfoScreen from "../screensNew/QrScanScreen/staticQrScreens/paymentMoreInfoScreen";
-
+import ReportAccountScreen from "../screensNew/ReportAccount/ReportAccountScreen";
+import ReportFormScreen from "../screensNew/ReportAccount/ReportFormScreen";
+import ReportSubmittedScreen from "../screensNew/ReportAccount/ReportSubmittedScreen";
+import RecoverAccountScreen from "../screensNew/RecoverAccount/RecoverAccountScreen";
+import RecoverFormScreen from "../screensNew/RecoverAccount/RecoverFormScreen";
+import RecoverSubmittedScreen from "../screensNew/RecoverAccount/RecoverSubmitted";
+import OrderScreen from "../screensNew/OrderScreen/OrderScreen";
 
 const Stack = createStackNavigator();
 
@@ -165,6 +171,19 @@ const AppNavigator = () => {
       {/* Scan Screens */}
       <Stack.Screen name="PaymentSuccessScreen" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentMoreInfo" component={PaymentMoreInfoScreen} />
+
+      {/* Report Account  */}
+      <Stack.Screen name="ReportAccountScreen" component={ReportAccountScreen} />
+      <Stack.Screen name="ReportForm" component={ReportFormScreen} />
+      <Stack.Screen name="ReportSubmitted" component={ReportSubmittedScreen} />
+
+      {/* Recover Account  */}
+      <Stack.Screen name="RecoverAccountScreen" component={RecoverAccountScreen} />
+      <Stack.Screen name="RecoverFormScreen" component={RecoverFormScreen} />
+      <Stack.Screen name="RecoverSubmittedScreen" component={RecoverSubmittedScreen} />
+
+      {/* Orders screen (new) */}
+      <Stack.Screen name="OrderScreen" component={OrderScreen} options={{ gestureEnabled: false }} />
 
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />

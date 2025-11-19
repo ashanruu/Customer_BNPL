@@ -22,6 +22,7 @@ type RootStackParamList = {
         amount?: string;
         merchant?: string;
     };
+    PaymentSuccessScreen?: { amount?: string; merchant?: string; hideTitles?: boolean; qrData?: string };
     PaymentMoreInfo?: { amount?: string; merchant?: string; qrData?: string }; // <--- added
 };
 
@@ -29,9 +30,10 @@ const { width } = Dimensions.get('window');
 
 const PaymentSuccessScreen: React.FC = () => {
     const navigation = useNavigation<any>();
-    const route = useRoute<RouteProp<RootStackParamList, 'PaymentScreen'>>();
+    const route = useRoute<RouteProp<RootStackParamList, 'PaymentSuccessScreen'>>();
     const amount = route.params?.amount || '0.00';
     const merchant = route.params?.merchant || 'NOLIMIT';
+    const hideTitles = !!route.params?.hideTitles;
 
     const cardBrand = 'VISA';
     const cardMask = '**** 3816';
@@ -58,11 +60,16 @@ const PaymentSuccessScreen: React.FC = () => {
 
                 {/* Title Section */}
                 <View style={styles.titleSection}>
-                    <Text style={styles.topTitle}>Installment Payment</Text>
+                    {!hideTitles && <Text style={styles.topTitle}>Installment Payment</Text>}
 
                     {/* Row that only contains the main title + More Info button aligned on the same baseline */}
                     <View style={styles.mainTitleRow}>
-                        <Text style={styles.mainTitle}>Successful!</Text>
+                        {/* !hideTitles && <Text style={styles.mainTitle}>Successful!</Text> */}
+
+                        {/* keep a left flex area so the More Info button stays right-aligned even when title is hidden */}
+                        <View style={{ flex: 1 }}>
+                            {!hideTitles && <Text style={styles.mainTitle}>Successful!</Text>}
+                        </View>
 
                         <TouchableOpacity
                             style={styles.moreInfoButton}
