@@ -50,7 +50,7 @@ const IntroTwoScreen: React.FC<IntroTwoScreenProps> = ({ onNext }) => {
     }, [navigation, onNext]);
   
     useEffect(() => {
-      const timer = setTimeout(handleNext, 3000);
+      const timer = setTimeout(handleNext, 30000);
       return () => clearTimeout(timer);
     }, [handleNext]);
   

@@ -26,12 +26,12 @@ const IntroOneScreen: React.FC<IntroOneScreenProps> = ({ onNext}) => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 350,
+        duration: 35000,
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 350,
+        duration: 35000,
         useNativeDriver: true,
       }),
     ]).start();
@@ -50,7 +50,7 @@ const IntroOneScreen: React.FC<IntroOneScreenProps> = ({ onNext}) => {
   }, [navigation, onNext]);
 
   useEffect(() => {
-    const timer = setTimeout(handleNext, 3000);
+    const timer = setTimeout(handleNext, 300000);
     return () => clearTimeout(timer);
   }, [handleNext]);
 

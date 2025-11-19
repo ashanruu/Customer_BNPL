@@ -23,6 +23,7 @@ const MyAccountScreen: React.FC = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showProfileView, setShowProfileView] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [email, setEmail] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
 
@@ -49,37 +50,37 @@ const MyAccountScreen: React.FC = () => {
       id: 4,
       title: 'Credit Scoring',
       icon: 'chart-line',
-      onPress: () => console.log('Credit Scoring'),
+      onPress: () => navigation.navigate('PaymentMethodsScreen'),
     },
     {
       id: 5,
       title: 'Payment Method',
       icon: 'credit-card-outline',
-      onPress: () => console.log('Payment Method'),
+      onPress: () => navigation.navigate('PaymentMethodsScreen'),
     },
     {
       id: 6,
       title: 'Support',
       icon: 'headset',
-      onPress: () => console.log('Support'),
+      onPress: () => navigation.navigate('SupportScreen'),
     },
     {
       id: 7,
       title: 'About App',
       icon: 'information-outline',
-      onPress: () => console.log('About App'),
+      onPress: () => navigation.navigate('AboutAppScreen'),
     },
     {
       id: 8,
       title: 'Delete Account',
       icon: 'trash-can-outline',
-      onPress: () => console.log('Delete Account'),
+      onPress: () => navigation.navigate('DeleteAccountScreen'),
     },
     {
       id: 9,
       title: 'Logout',
       icon: 'logout',
-      onPress: () => console.log('Logout'),
+      onPress: () => setShowLogoutModal(true),
     },
         // New Report Account item
     {
@@ -95,6 +96,13 @@ const MyAccountScreen: React.FC = () => {
       onPress: () => navigation.navigate('RecoverAccountScreen'),
     },
   ];
+
+  const handleLogout = () => {
+    setShowLogoutModal(false);
+    // TODO: Implement actual logout logic
+    console.log('User logged out');
+    // navigation.navigate('LoginScreen');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -291,6 +299,27 @@ const MyAccountScreen: React.FC = () => {
           setShowEmailModal(false);
         }}
       />
+
+      {/* Logout Confirmation Modal */}
+      <BottomSheetModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Logout"
+      >
+        <View style={styles.logoutModalContent}>
+          <Text style={styles.logoutModalText}>
+            Are you sure you want to log out?
+          </Text>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
     </SafeAreaView>
   );
 };

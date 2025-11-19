@@ -6,13 +6,13 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
 
 type RootStackParamList = {
-  RegWithNicScreen: undefined;
-  RegWithPersonalDetailsScreen: undefined;
+  RegWithNicScreen: { mobileNumber: string };
+  RegWithPersonalDetailsScreen: { mobileNumber: string; nicNumber: string };
 };
 
 type RegWithNicScreenNavigationProp = StackNavigationProp<
@@ -20,14 +20,21 @@ type RegWithNicScreenNavigationProp = StackNavigationProp<
   'RegWithNicScreen'
 >;
 
+
 const RegWithNicScreen: React.FC = () => {
   const navigation = useNavigation<RegWithNicScreenNavigationProp>();
+    const route = useRoute<RouteProp<RootStackParamList, 'RegWithNicScreen'>>();
+    const { mobileNumber } = route.params || {};
+  
   const [nicNumber, setNicNumber] = useState('');
+
 
   const handleContinue = () => {
     if (nicNumber.length >= 9) {
-      // Navigate to next screen
-      navigation.navigate('RegWithPersonalDetailsScreen');
+      navigation.navigate('RegWithPersonalDetailsScreen',{ 
+            mobileNumber: mobileNumber,
+            nicNumber: nicNumber 
+          });
     }
   };
 

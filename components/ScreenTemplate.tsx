@@ -30,6 +30,9 @@ interface ScreenTemplateProps {
   children: ReactNode;
   
   // Footer Button (primary)
+  showButton?: boolean;
+  buttonText?: string;
+  onButtonPress?: () => void;
   buttonText: string;
   onButtonPress: () => void;
   buttonDisabled?: boolean;
@@ -67,6 +70,7 @@ const ScreenTemplate: React.FC<ScreenTemplateProps> = ({
   mainTitle,
   description,
   children,
+  showButton = true,
   buttonText,
   onButtonPress,
   buttonDisabled = false,

@@ -11,6 +11,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   OpenScreen: undefined;
+  LanguageSelectScreen: undefined;
   IntroOneScreen: undefined;
 };
 
@@ -32,7 +33,7 @@ const OpenScreen: React.FC<OpenScreenProps> = ({
       if (onComplete) {
         onComplete();
       } else {
-        navigation.replace('IntroOneScreen');
+        navigation.replace('LanguageSelectScreen');
       }
     }, duration);
 

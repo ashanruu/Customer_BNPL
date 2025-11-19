@@ -9,12 +9,13 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
 
 type RootStackParamList = {
-  RegWithPersonalDetailsScreen: undefined;
+  RegWithPersonalDetailsScreen: { mobileNumber: string; nicNumber: string };
+  RegWithAddressDetailScreen: { mobileNumber: string; nicNumber: string; firstName: string; lastName: string; dateOfBirth: string };
   RegWithAgreementScreen: undefined;
 };
 
@@ -197,6 +198,9 @@ const DatePickerComponent: React.FC<DatePickerProps> = ({ selectedDate, onDateSe
 
 const RegWithPersonalDetailsScreen: React.FC = () => {
   const navigation = useNavigation<RegWithPersonalDetailsScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'RegWithPersonalDetailsScreen'>>();
+  const { mobileNumber, nicNumber } = route.params || {};
+    
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -223,10 +227,16 @@ const RegWithPersonalDetailsScreen: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (firstName && lastName && dateOfBirth) {
-      // Navigate to next screen
-      navigation.navigate('RegWithAgreementScreen');
-    }
+    if (!isFormValid) return;
+
+    // Navigate to AddressDetails with all info
+    navigation.navigate('RegWithAddressDetailScreen', {
+      mobileNumber: mobileNumber,
+      nicNumber: nicNumber,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      dateOfBirth: dateOfBirth,
+    });
   };
 
   const handleBackPress = () => {
