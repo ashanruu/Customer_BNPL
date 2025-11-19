@@ -6,14 +6,14 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
 import CustomCheckbox from '../../components/CustomCheckbox';
 
 type RootStackParamList = {
-  RegWithAgreementScreen: undefined;
-  RegWithPasswordScreen: undefined;
+  RegWithAgreementScreen: { mobileNumber: string; nicNumber: string; firstName: string; lastName: string; dateOfBirth: string; province: string; district: string; city: string; streetAddress1: string; streetAddress2: string };
+  RegWithPasswordScreen: { mobileNumber: string; nicNumber: string; firstName: string; lastName: string; dateOfBirth: string; province: string; district: string; city: string; streetAddress1: string; streetAddress2: string };
 };
 
 type RegWithAgreementNavigationProp = StackNavigationProp<
@@ -23,6 +23,9 @@ type RegWithAgreementNavigationProp = StackNavigationProp<
 
 const RegWithAgreementScreen: React.FC = () => {
   const navigation = useNavigation<RegWithAgreementNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'RegWithAgreementScreen'>>();
+ 
+
   const [isAgreed, setIsAgreed] = useState(false);
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
 
@@ -38,8 +41,18 @@ const RegWithAgreementScreen: React.FC = () => {
 
   const handleNext = () => {
     if (isAgreed) {
-      // Navigate to next screen
-      navigation.navigate('RegWithPasswordScreen');
+      navigation.navigate('RegWithPasswordScreen', {
+        mobileNumber: route.params.mobileNumber,
+        nicNumber: route.params.nicNumber,
+        firstName: route.params.firstName,
+        lastName: route.params.lastName,
+        dateOfBirth: route.params.dateOfBirth,
+        province: route.params.province,
+        district: route.params.district,
+        city: route.params.city,
+        streetAddress1: route.params.streetAddress1,
+        streetAddress2: route.params.streetAddress2,
+      });
     }
   };
 

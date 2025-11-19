@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   Platform,
+  Alert,
 } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
@@ -12,6 +14,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 type RootStackParamList = {
   RegWithFingerLoginScreen: undefined;
   RegWithEmailScreen: undefined;
+  DashboardScreen: undefined;
 };
 
 type RegWithFingerLoginScreenNavigationProp = StackNavigationProp<
@@ -21,16 +24,36 @@ type RegWithFingerLoginScreenNavigationProp = StackNavigationProp<
 
 const RegWithFingerLoginScreen: React.FC = () => {
   const navigation = useNavigation<RegWithFingerLoginScreenNavigationProp>();
+  const [authenticating, setAuthenticating] = useState(false);
 
-  const handleEnableFingerID = () => {
-    // Handle Finger ID setup
-    // This would typically trigger the biometric authentication flow
-    navigation.navigate('RegWithEmailScreen');
+  const handleEnableFingerID = async () => {
+    setAuthenticating(true);
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+    if (!hasHardware || !isEnrolled) {
+      Alert.alert('Biometric not available', 'Your device does not support biometric authentication or no biometrics are enrolled.');
+      setAuthenticating(false);
+      return;
+    }
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Authenticate with Fingerprint',
+      fallbackLabel: 'Enter Passcode',
+    });
+
+    setAuthenticating(false);
+
+    if (result.success) {
+      Alert.alert('Success', 'Fingerprint authentication successful!');
+      navigation.navigate('RegWithEmailScreen');
+    } else {
+      Alert.alert('Failed', 'Fingerprint authentication failed. Please try again.');
+    }
   };
 
   const handleSkip = () => {
-    // Skip Face ID setup
-    //navigation.navigate('');
+    navigation.navigate('DashboardScreen');  //later change login screen
   };
 
   const handleBackPress = () => {
@@ -47,9 +70,9 @@ const RegWithFingerLoginScreen: React.FC = () => {
       topTitle="Almost there..."
       mainTitle="Enable Quick Login"
       description="Enable Fingerprint to let you log in & proceed with your transactions faster"
-      buttonText="Enable Fingerprint"
+      buttonText={authenticating ? "Authenticating..." : "Enable Fingerprint"}
       onButtonPress={handleEnableFingerID}
-      buttonDisabled={false}
+      buttonDisabled={authenticating}
       scrollable={false}
     >
       <View style={styles.contentContainer}>

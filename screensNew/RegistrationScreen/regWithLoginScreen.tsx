@@ -14,6 +14,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { callAuthApi } from '../../scripts/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   RegWithLoginScreen: undefined;
@@ -31,6 +33,9 @@ const RegWithLoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [topSectionHeight] = useState(new Animated.Value(1));
+  const [isLoading, setIsLoading] = useState(false);
+
+  
 
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
@@ -61,10 +66,35 @@ const RegWithLoginScreen: React.FC = () => {
     };
   }, [topSectionHeight]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (mobileNumber.length > 0 && password.length > 0) {
-      // Handle login logic
-      navigation.navigate('DashboardScreen');
+      setIsLoading(true);
+      try {
+        const payload = {
+        identifier: mobileNumber.trim(),
+        password: password.trim(),
+        userType: 2
+      };
+      const response = await callAuthApi("LoginUser", payload)
+      console.log("Login Success", response);
+
+      if(response.statusCode === 200){
+        if(response.payload.token){
+          try{
+            await AsyncStorage.setItem('bearerToken', response.payload.token);
+            console.log("token saved");
+            navigation.navigate('DashboardScreen');
+          }catch(storageError){
+           console.error("faild token save", storageError); 
+          }
+        }
+      }
+      } catch (error) {
+        console.error("login failed",error);
+      }
+    finally{
+      setIsLoading(false);
+    }
     }
   };
 

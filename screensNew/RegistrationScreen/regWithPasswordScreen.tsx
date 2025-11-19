@@ -6,16 +6,19 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Alert
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {callAuthApi,callMobileApi} from '../../scripts/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
-  RegWithPasswordScreen: undefined;
+  RegWithPasswordScreen: { mobileNumber: string; nicNumber: string; firstName: string; lastName: string; dateOfBirth: string; province: string; district: string; city: string; streetAddress1: string; streetAddress2: string };
   RegWithPinScreen: undefined;
-};
+}
 
 type RegWithPasswordNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -24,10 +27,15 @@ type RegWithPasswordNavigationProp = StackNavigationProp<
 
 const RegWithPasswordScreen: React.FC = () => {
   const navigation = useNavigation<RegWithPasswordNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'RegWithPasswordScreen'>>();
+   
+  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Password validation checks
   const isLengthValid = password.length >= 8 && password.length <= 20;
@@ -38,11 +46,83 @@ const RegWithPasswordScreen: React.FC = () => {
 
   const isFormValid = isLengthValid && hasUpperCase && hasNumber && hasSpecialChar && passwordsMatch;
 
-  const handleNext = () => {
-    if (isFormValid) {
-      // Navigate to next screen
-      navigation.navigate('RegWithPinScreen');
-    }
+  const handleNext = async () => {
+      if (isFormValid) {
+       setIsRegistering(true);
+  
+      try {
+        console.log('Starting final registration process...');
+  
+        // Prepare RegisterUser payload
+        const registerPayload = {
+          firstName: route.params.firstName,
+          lastName: route.params.lastName,
+          phoneNumber: route.params.mobileNumber,
+          nic: route.params.nicNumber,
+          bod : route.params.dateOfBirth,
+          district: route.params.district,
+          password: password,
+          email:"test@gmail.com",
+          userType: 2
+        };
+  
+        console.log('Calling RegisterUser API...');
+        const registerResponse = await callAuthApi('RegisterUser', registerPayload);
+        console.log('RegisterUser response:', registerResponse);
+  
+        if (registerResponse.statusCode !== 200) {
+          throw new Error(registerResponse.message || 'User registration failed');
+        }
+  
+        // Save the token to AsyncStorage
+        if (registerResponse.payload && registerResponse.payload.token) {
+          try {
+            await AsyncStorage.setItem('bearerToken', registerResponse.payload.token);
+            console.log('Token saved successfully');
+          } catch (storageError) {
+            console.error('Failed to save token:', storageError);
+          }
+        }
+  
+        // Prepare CreateCustomer payload
+        const customerPayload = {
+          firstName: route.params.firstName,
+          lastName: route.params.lastName,
+          address: route.params.streetAddress1,
+          addressOptional: route.params.streetAddress2 || null,
+          city: route.params.city,
+          state: route.params.province,
+          phoneNumber: route.params.mobileNumber,
+          dob : route.params.dateOfBirth,
+          salary: 0,
+        };
+  
+        console.log('Calling CreateCustomer API...');
+        const customerResponse = await callMobileApi(
+          'CreateCustomer',
+          customerPayload,
+          'mobile-app-create-customer',
+          '',
+          'customer'
+        );
+        console.log('CreateCustomer response:', customerResponse);
+  
+        if (customerResponse.statusCode !== 200) {
+          throw new Error(customerResponse.message || 'Customer creation failed');
+        }
+  
+        console.log('Registration completed successfully!');
+        return true;
+  
+      } catch (error: any) {
+        console.error('Registration error:', error);
+        const errorMessage = error.message || 'Registration failed. Please try again.';
+        Alert.alert('Registration Error', errorMessage);
+        return false;
+      } finally {
+        setIsRegistering(false);
+      }
+    };
   };
 
   const handleBackPress = () => {
@@ -194,7 +274,7 @@ const RegWithPasswordScreen: React.FC = () => {
       </View>
     </ScreenTemplate>
   );
-};
+}
 
 const styles = StyleSheet.create({
   contentContainer: {
