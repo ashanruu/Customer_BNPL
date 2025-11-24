@@ -35,8 +35,18 @@ type DashboardScreenNavigationProp = StackNavigationProp<
 >;
 // Dashboard content component
 const DashboardContent: React.FC = () => {
-  const navigation = useNavigation<any>();
-  
+  const navigation = useNavigation<DashboardScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'DashboardScreen'>>();
+  //const navigation = useNavigation<any>();
+
+  const[creditLimits,setCreditLimits]=React.useState<any>(null);
+  const[creditLimitsLoading,setCreditLimitsLoading]=React.useState(false);
+  const[refreshing,setRefreshing]=React.useState(false);
+
+  const[promotions,setPromotions]=React.useState<Array<any>>([]);
+  const[promotionsLoading,setPromotionsLoading]=React.useState(false);
+  const[planLoading , setPlanLoading]=React.useState(false)
+
   // Animation setup for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
   const HEADER_MAX_HEIGHT = 310;
@@ -99,6 +109,132 @@ const DashboardContent: React.FC = () => {
     { label: 'Grocery' },
     { label: 'Travel' },
   ];
+
+  // Fetch credit limits from payment API
+    const fetchCreditLimits = async () => {
+      try {
+        setCreditLimitsLoading(true);
+        console.log("Fetching credit limits...");
+  
+        const response = await callMobileApi(
+          'GetCrediLimits',
+          {},
+          'mobile-app-credit-limits',
+          '',
+          'payment'
+        );
+  
+        console.log("GetCrediLimits response:", response);
+  
+        if (response.statusCode === 200) {
+          setCreditLimits(response.data || response.payload);
+          console.log("Credit limits loaded successfully");
+        } else {
+          console.error('Failed to fetch credit limits:', response.message);
+        }
+      } catch (error: any) {
+        console.error('GetCrediLimits error:', error);
+      } finally {
+        setCreditLimitsLoading(false);
+      }
+    };
+
+
+    //Get Plan Name
+    const fetchPlan = async () =>{
+      try{
+        setPlanLoading(true);
+        const planName = await callMobileApi(
+          "GetCustomerPlanByCustomerId",
+          {},
+          "get-customer-plan-name",
+          "",
+          "customer"
+        );
+        console.log("plan details", planName);
+      }catch{
+
+      }
+    }
+
+    //for promotions
+    const fetchPromotions = async () => {
+        try {
+          setPromotionsLoading(true);
+    
+          const promotionResponse = await callMobileApi(
+            'GetPromotions',
+            {},
+            'mobile-app-promotions',
+            '',
+            "merchant"
+          );
+    
+          console.log('GetPromotions response:', promotionResponse);
+    
+          if (promotionResponse.statusCode === 200) {
+            const promotionsData = promotionResponse.data || promotionResponse.payload || promotionResponse;
+    
+            if (Array.isArray(promotionsData)) {
+              setPromotions(promotionsData);
+              console.log('Promotions set successfully:', promotionsData.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionsData);
+            } else if (Array.isArray(promotionResponse)) {
+              setPromotions(promotionResponse);
+              console.log('Promotions set from direct array:', promotionResponse.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionResponse);
+            } else {
+              console.error('Promotions data is not an array:', typeof promotionsData);
+              setPromotions([]);
+            }
+          } else {
+            console.error('Failed to fetch promotions - Status:', promotionResponse.statusCode, 'Message:', promotionResponse.message);
+            setPromotions([]);
+          }
+        } catch (error: any) {
+          console.error('GetPromotions error:', error);
+          setPromotions([]);
+        } finally {
+          setPromotionsLoading(false);
+        }
+      };
+
+
+     useEffect(() => {
+        fetchCreditLimits();
+        fetchPromotions();
+        fetchPlan();
+      }, []);
+
+
+      useFocusEffect(
+        React.useCallback(() => {
+          fetchCreditLimits();
+          fetchPromotions();
+          fetchPlan();
+        }, [])
+      );
+
+      // Comprehensive refresh function for pull-to-refresh
+        const handleRefresh = async () => {
+          try {
+            setRefreshing(true);
+            console.log('Refreshing home screen data...');
+            // Fetch all data simultaneously for better performance
+            await Promise.all([
+              fetchCreditLimits(),
+              fetchPromotions(),
+              fetchPlan(),
+            ]);
+            console.log('Home screen refresh completed successfully');
+          } catch (error) {
+            console.error('Error refreshing home screen:', error);
+          } finally {
+            setRefreshing(false);
+          }
+        };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

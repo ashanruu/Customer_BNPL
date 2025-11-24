@@ -42,7 +42,7 @@ const ScanScreen: React.FC = () => {
   const [isFlashlightOn, setIsFlashlightOn] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [merchantName, setMerchantName] = useState('NOLIMIT');
+  const [merchantName, setMerchantName] = useState('');
 
   // Modal state: add 'success'
   const [modalStep, setModalStep] = useState<'enter' | 'confirm' | 'schedule' | 'method' | 'identity' | 'success' | null>(null);
@@ -66,23 +66,79 @@ const ScanScreen: React.FC = () => {
 
   // animate fade when modalStep changes
   useEffect(() => {
-    fade.setValue(0);
-    Animated.timing(fade, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [modalStep, fade]);
+    if (showProgressModal && responseStatus === 'processing') {
+      // Animate modal in
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 8,
+      }).start();
+    }
+  }, [showProgressModal, responseStatus, slideAnim]);
 
+  //for flashlight toggle
   const toggleFlashlight = () => {
     setIsFlashlightOn(!isFlashlightOn);
   };
+  const parseQR = (url: string) => {
+    try {
+      const trimmed = url.trim();
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+      // call 1 (enter amount manually)
+      // https://https://shop.bnplqr.hexdive.com/merchant/{merchantId}
+      const method1 = /^https:\/\/shop\.bnplqr\.hexdive\.com\/merchant\/([^\/]+)$/;
+      const m1 = trimmed.match(method1);
+      if (m1) {
+        return {
+          ok: true,
+          type: "static",
+          merchantId: m1[1],
+        };
+      }
+
+      // call 2 (predefined amount → call API)
+      // https://merchant.bnpl.hexdive.com/sale/{oderId}
+     const method2 = /^https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/([^\/]+)$/;
+      const m2 = trimmed.match(method2);
+      if (m2) {
+        return {
+          ok: true,
+          type: "dynamic",
+          orderId: m2[1],
+        };
+      }
+      return { ok: false };
+    } catch (e) {
+      console.log("QR parse error:", e);
+      return { ok: false };
+    }
+  };
+
+
+  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+    if (scanned) return;
     setScanned(true);
-    console.log('QR Code scanned:', data);
 
-    // Store QR data and merchant info
+    console.log("QR scanned:", data);
+
+    const parsed = parseQR(data);
+
+    if (!parsed.ok) {
+      Alert.alert(
+        "Invalid QR Code",
+        "This QR code is not supported. Please try again.",
+        [
+          {
+            text: "OK",
+            onPress: () => setScanned(false)
+          }
+        ]
+      );
+      return;
+    }
+
+    // save QR data
     setQrData(data);
 
     // call 1: user must enter amount manually
@@ -176,7 +232,6 @@ const ScanScreen: React.FC = () => {
   };
 
   const handlePayNow = () => {
-    // Show identity confirmation modal before final navigation
     setModalStep('identity');
   };
 
@@ -240,6 +295,11 @@ const ScanScreen: React.FC = () => {
     );
   }
 
+  function handleClose(): void {
+    closeAllModals();
+    navigation.goBack();
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -274,6 +334,8 @@ const ScanScreen: React.FC = () => {
           <View style={styles.overlay}>
             <View style={styles.scannerFrame} />
           </View>
+
+
 
           {/* Scanner Status */}
           {scanned && (
