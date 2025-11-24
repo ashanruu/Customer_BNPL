@@ -45,7 +45,7 @@ const ScanScreen: React.FC = () => {
   const [isFlashlightOn, setIsFlashlightOn] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const [merchantName, setMerchantName] = useState('NOLIMIT');
+  const [merchantName, setMerchantName] = useState('');
 
   // Modal state: add 'success'
   const [modalStep, setModalStep] = useState<'enter' | 'confirm' | 'schedule' | 'method' | 'identity' | 'success' | null>(null);
@@ -84,82 +84,140 @@ const ScanScreen: React.FC = () => {
         tension: 50,
         friction: 8,
       }).start();
-
-      // Process validation with actual API call
-      const processValidation = async () => {
-        try {
-          setLoading(true);
-          const validationResponse = await callMobileApi(
-            'validateSaleQr',
-            '',
-            'qr-scan'
-          );
-
-          console.log("validating qr scan", validationResponse);
-
-        } catch (error) {
-          console.error('Validation error:', error);
-          setResponseMessage('An unexpected error occurred. Please try again.');
-          setResponseStatus('error');
-        }
-      };
-
-      processValidation();
     }
-  }, [showProgressModal, responseStatus]);
+  }, [showProgressModal, responseStatus, slideAnim]);
 
+  //for flashlight toggle
   const toggleFlashlight = () => {
     setIsFlashlightOn(!isFlashlightOn);
   };
-
-
-
-  // URL validation function for BNPL QR codes
-  const isValidSaleURL = (url: string): { isValid: boolean; orderId?: string } => {
+  const parseQR = (url: string) => {
     try {
-      // Pattern 1: https://merchant.bnpl.hexdive.com/sale/{orderId}
-      const merchantPattern = /^https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/(.+)$/;
-      const merchantMatch = url.trim().match(merchantPattern);
+      const trimmed = url.trim();
 
-      if (merchantMatch && merchantMatch[1]) {
-        const orderId = merchantMatch[1].trim();
-        console.log('Extracted order ID from merchant URL:', orderId);
-        return { isValid: true, orderId: orderId };
+      // call 1 (enter amount manually)
+      // https://https://shop.bnplqr.hexdive.com/merchant/{merchantId}
+      const method1 = /^https:\/\/shop\.bnplqr\.hexdive\.com\/merchant\/([^\/]+)$/;
+      const m1 = trimmed.match(method1);
+      if (m1) {
+        return {
+          ok: true,
+          type: "static",
+          merchantId: m1[1],
+        };
       }
 
-      // Pattern 2: https://bnplqr.hexdive.com/sale/{orderId} (legacy support)
-      const bnplqrPattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
-      const bnplqrMatch = url.trim().match(bnplqrPattern);
-
-      if (bnplqrMatch && bnplqrMatch[1]) {
-        const orderId = bnplqrMatch[1].trim();
-        console.log('Extracted order ID from bnplqr URL:', orderId);
-        return { isValid: true, orderId: orderId };
+      // call 2 (predefined amount → call API)
+      // https://merchant.bnpl.hexdive.com/sale/{oderId}
+     const method2 = /^https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/([^\/]+)$/;
+      const m2 = trimmed.match(method2);
+      if (m2) {
+        return {
+          ok: true,
+          type: "dynamic",
+          orderId: m2[1],
+        };
       }
-
-      console.log('URL does not match expected patterns:', url);
-      return { isValid: false };
-    } catch (error) {
-      console.error('URL validation error:', error);
-      return { isValid: false };
+      return { ok: false };
+    } catch (e) {
+      console.log("QR parse error:", e);
+      return { ok: false };
     }
   };
 
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+    if (scanned) return;
     setScanned(true);
-    console.log('QR Code scanned:', data);
 
-    // Store QR data and merchant info
+    console.log("QR scanned:", data);
+
+    const parsed = parseQR(data);
+
+    if (!parsed.ok) {
+      Alert.alert(
+        "Invalid QR Code",
+        "This QR code is not supported. Please try again.",
+        [
+          {
+            text: "OK",
+            onPress: () => setScanned(false)
+          }
+        ]
+      );
+      return;
+    }
+
+    // save QR data
     setQrData(data);
-    setMerchantName('NOLIMIT');
 
-    // Open the modal at enter amount step
-    setModalStep('enter');
-  };
+    // call 1: user must enter amount manually
+    if (parsed.type === "static") {
+      console.log("Merchant QR detected → Open enter amount modal");
+      setModalStep("enter");
+      return;
+    }
 
-  const handleClose = () => {
-    navigation.goBack();
+    // call 2: QR contains encoded amount (call API to get real amount)
+    if (parsed.type === "dynamic") {
+      try {
+        setLoading(true);
+
+        const response = await callMobileApi(
+          "ValaidateSale",
+          { saleCode: parsed.orderId },
+          "qr-scan",
+          '',
+          'customer'
+        );
+
+        console.log("QR validation response:", response);
+
+        if (response?.statusCode !== 200) {
+          Alert.alert(
+            "QR Error",
+            response?.message || "Please try again.",
+            [
+              {
+                text: "OK",
+                onPress: () => setScanned(false)
+              }
+            ]
+          );
+          return;
+        }
+
+        try {
+          const getSalesDetails = await callMobileApi(
+            "GetCusSaleDetailId",
+            {saleCode: parsed.orderId},
+            "sale-details",
+            "",
+            "customer"
+          );
+          console.log("GetCusSaleDetailId response:", getSalesDetails);
+          const amount = getSalesDetails?.data?.salesAmount?.toString() || '0';
+          setPaymentAmount(amount);
+          setModalStep("confirm");
+        } catch (error) {
+          console.error("error with QR scan");
+        }
+
+      } catch (e) {
+        Alert.alert(
+          "Error",
+          e instanceof Error ? e.message : "An unexpected error occurred.",
+          [
+            {
+              text: "OK",
+              onPress: () => setScanned(false)
+            }
+          ]
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   // Modal navigation helpers (now use modalStep)
@@ -184,7 +242,6 @@ const ScanScreen: React.FC = () => {
   };
 
   const handlePayNow = () => {
-    // Show identity confirmation modal before final navigation
     setModalStep('identity');
   };
 
@@ -248,6 +305,11 @@ const ScanScreen: React.FC = () => {
     );
   }
 
+  function handleClose(): void {
+    closeAllModals();
+    navigation.goBack();
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -283,7 +345,7 @@ const ScanScreen: React.FC = () => {
             <View style={styles.scannerFrame} />
           </View>
 
-          
+
 
           {/* Scanner Status */}
           {scanned && (

@@ -23,12 +23,12 @@ import ScanScreen from '../QrScanScreen/staticQrScreens/scanScreen';
 import MyAccountScreen from '../MyProfile/MyAccountScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import OrderScreen from '../OrderScreen/OrderScreen';
-import { callMobileApi, callMerchantApi } from '../../scripts/api';
+import { callMobileApi } from '../../scripts/api';
 import ImageCacheManager from '../../utils/ImageCacheManager';
 
 type RootStackParamList = {
   DashboardScreen: { username: string };
-  MyAccountScreen: undefined;
+  MyAccountScreen: { username: string };
 };
 
 type DashboardScreenNavigationProp = StackNavigationProp<
@@ -41,13 +41,13 @@ const DashboardContent: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'DashboardScreen'>>();
   //const navigation = useNavigation<any>();
 
-  const[loading,setLoading]=React.useState(false);
   const[creditLimits,setCreditLimits]=React.useState<any>(null);
   const[creditLimitsLoading,setCreditLimitsLoading]=React.useState(false);
   const[refreshing,setRefreshing]=React.useState(false);
 
   const[promotions,setPromotions]=React.useState<Array<any>>([]);
   const[promotionsLoading,setPromotionsLoading]=React.useState(false);
+  const[planLoading , setPlanLoading]=React.useState(false)
 
   // Animation setup for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -141,17 +141,35 @@ const DashboardContent: React.FC = () => {
       }
     };
 
+
+    //Get Plan Name
+    const fetchPlan = async () =>{
+      try{
+        setPlanLoading(true);
+        const planName = await callMobileApi(
+          "GetCustomerPlanByCustomerId",
+          {},
+          "get-customer-plan-name",
+          "",
+          "customer"
+        );
+        console.log("plan details", planName);
+      }catch{
+
+      }
+    }
+
     //for promotions
     const fetchPromotions = async () => {
         try {
           setPromotionsLoading(true);
-          const payload = {};
     
-          const promotionResponse = await callMerchantApi(
+          const promotionResponse = await callMobileApi(
             'GetPromotions',
-            payload,
+            {},
             'mobile-app-promotions',
-            ''
+            '',
+            "merchant"
           );
     
           console.log('GetPromotions response:', promotionResponse);
@@ -189,6 +207,7 @@ const DashboardContent: React.FC = () => {
      useEffect(() => {
         fetchCreditLimits();
         fetchPromotions();
+        fetchPlan();
       }, []);
 
 
@@ -196,6 +215,7 @@ const DashboardContent: React.FC = () => {
         React.useCallback(() => {
           fetchCreditLimits();
           fetchPromotions();
+          fetchPlan();
         }, [])
       );
 
@@ -208,6 +228,7 @@ const DashboardContent: React.FC = () => {
             await Promise.all([
               fetchCreditLimits(),
               fetchPromotions(),
+              fetchPlan(),
             ]);
             console.log('Home screen refresh completed successfully');
           } catch (error) {
@@ -229,7 +250,7 @@ const DashboardContent: React.FC = () => {
       }]}>
         <TouchableOpacity 
           style={styles.userInfo}
-          onPress={() => navigation.navigate('MyAccountScreen')}
+          onPress={() => navigation.navigate('MyAccountScreen',{ username: route.params.username || "" })}
           activeOpacity={0.7}
         >
           <Image

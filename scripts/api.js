@@ -3,8 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
  
-const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
-//const BASE_DOMAIN = "192.168.1.56:5111";
+//const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
+const BASE_DOMAIN = "http://192.168.43.68:5111";
 const AUTH_DOMAIN = "https://auth.sing.hexdive.com";
 
 
@@ -128,15 +128,6 @@ export const callAuthApi = async (
   return callMobileApi(functionName, payload, reference, apiKey, "auth");
 };
 
-// Convenience method for merchant-specific API calls (forces BASE_DOMAIN usage with token)
-export const callMerchantApi = async (
-  functionName,
-  payload,
-  reference = "mobile-app-merchant-call",
-  apiKey = ""
-) => {
-  return callMobileApi(functionName, payload, reference, apiKey, "merchant");
-};
 
 // Convenience method for authenticated API calls (forces BASE_DOMAIN usage with token)
 export const callSecureApi = async (
