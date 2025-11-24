@@ -6,6 +6,8 @@ type OrderItem = {
   merchant: string;
   dueDate: string;
   amount: string;
+  numOfInstallments?: number;
+  noOfInstallments?: number;
 };
 
 type Props = {
@@ -30,7 +32,11 @@ const OrderCard: React.FC<Props> = ({ item, onPress }) => {
         <View style={styles.info}>
           <View style={styles.merchantRow}>
             <Text style={styles.merchant}>{item.merchant}</Text>
-            <Text style={styles.counter}>(2/3)</Text>
+            {typeof item.noOfInstallments !== 'undefined' ? (
+              <Text style={styles.counter}>
+                ({item.numOfInstallments ?? 0}/{item.noOfInstallments})
+              </Text>
+            ) : null}
           </View>
           <Text style={styles.due}>{item.dueDate}</Text>
         </View>

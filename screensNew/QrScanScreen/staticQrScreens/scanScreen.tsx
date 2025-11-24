@@ -19,7 +19,6 @@ import { CameraView, Camera } from 'expo-camera';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheetModal from '../../../components/BottomSheetModal';
 import CustomButton from '../../../components/CustomButton';
-import { callMobileApi } from '../../../scripts/api';
 
 type RootStackParamList = {
   PaymentScreen: {
@@ -33,8 +32,6 @@ type RootStackParamList = {
     merchant?: string;
   };
 };
-
-type ResponseStatus = 'processing' | 'success' | 'error';
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -60,13 +57,6 @@ const ScanScreen: React.FC = () => {
   // new: order id for success modal
   const [orderId, setOrderId] = useState('');
 
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [responseStatus, setResponseStatus] = useState<ResponseStatus>('processing');
-  const [responseMessage, setResponseMessage] = useState('');
-  const slideAnim = useState(new Animated.Value(height))[0];
-
-  const [loading, setLoading] = useState(false)
-
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
@@ -76,75 +66,17 @@ const ScanScreen: React.FC = () => {
 
   // animate fade when modalStep changes
   useEffect(() => {
-    if (showProgressModal && responseStatus === 'processing') {
-      // Animate modal in
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
-
-      // Process validation with actual API call
-      const processValidation = async () => {
-        try {
-          setLoading(true);
-          const validationResponse = await callMobileApi(
-            'validateSaleQr',
-            '',
-            'qr-scan'
-          );
-
-          console.log("validating qr scan", validationResponse);
-
-        } catch (error) {
-          console.error('Validation error:', error);
-          setResponseMessage('An unexpected error occurred. Please try again.');
-          setResponseStatus('error');
-        }
-      };
-
-      processValidation();
-    }
-  }, [showProgressModal, responseStatus]);
+    fade.setValue(0);
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [modalStep, fade]);
 
   const toggleFlashlight = () => {
     setIsFlashlightOn(!isFlashlightOn);
   };
-
-
-
-  // URL validation function for BNPL QR codes
-  const isValidSaleURL = (url: string): { isValid: boolean; orderId?: string } => {
-    try {
-      // Pattern 1: https://merchant.bnpl.hexdive.com/sale/{orderId}
-      const merchantPattern = /^https:\/\/merchant\.bnpl\.hexdive\.com\/sale\/(.+)$/;
-      const merchantMatch = url.trim().match(merchantPattern);
-
-      if (merchantMatch && merchantMatch[1]) {
-        const orderId = merchantMatch[1].trim();
-        console.log('Extracted order ID from merchant URL:', orderId);
-        return { isValid: true, orderId: orderId };
-      }
-
-      // Pattern 2: https://bnplqr.hexdive.com/sale/{orderId} (legacy support)
-      const bnplqrPattern = /^https:\/\/bnplqr\.hexdive\.com\/sale\/(.+)$/;
-      const bnplqrMatch = url.trim().match(bnplqrPattern);
-
-      if (bnplqrMatch && bnplqrMatch[1]) {
-        const orderId = bnplqrMatch[1].trim();
-        console.log('Extracted order ID from bnplqr URL:', orderId);
-        return { isValid: true, orderId: orderId };
-      }
-
-      console.log('URL does not match expected patterns:', url);
-      return { isValid: false };
-    } catch (error) {
-      console.error('URL validation error:', error);
-      return { isValid: false };
-    }
-  };
-
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
@@ -152,14 +84,74 @@ const ScanScreen: React.FC = () => {
 
     // Store QR data and merchant info
     setQrData(data);
-    setMerchantName('NOLIMIT');
 
-    // Open the modal at enter amount step
-    setModalStep('enter');
-  };
+    // call 1: user must enter amount manually
+    if (parsed.type === "static") {
+      console.log("Merchant QR detected → Open enter amount modal");
+      setModalStep("enter");
+      return;
+    }
 
-  const handleClose = () => {
-    navigation.goBack();
+    // call 2: QR contains encoded amount (call API to get real amount)
+    if (parsed.type === "dynamic") {
+      try {
+        setLoading(true);
+
+        const response = await callMobileApi(
+          "ValaidateSale",
+          { saleCode: parsed.orderId },
+          "qr-scan",
+          '',
+          'customer'
+        );
+
+        console.log("QR validation response:", response);
+
+        if (response?.statusCode !== 200) {
+          Alert.alert(
+            "QR Error",
+            response?.message || "Please try again.",
+            [
+              {
+                text: "OK",
+                onPress: () => setScanned(false)
+              }
+            ]
+          );
+          return;
+        }
+
+        try {
+          const getSalesDetails = await callMobileApi(
+            "GetCusSaleDetailId",
+            {saleCode: parsed.orderId},
+            "sale-details",
+            "",
+            "customer"
+          );
+          console.log("GetCusSaleDetailId response:", getSalesDetails);
+          const amount = getSalesDetails?.data?.salesAmount?.toString() || '0';
+          setPaymentAmount(amount);
+          setModalStep("confirm");
+        } catch (error) {
+          console.error("error with QR scan");
+        }
+
+      } catch (e) {
+        Alert.alert(
+          "Error",
+          e instanceof Error ? e.message : "An unexpected error occurred.",
+          [
+            {
+              text: "OK",
+              onPress: () => setScanned(false)
+            }
+          ]
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   // Modal navigation helpers (now use modalStep)
@@ -282,8 +274,6 @@ const ScanScreen: React.FC = () => {
           <View style={styles.overlay}>
             <View style={styles.scannerFrame} />
           </View>
-
-          
 
           {/* Scanner Status */}
           {scanned && (

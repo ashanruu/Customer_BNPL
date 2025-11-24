@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   RegWithLoginScreen: undefined;
-  DashboardScreen: { username: string };
+  DashboardScreen: undefined;
 };
 
 type RegWithLoginScreenNavigationProp = StackNavigationProp<
@@ -82,9 +82,8 @@ const RegWithLoginScreen: React.FC = () => {
         if(response.payload.token){
           try{
             await AsyncStorage.setItem('bearerToken', response.payload.token);
-            const userName = response.payload.username || '';
             console.log("token saved");
-            navigation.navigate('DashboardScreen',{username:userName});
+            navigation.navigate('DashboardScreen');
           }catch(storageError){
            console.error("faild token save", storageError); 
           }

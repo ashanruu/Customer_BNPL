@@ -15,6 +15,7 @@ import OrderCard from '../../components/OrderCard';
 import BottomSheetModal from '../../components/BottomSheetModal';
 import CustomButton from '../../components/CustomButton';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { callMobileApi } from '../../scripts/api'; 
 
 type OrderItem = {
     id: string;
@@ -22,6 +23,9 @@ type OrderItem = {
     dueDateISO: string;
     amount: string;
     status: 'unpaid' | 'paid' | 'refunded';
+    numOfInstallments?: number; // number of installments already paid (from GetLoanDetail.numOfPaidInstallments)
+    noOfInstallments?: number;  // total number of installments (from GetLoanDetail.loan.noOfInstallments)
+    loanId?: number | string;   // <-- NEW: keep reference to parent loan
 };
 
 type PaymentMethod = {
@@ -31,16 +35,6 @@ type PaymentMethod = {
     label?: string;
 };
 
-const SAMPLE_ORDERS: OrderItem[] = [
-    { id: '1', merchant: 'Nolimit', dueDateISO: '2025-11-29', amount: 'Rs. 833.33', status: 'unpaid' },
-    { id: '2', merchant: 'Fashion bug', dueDateISO: '2025-11-30', amount: 'Rs. 833.33', status: 'paid' },
-    { id: '4', merchant: 'Blue Mart', dueDateISO: '2025-11-15', amount: 'Rs. 299.00', status: 'unpaid' },
-    { id: '3', merchant: 'Carnage', dueDateISO: '2025-12-28', amount: 'Rs. 998.00', status: 'refunded' },
-    { id: '5', merchant: 'GadgetPro', dueDateISO: '2025-12-05', amount: 'Rs. 1,250.00', status: 'paid' },
-    { id: '6', merchant: 'HomeStyle', dueDateISO: '2025-10-02', amount: 'Rs. 450.00', status: 'paid' },
-    { id: '7', merchant: 'Sportify', dueDateISO: '2025-10-20', amount: 'Rs. 650.00', status: 'unpaid' },
-];
-
 const TABS = [
     { key: 'unpaid', label: 'Unpaid' },
     { key: 'paid', label: 'Paid' },
@@ -48,9 +42,7 @@ const TABS = [
 ];
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-    { id: 'card_visa_3816', brand: 'VISA', mask: '•••• 3816', label: 'VISA •••• 3816' },
-    { id: 'card_mc_1290', brand: 'MASTERCARD', mask: '•••• 1290', label: 'Mastercard •••• 1290' },
-    { id: 'upi_phone', brand: 'UPI', label: 'Google Pay (UPI)' },
+    // removed dummy fallback card entries — rely only on fetched customer cards now
 ];
 
 const OrderScreen: React.FC = () => {
@@ -61,11 +53,19 @@ const OrderScreen: React.FC = () => {
     const [showIdentity, setShowIdentity] = useState(false);
     const [orderId, setOrderId] = useState<string>('');
     const [methodOpen, setMethodOpen] = useState(false);
-    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PAYMENT_METHODS[0]);
+    // initial selectedMethod is now a neutral empty object — real value is set after fetching cards
+    const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>({ id: '', brand: '', label: '' });
     const [showSuccess, setShowSuccess] = useState(false);
     const [showRescheduleSuccess, setShowRescheduleSuccess] = useState(false);
      const [rescheduleOpen, setRescheduleOpen] = useState(false);
      const [rescheduleOrder, setRescheduleOrder] = useState<OrderItem | null>(null);
+
+    // fetched loans and details
+    const [loans, setLoans] = useState<any[]>([]);
+    const [installmentsByLoan, setInstallmentsByLoan] = useState<Record<number, any>>({});
+
+    // fetched customer cards
+    const [customerCards, setCustomerCards] = useState<any[]>([]);
 
     // selected index for reschedule date picker
     const [selectedRescheduleIndex, setSelectedRescheduleIndex] = useState<number>(0);
@@ -113,6 +113,47 @@ const OrderScreen: React.FC = () => {
         return `Due on ${formatted}`;
     };
 
+    // convert number to ordinal string (1 -> 1st, 2 -> 2nd, 3 -> 3rd, 4 -> 4th, etc.)
+    const toOrdinal = (n: number) => {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
+    // build installment label based on numOfInstallments (number of installments already paid)
+    // now prefers word-form ordinals (First, Second, Third, ...) for common counts
+    const getInstallmentLabel = (order?: OrderItem | null) => {
+        if (!order) return 'Installment';
+        const paid = Number(order.numOfInstallments ?? 0);
+        const current = Math.max(1, paid + 1);
+
+        const ordinalWordMap: Record<number, string> = {
+            1: 'First',
+            2: 'Second',
+            3: 'Third',
+            4: 'Fourth',
+            5: 'Fifth',
+            6: 'Sixth',
+            7: 'Seventh',
+            8: 'Eighth',
+            9: 'Ninth',
+            10: 'Tenth',
+            11: 'Eleventh',
+            12: 'Twelfth',
+            13: 'Thirteenth',
+            14: 'Fourteenth',
+            15: 'Fifteenth',
+            16: 'Sixteenth',
+            17: 'Seventeenth',
+            18: 'Eighteenth',
+            19: 'Nineteenth',
+            20: 'Twentieth'
+        };
+
+        const word = ordinalWordMap[current];
+        return `${word ?? toOrdinal(current)} Installment`;
+    };
+
     const parseAmountParts = (amountStr: string) => {
         const cleaned = amountStr.replace(/^Rs\.?\s*/i, '').trim();
         const [intPart = '0', decPart] = cleaned.split('.');
@@ -126,7 +167,74 @@ const OrderScreen: React.FC = () => {
     }, [activeOrder]);
 
     const sections = useMemo(() => {
-        const filtered = SAMPLE_ORDERS.filter(o => o.status === selectedTab);
+        // Flatten installments from loans + installmentsByLoan into OrderItem-like objects
+        const allInstallments: OrderItem[] = [];
+
+        loans.forEach((loan: any) => {
+            const loanId = loan.loanId;
+            const sale = loan.sale || {};
+            const merchantName = sale.provider || sale.productName || `Loan ${loanId}`;
+
+            const details = installmentsByLoan[loanId] || {};
+            // possible property names for installments in API response
+            const rawInst = details?.installments || details?.loanInstallments || details?.installmentSchedule || details?.installmentsList || details?.data?.installments;
+
+            if (Array.isArray(rawInst) && rawInst.length) {
+                rawInst.forEach((inst: any, idx: number) => {
+                    // due date (many possible keys)
+                    const dueIso = inst.dueDate || inst.dueDateISO || inst.dueDateUtc || inst.dueDateTime || inst.due || loan.createdOn || new Date().toISOString();
+
+                    // amount (support GetLoanDetail shape: instAmount)
+                    const amountVal = inst.instAmount ?? inst.amount ?? inst.dueAmount ?? inst.installmentAmount ?? inst.installmentValue;
+                    const amountNum = typeof amountVal === 'number' ? amountVal : parseFloat(String(amountVal || 0));
+                    const formattedAmount = `Rs. ${Number.isFinite(amountNum) ? amountNum.toFixed(2) : '0.00'}`;
+
+                    // status mapping from instStatus (GetLoanDetail) or fallback keys
+                    const rawStatus = (inst.instStatus ?? inst.status ?? inst.paymentStatus ?? '').toString().toLowerCase();
+                    let status: OrderItem['status'] = 'unpaid';
+                    if (rawStatus === 'paid') status = 'paid';
+                    else if (rawStatus === 'refunded') status = 'refunded';
+                    else status = 'unpaid'; // treat Pending and other as unpaid
+
+                    // id: prefer installId (GetLoanDetail) then common keys, else fallback
+                    const id = inst.installId ? String(inst.installId) : (inst.installmentId ? String(inst.installmentId) : `${loanId}-${idx}`);
+
+                    // counts from loan detail response (details may be the GetLoanDetail.data structure)
+                    const noOfInstallments = details?.loan?.noOfInstallments ?? loan.noOfInstallments ?? 0;
+                    const numOfInstallments = details?.numOfPaidInstallments ?? details?.loan?.numOfInstallments ?? 0;
+
+                    allInstallments.push({
+                        id,
+                        merchant: merchantName,
+                        dueDateISO: dueIso.slice ? dueIso.slice(0, 10) : String(dueIso),
+                        amount: formattedAmount,
+                        status,
+                        numOfInstallments,
+                        noOfInstallments,
+                        loanId: loanId, // <-- NEW: attach loanId so downstream screens can fetch details
+                    });
+                });
+            } else {
+                // fallback — represent the loan as a single card (if no installments returned)
+                const perInst = loan.noOfInstallments && loan.totLoanValue ? (loan.totLoanValue / Math.max(1, loan.noOfInstallments)) : (loan.totLoanValue || loan.totCreditValue || 0);
+                const formattedAmount = `Rs. ${Number(perInst).toFixed(2)}`;
+                allInstallments.push({
+                    id: `loan-${loanId}`,
+                    merchant: merchantName,
+                    dueDateISO: loan.createdOn ? (loan.createdOn.slice ? loan.createdOn.slice(0,10) : String(loan.createdOn)) : new Date().toISOString().slice(0,10),
+                    amount: formattedAmount,
+                    status: 'unpaid',
+                    numOfInstallments: loan.numOfInstallments ?? 0,
+                    noOfInstallments: loan.noOfInstallments ?? 0,
+                    loanId: loanId, // <-- NEW
+                });
+            }
+        });
+
+        // filter by selectedTab status
+        const filtered = allInstallments.filter(i => i.status === selectedTab);
+
+        // group by month-year (same as previous behavior)
         const map = new Map<string, OrderItem[]>();
         for (const ord of filtered) {
             const key = formatMonthYear(ord.dueDateISO);
@@ -135,6 +243,7 @@ const OrderScreen: React.FC = () => {
             if (!map.has(key)) map.set(key, []);
             map.get(key)!.push(withLabel);
         }
+
         const sectionArray = Array.from(map.entries())
             .map(([title, data]) => ({ title, data }))
             .sort((a, b) => {
@@ -142,8 +251,9 @@ const OrderScreen: React.FC = () => {
                 const db = new Date(b.data[0].dueDateISO).getTime();
                 return db - da;
             });
+
         return sectionArray;
-    }, [selectedTab]);
+    }, [selectedTab, loans, installmentsByLoan]);
 
     const openOrderModal = (item: OrderItem & { dueDate?: string }) => {
         setActiveOrder(item);
@@ -166,13 +276,20 @@ const OrderScreen: React.FC = () => {
 
     const renderItem = ({ item }: { item: OrderItem & { dueDate?: string } }) => (
         <OrderCard
-            item={{ id: item.id, merchant: item.merchant, dueDate: item.dueDate || item.dueDateISO, amount: item.amount }}
+            item={{
+                id: item.id,
+                merchant: item.merchant,
+                dueDate: item.dueDate || item.dueDateISO,
+                amount: item.amount,
+                numOfInstallments: item.numOfInstallments,
+                noOfInstallments: item.noOfInstallments,
+            }}
             onPress={() => {
                 // If viewing paid tab, navigate straight to success screen
                 if (selectedTab === 'paid' || selectedTab === 'refunded') {
                     const amountNum = item.amount.replace(/^Rs\.?\s*/i, '').replace(/,/g, '');
-                    // pass hideTitles when coming from refunded tab
-                    navigation.navigate('PaymentSuccessScreen', { amount: amountNum, merchant: item.merchant, hideTitles: selectedTab === 'refunded' });
+                    // pass hideTitles when coming from refunded tab, and pass loanId for fetching installments
+                    navigation.navigate('PaymentSuccessScreen', { amount: amountNum, merchant: item.merchant, hideTitles: selectedTab === 'refunded', loanId: item.loanId });
                     return;
                 }
                 // otherwise open the bottom sheet modal
@@ -182,8 +299,120 @@ const OrderScreen: React.FC = () => {
     );
 
     const renderSectionHeader = ({ section }: any) => (
-        <Text style={styles.monthTitle}>{section.title}</Text>
+        <View style={styles.sectionHeaderContainer}>
+            <Text style={styles.monthTitle}>{section.title}</Text>
+        </View>
     );
+
+    React.useEffect(() => {
+        const fetchLoans = async () => {
+            try {
+                const res = await callMobileApi(
+                    'GetLoanList',
+                    {}, // payload
+                    'mobile-app-get-loan-list',
+                    '', // apiKey if any
+                    'payment'
+                );
+                // console.log('GetLoanList response:', res);
+
+                const activeLoans = res?.data?.activeLoans || [];
+                setLoans(activeLoans);
+
+                // Fetch details/installments for each loanId
+                const detailsMap: Record<number, any> = {};
+                await Promise.all(activeLoans.map(async (ln: any) => {
+                    try {
+                        const detailRes = await callMobileApi(
+                            'GetLoanDetail',
+                            { loanId: ln.loanId },
+                            'mobile-app-get-loan-detail',
+                            '',
+                            'payment'
+                        );
+                        detailsMap[ln.loanId] = detailRes?.data;
+                    } catch (e) {
+                        console.error(`GetLoanDetail error for loanId ${ln.loanId}:`, e);
+                    }
+                }));
+                setInstallmentsByLoan(detailsMap);
+
+            } catch (err) {
+                console.error('GetLoanList error:', err);
+            }
+        };
+        fetchLoans();
+    }, []);
+
+    // fetch customer cards (similar pattern to GetLoanDetail)
+    React.useEffect(() => {
+        const fetchCards = async () => {
+            try {
+                const res = await callMobileApi(
+                    'GetCusCard',
+                    {}, // payload
+                    'mobile-app-get-cus-card',
+                    '',
+                    'customer'
+                );
+                console.log('GetCusCard response:', res); // keep only card log
+
+                // normalize different response shapes
+                const data = res?.data;
+                let cardsArr: any[] = [];
+
+                // if API returned an array-like container
+                if (Array.isArray(data)) {
+                    cardsArr = data;
+                } else if (data?.cards && Array.isArray(data.cards)) {
+                    cardsArr = data.cards;
+                } else if (data?.customerCards && Array.isArray(data.customerCards)) {
+                    cardsArr = data.customerCards;
+                } else if (data && (data.cardNumber || data.cardType || data.cardDate)) {
+                    // single-object shape (your example) -> wrap as array
+                    cardsArr = [data];
+                } else {
+                    // fallback to empty
+                    cardsArr = [];
+                }
+
+                setCustomerCards(cardsArr);
+
+                // set first card as selected payment method if any (map to PaymentMethod)
+                if (cardsArr.length) {
+                    const c0 = cardsArr[0];
+                    const last4 = String(c0.cardNumber ?? '').slice(-4);
+                    const mapped: PaymentMethod = {
+                        id: String(c0.cardId ?? c0.id ?? `card_0`),
+                        brand: String(c0.cardType ?? c0.brand ?? 'CARD'),
+                        mask: last4 ? `•••• ${last4}` : (c0.mask ?? undefined),
+                        label: c0.cardType ? `${String(c0.cardType)} •••• ${last4 || ''}` : (c0.label ?? undefined),
+                    };
+                    setSelectedMethod(mapped);
+                }
+            } catch (e) {
+                console.error('GetCusCard error:', e);
+            }
+        };
+        fetchCards();
+    }, []);
+
+    // compute available payment methods (fetched customer cards first, then fallbacks)
+    const availableMethods = useMemo<PaymentMethod[]>(() => {
+        const mappedFromCustomer = customerCards.map((c: any, i: number) => {
+            const last4 = String(c.cardNumber ?? '').slice(-4);
+            return {
+                id: String(c.cardId ?? c.id ?? `card_${i}`),
+                brand: String(c.cardType ?? c.brand ?? c.cardBrand ?? 'CARD'),
+                mask: last4 ? `•••• ${last4}` : (c.mask ?? undefined),
+                label: c.cardType ? `${String(c.cardType)} •••• ${last4 || ''}` : (c.label ?? undefined),
+            } as PaymentMethod;
+        });
+
+        // avoid duplicates by id/brand — append fallbacks if not already present
+        const fallbacks = PAYMENT_METHODS.filter(pm => !mappedFromCustomer.some(m => m.id === pm.id || (m.brand && m.brand.toLowerCase() === pm.brand.toLowerCase())));
+        return [...mappedFromCustomer, ...fallbacks];
+    }, [customerCards]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -210,6 +439,7 @@ const OrderScreen: React.FC = () => {
 
             <SectionList
                 sections={sections}
+                stickySectionHeadersEnabled={true}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
                 renderSectionHeader={renderSectionHeader}
@@ -258,7 +488,7 @@ const OrderScreen: React.FC = () => {
                                 <Text style={modalStyles.merchantLogoText}>{activeOrder.merchant.substring(0, 2).toUpperCase()}</Text>
                             </View>
                             <Text style={modalStyles.merchantTitle}>{activeOrder.merchant}</Text>
-                            <Text style={modalStyles.installmentText}>Second Installment</Text>
+                            <Text style={modalStyles.installmentText}>{getInstallmentLabel(activeOrder)}</Text>
                             <View style={modalStyles.orderPill}>
                                 <Text style={modalStyles.orderPillText}>Order ID: {orderId || `OE#${activeOrder.id}`}</Text>
                             </View>
@@ -285,7 +515,7 @@ const OrderScreen: React.FC = () => {
 
                         {methodOpen && (
                             <View style={modalStyles.methodDropdown}>
-                                {PAYMENT_METHODS.map(m => {
+                                {availableMethods.map(m => {
                                     const isSel = m.id === selectedMethod.id;
                                     return (
                                         <TouchableOpacity
@@ -370,7 +600,7 @@ const OrderScreen: React.FC = () => {
                                  <Text style={modalStyles.merchantLogoText}>{activeOrder.merchant.substring(0, 2).toUpperCase()}</Text>
                              </View>
                              <Text style={modalStyles.merchantTitle}>{activeOrder.merchant}</Text>
-                             <Text style={modalStyles.installmentText}>Second Installment</Text>
+                             <Text style={modalStyles.installmentText}>{getInstallmentLabel(activeOrder)}</Text>
                              <View style={modalStyles.orderPill}>
                                  <Text style={modalStyles.orderPillText}>Order ID: {orderId || `OE#${activeOrder.id}`}</Text>
                              </View>
@@ -430,7 +660,7 @@ const OrderScreen: React.FC = () => {
                                     <Text style={modalStyles.merchantLogoText}>{activeOrder.merchant.substring(0, 2).toUpperCase()}</Text>
                                 </View>
                                 <Text style={modalStyles.merchantTitle}>{activeOrder.merchant}</Text>
-                                <Text style={modalStyles.installmentText}>Second Installment</Text>
+                                <Text style={modalStyles.installmentText}>{getInstallmentLabel(activeOrder)}</Text>
                             </View>
                         </View>
 
@@ -458,7 +688,7 @@ const OrderScreen: React.FC = () => {
 
                             {methodOpen && (
                                 <View style={modalStyles.methodDropdown}>
-                                    {PAYMENT_METHODS.map(m => {
+                                    {availableMethods.map(m => {
                                         const isSel = m.id === selectedMethod.id;
                                         return (
                                             <TouchableOpacity
@@ -557,7 +787,7 @@ const OrderScreen: React.FC = () => {
                                 <Text style={modalStyles.merchantLogoText}>{activeOrder.merchant.substring(0, 2).toUpperCase()}</Text>
                             </View>
                             <Text style={modalStyles.merchantTitle}>{activeOrder.merchant}</Text>
-                            <Text style={modalStyles.installmentText}>Second Installment</Text>
+                            <Text style={modalStyles.installmentText}>{getInstallmentLabel(activeOrder)}</Text>
                         </View>
 
                         <View style={{ alignItems: 'center', width: '100%', marginBottom: 16 }}>
@@ -574,7 +804,8 @@ const OrderScreen: React.FC = () => {
                                     ? activeOrder.amount.replace(/^Rs\.?\s*/i, '').replace(/,/g, '')
                                     : '0';
                                 closeModal();
-                                navigation.navigate('PaymentSuccessScreen', { amount: amountNum, merchant: activeOrder?.merchant });
+                                // pass loanId so PaymentSuccessScreen can fetch full loan installments
+                                navigation.navigate('PaymentSuccessScreen', { amount: amountNum, merchant: activeOrder?.merchant, loanId: activeOrder?.loanId });
                             }}
                             variant="secondary"
                             style={{ marginTop: 8, marginBottom: 24, width: '100%' }}
@@ -588,6 +819,15 @@ const OrderScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
+    sectionHeaderContainer: {
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        zIndex: 10,
+        elevation: 3,
+    },
     headerContainer: {
         paddingHorizontal: 20,
         marginTop: 16,
@@ -605,9 +845,8 @@ const styles = StyleSheet.create({
     monthTitle: {
         fontSize: 14,
         color: '#69687B',
-        marginBottom: 15,
-        marginTop: 10,
-        marginLeft: 8,
+        marginBottom: 0,
+        marginTop: 0,
     },
     tabsWrapper: {
         flexDirection: 'row',

@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AddEmailModal from '../../components/AddEmailModal';
 import BottomSheetModal from '../../components/BottomSheetModal';
+import { callAuthApi } from '../../scripts/api';
 
 const SecurityScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -29,6 +30,44 @@ const SecurityScreen: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [email, setEmail] = useState('');
+
+  const [loading, setLoading] = useState(false);
+
+  const validatePassword = () => {
+    if (!currentPassword.trim()) {
+      return "Please enter your current password.";
+    }
+    if (!newPassword.trim()) {
+      return "Please enter a new password.";
+    }
+    if (newPassword.length < 8) {
+      return "Password must be at least 8 characters.";
+    }
+    if (newPassword !== confirmPassword) {
+      return "New passwords do not match.";
+    }
+    return null;
+  };
+
+  const fetchChangePassword = async () => {
+    setLoading(true);
+    try {
+      const response = await callAuthApi(
+        "ChangePassword",
+        {
+          "identifier": "200030303851",
+          "oldPassword":currentPassword,
+          "newPassword":newPassword,
+        },
+        "change-password",
+      );
+      console.log('Change Password Response:', response);
+    } catch (error) {
+      console.error('Error changing password:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const securityOptions = [
     {
@@ -56,10 +95,10 @@ const SecurityScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
@@ -69,7 +108,7 @@ const SecurityScreen: React.FC = () => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -183,8 +222,15 @@ const SecurityScreen: React.FC = () => {
         footerContent={
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => {
-              console.log('Password changed');
+            onPress={async () => {
+              const error = validatePassword();
+              if (error) {
+                alert(error);
+                return;
+              }
+
+              await fetchChangePassword(); 
+
               setShowChangePasswordModal(false);
               setCurrentPassword('');
               setNewPassword('');
@@ -192,7 +238,9 @@ const SecurityScreen: React.FC = () => {
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={styles.saveButtonText}>
+              {loading ? "Saving..." : "Save Changes"}
+            </Text>
           </TouchableOpacity>
         }
       >
