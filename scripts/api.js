@@ -129,15 +129,6 @@ export const callAuthApi = async (
   return callMobileApi(functionName, payload, reference, apiKey, "auth");
 };
 
-// Convenience method for merchant-specific API calls (forces BASE_DOMAIN usage with token)
-export const callMerchantApi = async (
-  functionName,
-  payload,
-  reference = "mobile-app-merchant-call",
-  apiKey = ""
-) => {
-  return callMobileApi(functionName, payload, reference, apiKey, "merchant");
-};
 
 // Convenience method for authenticated API calls (forces BASE_DOMAIN usage with token)
 export const callSecureApi = async (

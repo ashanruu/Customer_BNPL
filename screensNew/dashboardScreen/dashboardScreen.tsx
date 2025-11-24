@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   StatusBar,
   Image,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomButton from '../../components/CustomButton';
 import StoreCard from '../../components/StoreCard';
@@ -21,11 +23,32 @@ import ScanScreen from '../QrScanScreen/staticQrScreens/scanScreen';
 import MyAccountScreen from '../MyProfile/MyAccountScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import OrderScreen from '../OrderScreen/OrderScreen';
+import { callMobileApi } from '../../scripts/api';
+import ImageCacheManager from '../../utils/ImageCacheManager';
 
+type RootStackParamList = {
+  DashboardScreen: { username: string };
+  MyAccountScreen: { username: string };
+};
+
+type DashboardScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'DashboardScreen'
+>;
 // Dashboard content component
 const DashboardContent: React.FC = () => {
-  const navigation = useNavigation<any>();
-  
+  const navigation = useNavigation<DashboardScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'DashboardScreen'>>();
+  //const navigation = useNavigation<any>();
+
+  const[creditLimits,setCreditLimits]=React.useState<any>(null);
+  const[creditLimitsLoading,setCreditLimitsLoading]=React.useState(false);
+  const[refreshing,setRefreshing]=React.useState(false);
+
+  const[promotions,setPromotions]=React.useState<Array<any>>([]);
+  const[promotionsLoading,setPromotionsLoading]=React.useState(false);
+  const[planLoading , setPlanLoading]=React.useState(false)
+
   // Animation setup for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
   const HEADER_MAX_HEIGHT = 310;
@@ -89,6 +112,132 @@ const DashboardContent: React.FC = () => {
     { label: 'Travel' },
   ];
 
+  // Fetch credit limits from payment API
+    const fetchCreditLimits = async () => {
+      try {
+        setCreditLimitsLoading(true);
+        console.log("Fetching credit limits...");
+  
+        const response = await callMobileApi(
+          'GetCrediLimits',
+          {},
+          'mobile-app-credit-limits',
+          '',
+          'payment'
+        );
+  
+        console.log("GetCrediLimits response:", response);
+  
+        if (response.statusCode === 200) {
+          setCreditLimits(response.data || response.payload);
+          console.log("Credit limits loaded successfully");
+        } else {
+          console.error('Failed to fetch credit limits:', response.message);
+        }
+      } catch (error: any) {
+        console.error('GetCrediLimits error:', error);
+      } finally {
+        setCreditLimitsLoading(false);
+      }
+    };
+
+
+    //Get Plan Name
+    const fetchPlan = async () =>{
+      try{
+        setPlanLoading(true);
+        const planName = await callMobileApi(
+          "GetCustomerPlanByCustomerId",
+          {},
+          "get-customer-plan-name",
+          "",
+          "customer"
+        );
+        console.log("plan details", planName);
+      }catch{
+
+      }
+    }
+
+    //for promotions
+    const fetchPromotions = async () => {
+        try {
+          setPromotionsLoading(true);
+    
+          const promotionResponse = await callMobileApi(
+            'GetPromotions',
+            {},
+            'mobile-app-promotions',
+            '',
+            "merchant"
+          );
+    
+          console.log('GetPromotions response:', promotionResponse);
+    
+          if (promotionResponse.statusCode === 200) {
+            const promotionsData = promotionResponse.data || promotionResponse.payload || promotionResponse;
+    
+            if (Array.isArray(promotionsData)) {
+              setPromotions(promotionsData);
+              console.log('Promotions set successfully:', promotionsData.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionsData);
+            } else if (Array.isArray(promotionResponse)) {
+              setPromotions(promotionResponse);
+              console.log('Promotions set from direct array:', promotionResponse.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionResponse);
+            } else {
+              console.error('Promotions data is not an array:', typeof promotionsData);
+              setPromotions([]);
+            }
+          } else {
+            console.error('Failed to fetch promotions - Status:', promotionResponse.statusCode, 'Message:', promotionResponse.message);
+            setPromotions([]);
+          }
+        } catch (error: any) {
+          console.error('GetPromotions error:', error);
+          setPromotions([]);
+        } finally {
+          setPromotionsLoading(false);
+        }
+      };
+
+
+     useEffect(() => {
+        fetchCreditLimits();
+        fetchPromotions();
+        fetchPlan();
+      }, []);
+
+
+      useFocusEffect(
+        React.useCallback(() => {
+          fetchCreditLimits();
+          fetchPromotions();
+          fetchPlan();
+        }, [])
+      );
+
+      // Comprehensive refresh function for pull-to-refresh
+        const handleRefresh = async () => {
+          try {
+            setRefreshing(true);
+            console.log('Refreshing home screen data...');
+            // Fetch all data simultaneously for better performance
+            await Promise.all([
+              fetchCreditLimits(),
+              fetchPromotions(),
+              fetchPlan(),
+            ]);
+            console.log('Home screen refresh completed successfully');
+          } catch (error) {
+            console.error('Error refreshing home screen:', error);
+          } finally {
+            setRefreshing(false);
+          }
+        };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -101,7 +250,7 @@ const DashboardContent: React.FC = () => {
       }]}>
         <TouchableOpacity 
           style={styles.userInfo}
-          onPress={() => navigation.navigate('MyAccountScreen')}
+          onPress={() => navigation.navigate('MyAccountScreen',{ username: route.params.username || "" })}
           activeOpacity={0.7}
         >
           <Image
@@ -110,7 +259,7 @@ const DashboardContent: React.FC = () => {
           />
           <View>
             <Text style={styles.greeting}>Hello!</Text>
-            <Text style={styles.userName}>Adeesha Perera</Text>
+            <Text style={styles.userName}>{route.params.username || ""}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.notificationButton}>
@@ -130,6 +279,16 @@ const DashboardContent: React.FC = () => {
           paddingRight: cardPaddingHorizontal,
         }]}
       >
+        <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                    colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
+                    tintColor={'#2DD4BF'} // iOS color
+                    title={"Pull to refresh"}
+                    titleColor={'#666'}
+                    progressBackgroundColor={'#f0f0f0'}
+                  />
+
         <LinearGradient
           colors={['#0A5494', '#06346A']}
           start={{ x: 0, y: 0 }}
@@ -141,7 +300,7 @@ const DashboardContent: React.FC = () => {
 
             <View style={styles.primaryAmountRow}>
               <Text style={styles.primaryCurrency}>Rs.</Text>
-              <Text style={styles.primaryAmount}>357,869</Text>
+              <Text style={styles.primaryAmount}>{creditLimits?.maxPurchaseLimit || "0"}</Text>
               <Text style={styles.primaryDecimals}>.97</Text>
             </View>
             <Text style={styles.secondaryLabel}>You can spend up to</Text>
@@ -160,7 +319,7 @@ const DashboardContent: React.FC = () => {
               <Text style={styles.totalLabel}>Total Due Amount</Text>
               <View style={styles.totalAmountRow}>
                 <Text style={styles.totalCurrency}>Rs.</Text>
-                <Text style={styles.totalAmount}>00</Text>
+                <Text style={styles.totalAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
                 <Text style={styles.totalDecimals}>.00</Text>
               </View>
             </View>
@@ -181,7 +340,7 @@ const DashboardContent: React.FC = () => {
               <Text style={styles.collapsedLabel}>Available to spend</Text>
               <View style={styles.collapsedAmountRow}>
                 <Text style={styles.collapsedCurrency}>Rs.</Text>
-                <Text style={styles.collapsedAmount}>357,869</Text>
+                <Text style={styles.collapsedAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
                 <Text style={styles.collapsedDecimals}>.97</Text>
               </View>
             </View>
