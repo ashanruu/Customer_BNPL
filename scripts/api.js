@@ -3,8 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
  
-//const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
-const BASE_DOMAIN = "192.168.1.56:5111";
+const BASE_DOMAIN = "https://merchant.bnpl.hexdive.com"; 
+//const BASE_DOMAIN = "172.20.10.2:5111";
+//const BASE_DOMAIN = "http://localhost:5111";
 const AUTH_DOMAIN = "https://auth.sing.hexdive.com";
 
 
@@ -200,27 +201,6 @@ export const callSecureApi = async (
       headers: error.config?.headers,
       requestData: error.config?.data
     });
-    throw error;
-  }
-};
-
-// Convenience method for fetching customer card data
-export const fetchCustomerCard = async (customerId) => {
-  try {
-    console.log("Fetching customer card data for ID:", customerId);
-
-    const response = await callMobileApi(
-      'GetCusCard',
-      { CustomerId: customerId },
-      'mobile-app-customer-card',
-      '',
-      'customer'
-    );
-
-    console.log("GetCusCard response:", response);
-    return response;
-  } catch (error) {
-    console.error("Error fetching customer card:", error);
     throw error;
   }
 };

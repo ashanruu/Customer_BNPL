@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
 import InstallmentCard from '../../../components/InstallmentCard';
 import CustomButton from '../../../components/CustomButton';
+import { callMobileApi } from '../../../scripts/api';
 
 type RootStackParamList = {
     PaymentScreen: {
@@ -22,7 +23,7 @@ type RootStackParamList = {
         amount?: string;
         merchant?: string;
     };
-    PaymentSuccessScreen?: { amount?: string; merchant?: string; hideTitles?: boolean; qrData?: string };
+    PaymentSuccessScreen?: { amount?: string; merchant?: string; hideTitles?: boolean; qrData?: string; loanId?: number | string }; // <-- accept loanId
     PaymentMoreInfo?: { amount?: string; merchant?: string; qrData?: string }; // <--- added
 };
 
@@ -34,15 +35,73 @@ const PaymentSuccessScreen: React.FC = () => {
     const amount = route.params?.amount || '0.00';
     const merchant = route.params?.merchant || 'NOLIMIT';
     const hideTitles = !!route.params?.hideTitles;
+    const loanId = route.params?.loanId; // <-- NEW
 
     const cardBrand = 'VISA';
     const cardMask = '**** 3816';
 
-    const installments = [
-        { title: 'First Installment', date: 'Paid on Oct 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: true },
-        { title: 'Second Installment', date: 'Due on Nov 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: false },
-        { title: 'Third Installment', date: 'Due on Dec 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: false },
-    ];
+    const [loanInstallments, setLoanInstallments] = React.useState<any[]>([]); // fetched installments
+
+    React.useEffect(() => {
+        const fetchLoanDetail = async () => {
+            if (!loanId) return;
+            try {
+                const res = await callMobileApi(
+                    'GetLoanDetail',
+                    { loanId },
+                    'mobile-app-get-loan-detail',
+                    '',
+                    'payment'
+                );
+                const data = res?.data || {};
+                const rawInst = data?.installments || data?.loanInstallments || data?.installmentSchedule || data?.installmentsList || data?.data?.installments || [];
+
+                if (Array.isArray(rawInst) && rawInst.length) {
+                    const mapped = rawInst.map((inst: any, idx: number) => {
+                        const amountVal = inst.instAmount ?? inst.amount ?? inst.dueAmount ?? inst.installmentAmount ?? inst.installmentValue;
+                        const amountNum = typeof amountVal === 'number' ? amountVal : parseFloat(String(amountVal || 0));
+                        const formatted = Number.isFinite(amountNum) ? amountNum.toFixed(2) : '0.00';
+
+                        // normalize status and decide colors via boolean flags consumed by InstallmentCard
+                        const rawStatus = (inst.instStatus ?? inst.status ?? inst.paymentStatus ?? '').toString().toLowerCase();
+                        const isPaid = rawStatus === 'paid';
+                        // treat refunded explicitly
+                        const isRefunded = rawStatus === 'refunded';
+                        // keep an overdue detection if present in data (optional)
+                        const isOverdue = rawStatus === 'overdue';
+
+                        const due = inst.dueDate || inst.dueDateISO || inst.dueDateUtc || inst.dueDateTime || inst.due || '';
+                        const dateLabel = isPaid ? `Paid on ${new Date(due).toLocaleDateString()}` : `Due on ${new Date(due).toLocaleDateString()}`;
+                        const title = inst.instNo ? `Installment ${inst.instNo}` : `Installment ${idx + 1}`;
+                        return {
+                            title,
+                            dateLabel,
+                            amount: formatted,
+                            paid: isPaid,
+                            refunded: isRefunded, // changed property
+                            overdue: isOverdue,
+                            rawDue: due,
+                            idx: idx + 1,
+                        };
+                    });
+                    setLoanInstallments(mapped);
+                } else {
+                    // fallback: create a single-installment entry using amount param
+                    setLoanInstallments([{
+                        title: 'Installment 1',
+                        dateLabel: new Date().toLocaleDateString(),
+                        amount: (parseFloat(amount || '0')).toFixed(2),
+                        paid: true,
+                        overdue: false,
+                        idx: 1,
+                    }]);
+                }
+            } catch (e) {
+                console.error('GetLoanDetail error:', e);
+            }
+        };
+        fetchLoanDetail();
+    }, [loanId, amount]);
 
     return (
         <SafeAreaView style={[styles.containerRoot, { backgroundColor: '#FFFFFF' }]}>
@@ -130,22 +189,47 @@ const PaymentSuccessScreen: React.FC = () => {
                     {/* Installments card */}
                     <View>
                         <View style={{ marginTop: 2 }}>
-                            {installments.map((it, idx) => (
+                            {loanInstallments.length ? loanInstallments.map((it, idx) => (
                                 <View key={idx} style={{ marginBottom: 10 }}>
                                     <InstallmentCard
                                         installmentTitle={it.title}
-                                        currentInstallment={idx + 1}
-                                        dueDate={it.date.replace(/^(Paid on |Due on )/, '')}
-                                        dateLabel={it.date}
+                                        currentInstallment={it.idx}
+                                        dueDate={it.rawDue ? new Date(it.rawDue).toLocaleDateString() : it.dateLabel.replace(/^(Paid on |Due on )/, '')}
+                                        dateLabel={it.dateLabel}
                                         amount={parseFloat(it.amount)}
                                         currency="Rs."
-                                        isPaid={it.paid}
-                                        isOverdue={false}
+                                        isPaid={!!it.paid}
+                                        isRefunded={!!it.refunded} // pass refund flag
                                         cardBrand={cardBrand}
                                         cardMask={cardMask}
-                                      />
+                                    />
                                 </View>
-                            ))}
+                            )) : (
+                                // previous placeholder when no data
+                                (() => {
+                                    const installments = [
+                                        { title: 'First Installment', date: 'Paid on Oct 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: true },
+                                        { title: 'Second Installment', date: 'Due on Nov 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: false },
+                                        { title: 'Third Installment', date: 'Due on Dec 28, 2025', amount: (parseFloat(amount || '0') / 3).toFixed(2), paid: false },
+                                    ];
+                                    return installments.map((it, idx) => (
+                                        <View key={idx} style={{ marginBottom: 10 }}>
+                                            <InstallmentCard
+                                                installmentTitle={it.title}
+                                                currentInstallment={idx + 1}
+                                                dueDate={it.date.replace(/^(Paid on |Due on )/, '')}
+                                                dateLabel={it.date}
+                                                amount={parseFloat(it.amount)}
+                                                currency="Rs."
+                                                isPaid={it.paid}
+                                                isRefunded={false} // placeholder uses refunded=false
+                                                cardBrand={cardBrand}
+                                                cardMask={cardMask}
+                                            />
+                                        </View>
+                                    ));
+                                })()
+                            )}
                         </View>
                     </View>
                 </ScrollView>

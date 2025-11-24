@@ -94,7 +94,7 @@ const Stack = createStackNavigator();
 const AppNavigator = () => {
   return (
     <Stack.Navigator
-      initialRouteName="OpenScreen"  //IntroOneScreen
+      initialRouteName="RegWithLoginScreen"  //IntroOneScreen
       screenOptions={{ headerShown: false }}
     >
     
