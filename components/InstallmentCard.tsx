@@ -19,6 +19,7 @@ interface InstallmentCardProps {
   disabled?: boolean;
   isPaid?: boolean;
   isOverdue?: boolean;
+  isRefunded?: boolean; // added
   cardBrand?: string;
   cardMask?: string;
   backgroundColor?: string;
@@ -36,6 +37,7 @@ const InstallmentCard: React.FC<InstallmentCardProps> = ({
   disabled = false,
   isPaid = false,
   isOverdue = false,
+  isRefunded = false, // added default
   cardBrand,
   cardMask,
   backgroundColor = '#FFFFFF',
@@ -49,6 +51,10 @@ const InstallmentCard: React.FC<InstallmentCardProps> = ({
   const getStatusStyles = () => {
     if (isPaid) {
       return { cardBg: '#EAF6EC', circleBg: '#A8DBB2', circleText: '#1A6629' };
+    }
+    // refunded should use the red/overdue styles
+    if (isRefunded) {
+      return { cardBg: '#FEF2F2', circleBg: '#FEE2E2', circleText: '#991B1B' };
     }
     if (isOverdue) {
       return { cardBg: '#FEF2F2', circleBg: '#FEE2E2', circleText: '#991B1B' };
