@@ -19,7 +19,6 @@ import { CameraView, Camera } from 'expo-camera';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheetModal from '../../../components/BottomSheetModal';
 import CustomButton from '../../../components/CustomButton';
-import { callMobileApi } from '../../../scripts/api';
 
 type RootStackParamList = {
   PaymentScreen: {
@@ -33,8 +32,6 @@ type RootStackParamList = {
     merchant?: string;
   };
 };
-
-type ResponseStatus = 'processing' | 'success' | 'error';
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -59,13 +56,6 @@ const ScanScreen: React.FC = () => {
 
   // new: order id for success modal
   const [orderId, setOrderId] = useState('');
-
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [responseStatus, setResponseStatus] = useState<ResponseStatus>('processing');
-  const [responseMessage, setResponseMessage] = useState('');
-  const slideAnim = useState(new Animated.Value(height))[0];
-
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     (async () => {

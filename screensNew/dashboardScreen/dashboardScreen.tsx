@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,9 @@ import {
   StatusBar,
   Image,
   Animated,
-  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomButton from '../../components/CustomButton';
 import StoreCard from '../../components/StoreCard';
@@ -259,7 +257,7 @@ const DashboardContent: React.FC = () => {
           />
           <View>
             <Text style={styles.greeting}>Hello!</Text>
-            <Text style={styles.userName}>{route.params.username || ""}</Text>
+            <Text style={styles.userName}>Adeesha Perera</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.notificationButton}>
@@ -279,16 +277,6 @@ const DashboardContent: React.FC = () => {
           paddingRight: cardPaddingHorizontal,
         }]}
       >
-        <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={handleRefresh}
-                    colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
-                    tintColor={'#2DD4BF'} // iOS color
-                    title={"Pull to refresh"}
-                    titleColor={'#666'}
-                    progressBackgroundColor={'#f0f0f0'}
-                  />
-
         <LinearGradient
           colors={['#0A5494', '#06346A']}
           start={{ x: 0, y: 0 }}
@@ -300,7 +288,7 @@ const DashboardContent: React.FC = () => {
 
             <View style={styles.primaryAmountRow}>
               <Text style={styles.primaryCurrency}>Rs.</Text>
-              <Text style={styles.primaryAmount}>{creditLimits?.maxPurchaseLimit || "0"}</Text>
+              <Text style={styles.primaryAmount}>357,869</Text>
               <Text style={styles.primaryDecimals}>.97</Text>
             </View>
             <Text style={styles.secondaryLabel}>You can spend up to</Text>
@@ -319,7 +307,7 @@ const DashboardContent: React.FC = () => {
               <Text style={styles.totalLabel}>Total Due Amount</Text>
               <View style={styles.totalAmountRow}>
                 <Text style={styles.totalCurrency}>Rs.</Text>
-                <Text style={styles.totalAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
+                <Text style={styles.totalAmount}>00</Text>
                 <Text style={styles.totalDecimals}>.00</Text>
               </View>
             </View>
@@ -340,7 +328,7 @@ const DashboardContent: React.FC = () => {
               <Text style={styles.collapsedLabel}>Available to spend</Text>
               <View style={styles.collapsedAmountRow}>
                 <Text style={styles.collapsedCurrency}>Rs.</Text>
-                <Text style={styles.collapsedAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
+                <Text style={styles.collapsedAmount}>357,869</Text>
                 <Text style={styles.collapsedDecimals}>.97</Text>
               </View>
             </View>
