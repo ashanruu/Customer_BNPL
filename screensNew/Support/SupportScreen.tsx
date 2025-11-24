@@ -163,7 +163,7 @@ const SupportScreen: React.FC = () => {
                       {getStatusLabel(chat.status)}
                     </Text>
                   </View>
-                  <Icon name="chevron-right" size={20} color="#9CA3AF" />
+                  <Icon name="chevron-right" size={25} color="#6B7280" />
                 </View>
               </View>
             </TouchableOpacity>
@@ -174,28 +174,31 @@ const SupportScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>FAQ</Text>
           
-          {faqItems.map((item) => (
-            <View key={item.id} style={styles.faqItem}>
-              <TouchableOpacity
-                style={styles.faqQuestion}
-                onPress={() => toggleFAQ(item.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.faqQuestionText}>{item.question}</Text>
-                <Icon 
-                  name={item.expanded ? 'minus' : 'plus'} 
-                  size={20} 
-                  color="#6B7280" 
-                />
-              </TouchableOpacity>
-              
-              {item.expanded && (
-                <View style={styles.faqAnswer}>
-                  <Text style={styles.faqAnswerText}>{item.answer}</Text>
-                </View>
-              )}
-            </View>
-          ))}
+          {faqItems.map((item, index) => {
+  const isLast = index === faqItems.length - 1;
+  return (
+    <View key={item.id} style={styles.faqItem}>
+      <TouchableOpacity
+        style={[styles.faqQuestion, isLast && { borderBottomWidth: 0 }]}
+        onPress={() => toggleFAQ(item.id)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.faqQuestionText}>{item.question}</Text>
+        <Icon 
+          name={item.expanded ? 'minus' : 'plus'} 
+          size={23} 
+          color="#6B7280" 
+        />
+      </TouchableOpacity>
+      
+      {item.expanded && (
+        <View style={styles.faqAnswer}>
+          <Text style={styles.faqAnswerText}>{item.answer}</Text>
+        </View>
+      )}
+    </View>
+  );
+})}
         </View>
 
         {/* Need Help Button */}
@@ -233,16 +236,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 24,
     color: '#1F2937',
+    textAlign: 'center',
     ...Platform.select({
-      ios: {
-        fontFamily: 'System',
-      },
-      android: {
-        fontFamily: 'Roboto',
-      },
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
     }),
   },
   placeholder: {
@@ -256,8 +255,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '500',
     color: '#7b7f83ff',
     marginBottom: 16,
     ...Platform.select({
@@ -275,6 +274,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     opacity: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -355,6 +356,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   faqQuestionText: {
     flex: 1,

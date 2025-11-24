@@ -88,6 +88,7 @@ import RecoverAccountScreen from "../screensNew/RecoverAccount/RecoverAccountScr
 import RecoverFormScreen from "../screensNew/RecoverAccount/RecoverFormScreen";
 import RecoverSubmittedScreen from "../screensNew/RecoverAccount/RecoverSubmitted";
 import OrderScreen from "../screensNew/OrderScreen/OrderScreen";
+import SupportScreen from "../screensNew/Support/SupportScreen";
 
 const Stack = createStackNavigator();
 
@@ -184,6 +185,10 @@ const AppNavigator = () => {
 
       {/* Orders screen (new) */}
       <Stack.Screen name="OrderScreen" component={OrderScreen} options={{ gestureEnabled: false }} />
+
+    {/* Ticket screen */}
+    <Stack.Screen name="SupportScreen" component={SupportScreen} options={{ gestureEnabled: false }} />
+
 
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
