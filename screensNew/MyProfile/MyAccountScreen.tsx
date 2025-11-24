@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,77 @@ import {
   StatusBar,
   TextInput,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UserProfileHeader from '../../components/UserProfileHeader';
 import AddEmailModal from '../../components/AddEmailModal';
 import ProfileView from '../../components/ProfileView';
 import BottomSheetModal from '../../components/BottomSheetModal';
+import { callMobileApi } from '../../scripts/api';
 
 const MyAccountScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showProfileView, setShowProfileView] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [email, setEmail] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [response, setResponse] = useState<any>(null);
+
+  const getProfileDetails = async () => {
+    setIsLoading(true);
+    try {
+      const response = await callMobileApi(
+        "GetCustomerDetails",
+        {},
+        "personal-details",
+        "",
+        "customer"
+      )
+      console.log("customer Details", response);
+      setResponse(response);
+      
+    } catch (error) {
+      console.error("Error fetching profile details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    getProfileDetails();
+  }, []);
+
+
+  useFocusEffect(
+    React.useCallback(() => {
+      getProfileDetails();
+    }, [])
+  );
+
+  // Comprehensive refresh function for pull-to-refresh
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      console.log('Refreshing home screen data...');
+      // Fetch all data simultaneously for better performance
+      await Promise.all([
+        getProfileDetails()
+      ]);
+      console.log('Home screen refresh completed successfully');
+    } catch (error) {
+      console.error('Error refreshing home screen:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const settingsMenuItems = [
     {
@@ -37,7 +92,7 @@ const MyAccountScreen: React.FC = () => {
       id: 2,
       title: 'Security',
       icon: 'shield-check-outline',
-      onPress: () => navigation.navigate('SecurityScreen'),
+      onPress: () => navigation.navigate('SecurityScreen',{nic:"200030303851"} ),
     },
     {
       id: 3,
@@ -49,64 +104,89 @@ const MyAccountScreen: React.FC = () => {
       id: 4,
       title: 'Credit Scoring',
       icon: 'chart-line',
-      onPress: () => console.log('Credit Scoring'),
+      onPress: () => navigation.navigate('PaymentMethodsScreen'),
     },
     {
       id: 5,
       title: 'Payment Method',
       icon: 'credit-card-outline',
-      onPress: () => console.log('Payment Method'),
+      onPress: () => navigation.navigate('PaymentMethodsScreen'),
     },
     {
       id: 6,
       title: 'Support',
       icon: 'headset',
-      onPress: () => console.log('Support'),
+      onPress: () => navigation.navigate('SupportScreen'),
     },
     {
       id: 7,
       title: 'About App',
       icon: 'information-outline',
-      onPress: () => console.log('About App'),
+      onPress: () => navigation.navigate('AboutAppScreen'),
     },
     {
       id: 8,
       title: 'Delete Account',
       icon: 'trash-can-outline',
-      onPress: () => console.log('Delete Account'),
+      onPress: () => navigation.navigate('DeleteAccountScreen'),
     },
     {
       id: 9,
       title: 'Logout',
       icon: 'logout',
-      onPress: () => console.log('Logout'),
+      onPress: () => setShowLogoutModal(true),
+    },
+    // New Report Account item
+    {
+      id: 10,
+      title: 'Report Account',
+      icon: 'alert-circle-outline',
+      onPress: () => navigation.navigate('ReportAccountScreen'),
+    },
+    {
+      id: 11,
+      title: 'Recover Account',
+      icon: 'alert-circle-outline',
+      onPress: () => navigation.navigate('RecoverAccountScreen'),
     },
   ];
+
+  const handleLogout = () => {
+    setShowLogoutModal(false);
+    // TODO: Implement actual logout logic
+    console.log('User logged out');
+    // navigation.navigate('LoginScreen');
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
+        tintColor={'#2DD4BF'} // iOS color
+        title={"Pull to refresh"}
+        titleColor={'#666'}
+        progressBackgroundColor={'#f0f0f0'}
+      />
+
+
+
       {/* Header with title */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Icon name="arrow-left" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Account</Text>
-        <View style={styles.placeholder} />
+      <View style={styles.headerMain}>
+        <Text style={styles.headerTitleMain}>My Account</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* User Profile Header Component */}
         <View style={styles.profileHeaderContainer}>
           <UserProfileHeader
-            userName="Adeesha Perera"
+            userName={route.params.username || ""}
             avatarSource={{ uri: 'https://via.placeholder.com/40' }}
             greeting="Member Since 12.10.2023"
             onEditPress={() => setShowProfileView(true)}
@@ -190,10 +270,10 @@ const MyAccountScreen: React.FC = () => {
         <View style={styles.profileViewContainer}>
           <SafeAreaView style={styles.profileViewSafe} edges={['top']}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-            
+
             {/* Profile Header */}
             <View style={styles.profileViewHeader}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowProfileView(false)}
                 style={styles.backButton}
               >
@@ -204,15 +284,15 @@ const MyAccountScreen: React.FC = () => {
             </View>
 
             <ProfileView
-              name="Adeesha Perera"
-              nicNumber="200084301234"
-              memberSince="12.10.2023"
+              name={response?.data?.firstName + " " + response?.data?.lastName || ""}
+              nicNumber={response?.data?.nicNumber || "nic eka oniii"}
+              memberSince={response?.data?.createdDate || ""}
               avatarUrl="https://via.placeholder.com/120"
               fields={[
-                { value: '0756665456', type: 'phone' },
-                { value: 'December 8,2000', type: 'date' },
-                { value: '321/D, Thibirigasyaya.', type: 'address' },
-                { value: 'adeesha@gmail.com', type: 'email' },
+                { value: response?.data?.phoneNumber || "", type: 'phone' },
+                { value: response?.data?.dob || "", type: 'date' },
+                { value: response?.data?.address || "", type: 'address' },
+                { value: response?.data?.email || "", type: 'email' },
               ]}
               onEditAvatar={() => console.log('Edit avatar')}
             />
@@ -285,6 +365,27 @@ const MyAccountScreen: React.FC = () => {
           setShowEmailModal(false);
         }}
       />
+
+      {/* Logout Confirmation Modal */}
+      <BottomSheetModal
+        visible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="Logout"
+      >
+        <View style={styles.logoutModalContent}>
+          <Text style={styles.logoutModalText}>
+            Are you sure you want to log out?
+          </Text>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetModal>
     </SafeAreaView>
   );
 };
@@ -562,7 +663,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     marginRight: 20,
     borderRadius: 24,
-    
+
     alignItems: 'center',
     ...Platform.select({
       ios: {
@@ -589,6 +690,57 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  /* Main screen header (centered, larger like Orders screen) */
+  headerMain: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitleMain: {
+    fontSize: 24,
+    color: '#1F2937',
+    textAlign: 'center',
+    ...Platform.select({
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
+    }),
+  },
+  logoutModalContent: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutModalText: {
+    fontSize: 16,
+    color: '#1F2937',
+    marginBottom: 24,
+    textAlign: 'center',
+    ...Platform.select({
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
+    }),
+  },
+  logoutButton: {
+    backgroundColor: '#0066CC',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 24,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    ...Platform.select({
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'Roboto' },
+    }),
+  },
 });
 
 export default MyAccountScreen;
+
+
+

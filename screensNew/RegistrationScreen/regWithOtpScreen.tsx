@@ -10,11 +10,12 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenTemplate from '../../components/ScreenTemplate';
+import { callAuthApi } from '../../scripts/api';
 
 type RootStackParamList = {
   RegWithOtpScreen: { mobileNumber: string };
   RegWithMobileNoScreen: undefined;
-  RegWithNicScreen: undefined;
+  RegWithNicScreen: {mobileNumber: string};
 };
 
 type RegWithOtpScreenRouteProp = RouteProp<RootStackParamList, 'RegWithOtpScreen'>;
@@ -26,11 +27,27 @@ type RegWithOtpScreenNavigationProp = StackNavigationProp<
 const RegWithOtpScreen: React.FC = () => {
   const navigation = useNavigation<RegWithOtpScreenNavigationProp>();
   const route = useRoute<RegWithOtpScreenRouteProp>();
-  const { mobileNumber } = route.params;
+  const { mobileNumber } = route.params || {};
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(60);
+  const [loading, setLoading] = useState(false); // default false
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+   // Format phone number for display (show actual number)
+    const formatPhoneNumber = (phone: string) => {
+        if (!phone) return '+94 xxx xxxx xxx';
+        
+        // Show first 3 and last 3 digits for security
+        if (phone.length >= 6) {
+            const first = phone.substring(0, 3);
+            const last = phone.substring(phone.length - 3);
+            const middle = 'x'.repeat(phone.length - 6);
+            return `${first} ${middle} ${last}`;
+        }
+        return `+94 ${phone}`;
+    };
+
 
   useEffect(() => {
     // Focus first input on mount
@@ -94,13 +111,41 @@ const RegWithOtpScreen: React.FC = () => {
     }
   };
 
-  const handleVerifyOtp = () => {
-    // const otpCode = otp.join('');
-    // if (otpCode.length === 6) {
-    //   // Verify OTP logic here
-    //   navigation.navigate('Dashboard');
-    // }
-    navigation.navigate('RegWithNicScreen');
+  const handleVerifyOtp = async () => {
+    if (!otp.every((digit) => digit !== '')) {
+      console.log('Please enter the complete OTP');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        phone: mobileNumber,
+        otp: otp.join(''),
+      };
+
+      const response = await callAuthApi(
+        'VerifyMobileOtp',
+        payload,
+      );
+
+      console.log('OTP Verification response:', response);
+
+      if (response.statusCode === 200) {
+        setTimeout(() => {
+          navigation.navigate('RegWithNicScreen', { 
+            mobileNumber: mobileNumber 
+          });
+        }, 1500);
+      } else {
+        // Show error to user
+        console.log("OTP verification failed");
+      }
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackPress = () => {
@@ -116,10 +161,11 @@ const RegWithOtpScreen: React.FC = () => {
       showSkipButton={false}
       topTitle="Verify your mobile number"
       mainTitle="Enter your OTP"
-      description={`Hi, we have sent an OTP to ${mobileNumber}`}
+      description={`Hi, we have sent an OTP to ${formatPhoneNumber(mobileNumber)}`}
       buttonText="Verify OTP"
       onButtonPress={handleVerifyOtp}
-      buttonDisabled={!isOtpComplete}
+      buttonDisabled={!isOtpComplete || loading}
+      buttonLoading={loading}
       scrollable={false}
     >
       <View style={styles.contentContainer}>

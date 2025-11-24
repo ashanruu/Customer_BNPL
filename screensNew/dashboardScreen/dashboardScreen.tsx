@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,46 @@ import {
   StatusBar,
   Image,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomButton from '../../components/CustomButton';
 import StoreCard from '../../components/StoreCard';
 import ManualTabNavigator from '../../components/ManualTabNavigator';
 import { StoresContent } from '../StoreManagement/StoresSectionScreen';
 import ScanScreen from '../QrScanScreen/staticQrScreens/scanScreen';
+import MyAccountScreen from '../MyProfile/MyAccountScreen';
+import { LinearGradient } from 'expo-linear-gradient';
+import OrderScreen from '../OrderScreen/OrderScreen';
+import { callMobileApi } from '../../scripts/api';
+import ImageCacheManager from '../../utils/ImageCacheManager';
 
+type RootStackParamList = {
+  DashboardScreen: { username: string };
+  MyAccountScreen: { username: string };
+};
+
+type DashboardScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'DashboardScreen'
+>;
 // Dashboard content component
 const DashboardContent: React.FC = () => {
-  const navigation = useNavigation<any>();
-  
+  const navigation = useNavigation<DashboardScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'DashboardScreen'>>();
+  //const navigation = useNavigation<any>();
+
+  const[creditLimits,setCreditLimits]=React.useState<any>(null);
+  const[creditLimitsLoading,setCreditLimitsLoading]=React.useState(false);
+  const[refreshing,setRefreshing]=React.useState(false);
+
+  const[promotions,setPromotions]=React.useState<Array<any>>([]);
+  const[promotionsLoading,setPromotionsLoading]=React.useState(false);
+  const[planLoading , setPlanLoading]=React.useState(false)
+
   // Animation setup for collapsible header
   const scrollY = useRef(new Animated.Value(0)).current;
   const HEADER_MAX_HEIGHT = 310;
@@ -78,6 +104,140 @@ const DashboardContent: React.FC = () => {
     extrapolate: 'clamp',
   });
 
+  const categories = [
+    { label: 'All', isActive: true },
+    { label: 'Electronics' },
+    { label: 'Fashion' },
+    { label: 'Grocery' },
+    { label: 'Travel' },
+  ];
+
+  // Fetch credit limits from payment API
+    const fetchCreditLimits = async () => {
+      try {
+        setCreditLimitsLoading(true);
+        console.log("Fetching credit limits...");
+  
+        const response = await callMobileApi(
+          'GetCrediLimits',
+          {},
+          'mobile-app-credit-limits',
+          '',
+          'payment'
+        );
+  
+        console.log("GetCrediLimits response:", response);
+  
+        if (response.statusCode === 200) {
+          setCreditLimits(response.data || response.payload);
+          console.log("Credit limits loaded successfully");
+        } else {
+          console.error('Failed to fetch credit limits:', response.message);
+        }
+      } catch (error: any) {
+        console.error('GetCrediLimits error:', error);
+      } finally {
+        setCreditLimitsLoading(false);
+      }
+    };
+
+
+    //Get Plan Name
+    const fetchPlan = async () =>{
+      try{
+        setPlanLoading(true);
+        const planName = await callMobileApi(
+          "GetCustomerPlanByCustomerId",
+          {},
+          "get-customer-plan-name",
+          "",
+          "customer"
+        );
+        console.log("plan details", planName);
+      }catch{
+
+      }
+    }
+
+    //for promotions
+    const fetchPromotions = async () => {
+        try {
+          setPromotionsLoading(true);
+    
+          const promotionResponse = await callMobileApi(
+            'GetPromotions',
+            {},
+            'mobile-app-promotions',
+            '',
+            "merchant"
+          );
+    
+          console.log('GetPromotions response:', promotionResponse);
+    
+          if (promotionResponse.statusCode === 200) {
+            const promotionsData = promotionResponse.data || promotionResponse.payload || promotionResponse;
+    
+            if (Array.isArray(promotionsData)) {
+              setPromotions(promotionsData);
+              console.log('Promotions set successfully:', promotionsData.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionsData);
+            } else if (Array.isArray(promotionResponse)) {
+              setPromotions(promotionResponse);
+              console.log('Promotions set from direct array:', promotionResponse.length, 'items');
+              // Preload promotion images for better performance
+              await ImageCacheManager.preloadPromotionImages(promotionResponse);
+            } else {
+              console.error('Promotions data is not an array:', typeof promotionsData);
+              setPromotions([]);
+            }
+          } else {
+            console.error('Failed to fetch promotions - Status:', promotionResponse.statusCode, 'Message:', promotionResponse.message);
+            setPromotions([]);
+          }
+        } catch (error: any) {
+          console.error('GetPromotions error:', error);
+          setPromotions([]);
+        } finally {
+          setPromotionsLoading(false);
+        }
+      };
+
+
+     useEffect(() => {
+        fetchCreditLimits();
+        fetchPromotions();
+        fetchPlan();
+      }, []);
+
+
+      useFocusEffect(
+        React.useCallback(() => {
+          fetchCreditLimits();
+          fetchPromotions();
+          fetchPlan();
+        }, [])
+      );
+
+      // Comprehensive refresh function for pull-to-refresh
+        const handleRefresh = async () => {
+          try {
+            setRefreshing(true);
+            console.log('Refreshing home screen data...');
+            // Fetch all data simultaneously for better performance
+            await Promise.all([
+              fetchCreditLimits(),
+              fetchPromotions(),
+              fetchPlan(),
+            ]);
+            console.log('Home screen refresh completed successfully');
+          } catch (error) {
+            console.error('Error refreshing home screen:', error);
+          } finally {
+            setRefreshing(false);
+          }
+        };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -90,7 +250,7 @@ const DashboardContent: React.FC = () => {
       }]}>
         <TouchableOpacity 
           style={styles.userInfo}
-          onPress={() => navigation.navigate('MyAccountScreen')}
+          onPress={() => navigation.navigate('MyAccountScreen',{ username: route.params.username || "" })}
           activeOpacity={0.7}
         >
           <Image
@@ -99,7 +259,7 @@ const DashboardContent: React.FC = () => {
           />
           <View>
             <Text style={styles.greeting}>Hello!</Text>
-            <Text style={styles.userName}>Adeesha Perera</Text>
+            <Text style={styles.userName}>{route.params.username || ""}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.notificationButton}>
@@ -109,38 +269,58 @@ const DashboardContent: React.FC = () => {
       </Animated.View>
 
       {/* Animated Header Container */}
-      <Animated.View style={[styles.headerContainer, { 
-        height: headerHeight,
-        top: Animated.add(userSectionHeight, 16),
-        left: cardMarginHorizontal,
-        right: cardMarginHorizontal,
-        paddingLeft: cardPaddingHorizontal,
-        paddingRight: cardPaddingHorizontal,
-      }]}>
-        <View style={styles.creditCardHeader}>
-          {/* Full Credit Card Details - Fades out on scroll */}
+      <Animated.View
+        style={[styles.headerContainer, {
+          height: headerHeight,
+          top: Animated.add(userSectionHeight, 16),
+          left: cardMarginHorizontal,
+          right: cardMarginHorizontal,
+          paddingLeft: cardPaddingHorizontal,
+          paddingRight: cardPaddingHorizontal,
+        }]}
+      >
+        <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                    colors={['#2DD4BF', '#0eeeb6ff']} // Android colors
+                    tintColor={'#2DD4BF'} // iOS color
+                    title={"Pull to refresh"}
+                    titleColor={'#666'}
+                    progressBackgroundColor={'#f0f0f0'}
+                  />
+
+        <LinearGradient
+          colors={['#0A5494', '#06346A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.creditCardHeader}
+        >
+          {/* Expanded credit card details */}
           <Animated.View style={[styles.creditCardContent, { opacity: creditCardOpacity }]}>
-            <View style={styles.creditCardTop}>
-              <Text style={styles.creditLabel}>Total Credit Limit</Text>
-              <View style={styles.creditAmountRow}>
-                <Text style={styles.creditAmount}>Rs. 500,000</Text>
-                <Text style={styles.creditDecimals}>.00</Text>
+
+            <View style={styles.primaryAmountRow}>
+              <Text style={styles.primaryCurrency}>Rs.</Text>
+              <Text style={styles.primaryAmount}>{creditLimits?.maxPurchaseLimit || "0"}</Text>
+              <Text style={styles.primaryDecimals}>.97</Text>
+            </View>
+            <Text style={styles.secondaryLabel}>You can spend up to</Text>
+
+            
+
+            <View style={styles.tierRow}>
+              <View style={styles.dashedLine} />
+              <View style={styles.tierBadge}>
+                <Text style={styles.tierText}>Platinum</Text>
               </View>
+              <View style={styles.dashedLine} />
             </View>
 
-            <View style={styles.dividerLineContainer}>
-              <View style={styles.dividerLine} />
-              <TouchableOpacity style={styles.platinumBadge}>
-                <Text style={styles.platinumText}>Platinum</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.spendingSection}>
-              <Text style={styles.spendingLabel}>You can{'\n'}spend up to</Text>
-              <View style={styles.spendingAmountRow}>
-                <Text style={styles.spendingCurrency}>Rs.</Text>
-                <Text style={styles.spendingAmount}>357,869</Text>
-                <Text style={styles.spendingDecimals}>.97</Text>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total Due Amount</Text>
+              <View style={styles.totalAmountRow}>
+                <Text style={styles.totalCurrency}>Rs.</Text>
+                <Text style={styles.totalAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
+                <Text style={styles.totalDecimals}>.00</Text>
               </View>
             </View>
 
@@ -160,12 +340,12 @@ const DashboardContent: React.FC = () => {
               <Text style={styles.collapsedLabel}>Available to spend</Text>
               <View style={styles.collapsedAmountRow}>
                 <Text style={styles.collapsedCurrency}>Rs.</Text>
-                <Text style={styles.collapsedAmount}>357,869</Text>
+                <Text style={styles.collapsedAmount}>{creditLimits?.availablePurchaseLimit || "0"}</Text>
                 <Text style={styles.collapsedDecimals}>.97</Text>
               </View>
             </View>
           </Animated.View>
-        </View>
+        </LinearGradient>
       </Animated.View>
 
       {/* Scrollable Content */}
@@ -184,42 +364,43 @@ const DashboardContent: React.FC = () => {
           <Text style={styles.searchPlaceholder}>
             Find your fav store or product here
           </Text>
+          <TouchableOpacity style={styles.filterButton} activeOpacity={0.8}>
+            <Icon name="tune-variant" size={20} color="#1F2937" />
+          </TouchableOpacity>
         </View>
 
-        {/* Category Tags */}
+        {/* Categories */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesRow}
         >
-          <TouchableOpacity style={[styles.categoryBadge, styles.categoryBadgeActive]}>
-            <Icon name="heart" size={20} color="#FFFFFF" />
-            <Text style={styles.categoryTextActive}>Health & Beauty</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.categoryBadge}>
-            <Icon name="account" size={20} color="#666666" />
-            <Text style={styles.categoryText}>Men</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.categoryBadge}>
-            <Icon name="account-outline" size={20} color="#666666" />
-            <Text style={styles.categoryText}>Women</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.categoryBadge}>
-            <Icon name="laptop" size={20} color="#666666" />
-            <Text style={styles.categoryText}>Electronic</Text>
-          </TouchableOpacity>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.label}
+              activeOpacity={0.8}
+              style={[
+                styles.categoryBadge,
+                category.isActive && styles.categoryBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  category.isActive && styles.categoryTextActive,
+                ]}
+              >
+                {category.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
-        {/* Promotional Banner */}
+        {/* Promo Banner */}
         <View style={styles.promoBanner}>
           <View style={styles.promoContent}>
             <View style={styles.promoTextContainer}>
-              <Text style={styles.promoTitle}>
-                TimeZone Desi{'\n'}50% OFF
-              </Text>
+              <Text style={styles.promoTitle}>Deals of the week</Text>
               <Text style={styles.promoDescription}>
                 To promote ws ss okive. Eom items{'\n'}
                 cannot redeice vl ut th quibubom.
@@ -334,6 +515,8 @@ const DashboardScreen: React.FC = () => {
       HomeComponent={DashboardContent} 
       StoreComponent={StoresContent}
       ScanComponent={ScanScreen}
+      OrdersComponent={OrderScreen}
+      ProfileComponent={MyAccountScreen}
     />
   );
 };
@@ -376,10 +559,10 @@ const styles = StyleSheet.create({
   creditCardHeader: {
     flex: 1,
     backgroundColor: '#0B5A8E',
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-    borderRadius: 13,
+    paddingHorizontal: 24,
+    paddingTop: 36,
+    paddingBottom: 28,
+    borderRadius: 18,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -394,6 +577,7 @@ const styles = StyleSheet.create({
   },
   creditCardContent: {
     flex: 1,
+    width: '100%',
   },
   collapsedView: {
     position: 'absolute',
@@ -518,16 +702,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#EF4444',
   },
-  creditCardTop: {
+  cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
-  creditLabel: {
+  cardHeaderLabel: {
     fontSize: 14,
     fontWeight: '400',
     color: '#FFFFFF',
+    opacity: 0.85,
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -537,11 +722,11 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  creditAmountRow: {
+  cardHeaderAmountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  creditAmount: {
+  cardHeaderAmount: {
     fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -554,7 +739,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  creditDecimals: {
+  cardHeaderDecimals: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -567,42 +752,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  dividerLineContainer: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  dividerLine: {
-    height: 1,
-    backgroundColor: 'transparent',
-    borderTopWidth: 1,
-    borderTopColor: '#FFFFFF',
-    borderStyle: 'dashed',
-  },
-  platinumBadge: {
-    position: 'absolute',
-    right: 0,
-    top: -12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    borderRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  platinumText: {
+  secondaryLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#0B5A8E',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 12,
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -612,17 +769,95 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  spendingSection: {
+  primaryAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  primaryCurrency: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginRight: 6,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  primaryAmount: {
+    fontSize: 42,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  primaryDecimals: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 4,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dashedLine: {
+    flex: 1,
+    borderStyle: 'dashed',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 1)',
+  },
+  tierBadge: {
+    marginHorizontal: 0,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 1)',
+  },
+  tierText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#150592e0',
+    letterSpacing: 0.5,
+    ...Platform.select({
+      ios: {
+        fontFamily: 'System',
+      },
+      android: {
+        fontFamily: 'Roboto',
+      },
+    }),
+  },
+  totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  spendingLabel: {
+  totalLabel: {
     fontSize: 13,
-    fontWeight: '400',
-    color: '#FFFFFF',
-    lineHeight: 18,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.85)',
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -632,12 +867,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  spendingAmountRow: {
+  totalAmountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  spendingCurrency: {
-    fontSize: 16,
+  totalCurrency: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
     marginRight: 4,
@@ -650,8 +885,8 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  spendingAmount: {
-    fontSize: 34,
+  totalAmount: {
+    fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
     ...Platform.select({
@@ -663,10 +898,11 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  spendingDecimals: {
-    fontSize: 18,
+  totalDecimals: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+    marginLeft: 2,
     ...Platform.select({
       ios: {
         fontFamily: 'System',
@@ -677,11 +913,11 @@ const styles = StyleSheet.create({
     }),
   },
   increaseLimitButton: {
-    backgroundColor: '#FFFFFF',
+    marginTop: -5,
+    backgroundColor: 'rgba(255, 253, 253, 1)',
     paddingVertical: 10,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#0B5A8E',
+    borderRadius: 20,
+    borderWidth: 0,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -690,7 +926,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
       },
       android: {
-        elevation: 2,
+        elevation: 0,
       },
     }),
   },
@@ -720,6 +956,16 @@ const styles = StyleSheet.create({
         fontFamily: 'Roboto',
       },
     }),
+  },
+  filterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoriesRow: {
     paddingHorizontal: 20,

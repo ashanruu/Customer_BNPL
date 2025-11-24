@@ -35,13 +35,13 @@ type ManualTabNavigatorProps = {
     initialTab?: number;
 };
 
-const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({ 
-    HomeComponent, 
+const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({
+    HomeComponent,
     StoreComponent,
     ScanComponent,
     OrdersComponent,
     ProfileComponent,
-    initialTab = 0 
+    initialTab = 0,
 }) => {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [menuVisible, setMenuVisible] = useState(false);
@@ -54,82 +54,19 @@ const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({
     const tabs = [
         { name: t('navigation.home'), iconName: 'home-outline', component: HomeComponent, label: 'Home', index: 0 },
         { name: t('navigation.shop'), iconName: 'store-outline', component: StoreComponent || HomeComponent, label: 'Store', index: 1 },
-        { name: t('navigation.scan'), iconName: 'qrcode-scan', component: ScanComponent || HomeComponent, label: 'Scan', index: 2, isCenter: true }, 
+        { name: t('navigation.scan'), iconName: 'qrcode-scan', component: ScanComponent || HomeComponent, label: 'Scan', index: 2, isCenter: true },
         { name: t('navigation.orders'), iconName: 'cart-outline', component: OrdersComponent || HomeComponent, label: 'Orders', index: 3 },
         { name: t('navigation.profile'), iconName: 'account-outline', component: ProfileComponent || HomeComponent, label: 'Profile', index: 4 },
     ];
 
-    const menuItems = [
-        { label: t('navigation.myTickets'), icon: 'ticket-outline', screen: 'MyTickets' },
-        { label: t('navigation.termsConditions'), icon: 'file-document-outline', screen: 'LegalTermsAndConditions' },
-        { label: t('navigation.settings'), icon: 'cog-outline', screen: 'Settings' },
-        { label: t('navigation.logOut'), icon: 'logout', screen: 'Login', replace: true },
-    ];
-
-    const openDrawer = () => {
-        setMenuVisible(true);
-        Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 300,
-            easing: Easing.out(Easing.ease),
-            useNativeDriver: false,
-        }).start();
-    };
-
-    const closeDrawer = () => {
-        Animated.timing(slideAnim, {
-            toValue: -screenWidth,
-            duration: 300,
-            easing: Easing.in(Easing.ease),
-            useNativeDriver: false,
-        }).start(() => setMenuVisible(false));
-    };
-
-    const handleLogout = () => {
-        Alert.alert(
-            t('navigation.confirmLogout'),
-            t('navigation.logoutConfirmMessage'),
-            [
-                {
-                    text: t('navigation.cancel'),
-                    style: 'cancel',
-                },
-                {
-                    text: t('navigation.logOut'),
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const allKeys = await AsyncStorage.getAllKeys();
-                            const keysToPreserve = [
-                                'pinEnabled',
-                                'biometricEnabled', 
-                                'userPin',
-                                'securitySetupCompleted',
-                                'securitySetupSkipped',
-                                'bearerToken'
-                            ];
-                            const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
-                            if (keysToRemove.length > 0) {
-                                await AsyncStorage.multiRemove(keysToRemove);
-                            }
-                            closeDrawer();
-                            navigation.replace('Login');
-                        } catch (error) {
-                            console.error('Error during logout:', error);
-                            Alert.alert(t('navigation.error'), t('navigation.logoutError'));
-                        }
-                    },
-                },
-            ]
-        );
-    };
+   
+   
+    
 
     const CurrentScreen = tabs[activeTab].component;
 
     return (
         <View style={[styles.container, { backgroundColor: '#fff' }]}>
-            
-
             {/* Render selected screen */}
             <View style={styles.screenContainer}>
                 <CurrentScreen />
@@ -137,72 +74,103 @@ const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({
 
             {/* Bottom tab bar */}
             <View style={[styles.tabBarContainer, { backgroundColor: '#FFFFFF' }]}>
-                <View style={[styles.tabBar, { backgroundColor: '#FFFFFF' }]}>
-                    {tabs.map((tab, index) => {
-                        const isFocused = activeTab === index;
-                        const isCenter = tab.isCenter;
-                        
-                        // Center scan button
-                        if (isCenter) {
-                            return (
-                                <View key={index} style={styles.centerButton} pointerEvents="box-none">
+                <View style={[styles.tabBar, { backgroundColor: '#fffffffe' }]}>
+                    <View style={styles.leftTabs}>
+                        {tabs
+                            .filter(tab => !tab.isCenter && tab.index < 2)
+                            .map(tab => {
+                                const isFocused = activeTab === tab.index;
+                                return (
                                     <TouchableOpacity
-                                        onPress={() => navigation.navigate('ScanScreen')}
-                                        style={styles.centerButtonInner}
-                                        activeOpacity={0.8}
+                                        key={tab.index}
+                                        onPress={() => setActiveTab(tab.index)}
+                                        style={[styles.tab, tab.index === 1 && styles.storeOffset]}
+                                        activeOpacity={0.7}
                                     >
-                                        <View style={{ backgroundColor: '#0066CC', width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' }}>
+                                        <View style={styles.tabContent}>
                                             <MaterialCommunityIcons
                                                 name={tab.iconName}
-                                                size={40}
-                                                color="#FFFFFF"
+                                                size={24}
+                                                color={isFocused ? '#0066CC' : '#9CA3AF'}
                                             />
+                                            <Text
+                                                style={[
+                                                    styles.tabLabel,
+                                                    {
+                                                        color: isFocused ? '#0066CC' : '#9CA3AF',
+                                                        fontWeight: isFocused ? '600' : '400',
+                                                    },
+                                                ]}
+                                            >
+                                                {tab.label}
+                                            </Text>
                                         </View>
                                     </TouchableOpacity>
-                                </View>
-                            );
-                        }
-                        
-                        // Regular tab button
-                        return (
-                            <TouchableOpacity
-                                key={index}
-                                onPress={() => {
-                                    console.log('Tab pressed, index:', index, 'label:', tab.label);
-                                    setActiveTab(index);
-                                }}
-                                style={styles.tab}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.tabContent}>
-                                    <MaterialCommunityIcons
-                                        name={tab.iconName}
-                                        size={24}
-                                        color={isFocused ? '#0066CC' : '#9CA3AF'}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.tabLabel,
-                                            {
-                                                color: isFocused ? '#0066CC' : '#9CA3AF',
-                                                fontWeight: isFocused ? '600' : '400',
-                                            },
-                                        ]}
+                                );
+                            })}
+                    </View>
+
+                    {tabs
+                        .filter(tab => tab.isCenter)
+                        .map(tab => (
+                            <View key={tab.index} style={styles.centerButton} pointerEvents="box-none">
+                                <TouchableOpacity
+                                    onPress={() => navigation.navigate('ScanScreen')}
+                                    style={styles.centerButtonInner}
+                                    activeOpacity={0.8}
+                                >
+                                    <View style={styles.centerIconWrapper}>
+                                        <MaterialCommunityIcons
+                                            name={tab.iconName}
+                                            size={40}
+                                            color="#FFFFFF"
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+
+                    <View style={styles.rightTabs}>
+                        {tabs
+                            .filter(tab => !tab.isCenter && tab.index > 2)
+                            .map(tab => {
+                                const isFocused = activeTab === tab.index;
+                                return (
+                                    <TouchableOpacity
+                                        key={tab.index}
+                                        onPress={() => setActiveTab(tab.index)}
+                                        style={[styles.tab, tab.index === 3 && styles.ordersOffset]}
+                                        activeOpacity={0.7}
                                     >
-                                        {tab.label}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
+                                        <View style={styles.tabContent}>
+                                            <MaterialCommunityIcons
+                                                name={tab.iconName}
+                                                size={24}
+                                                color={isFocused ? '#0066CC' : '#9CA3AF'}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.tabLabel,
+                                                    {
+                                                        color: isFocused ? '#0066CC' : '#9CA3AF',
+                                                        fontWeight: isFocused ? '600' : '400',
+                                                    },
+                                                ]}
+                                            >
+                                                {tab.label}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                    </View>
                 </View>
             </View>
 
             {/* Side drawer menu */}
             {menuVisible && (
                 <>
-                    {/* Overlay */}
-                    <Pressable style={styles.overlay} onPress={closeDrawer} />
+               
 
                     {/* Slide-in drawer */}
                     <Animated.View
@@ -218,60 +186,6 @@ const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({
                         <View style={styles.drawerHeader}>
                             <Text style={styles.brandText}>BNPL</Text>
                         </View>
-
-                        {/* Drawer menu items */}
-                        {menuItems.map((item, index) => {
-                            const isActive = false; // Optional: style active if needed
-                            return (
-                                <Pressable
-                                    key={index}
-                                    onPress={() => {
-                                        if (item.label === t('navigation.logOut')) {
-                                            handleLogout();
-                                        } else {
-                                            closeDrawer();
-                                            if (item.replace) {
-                                                navigation.replace(item.screen);
-                                            } else {
-                                                navigation.navigate(item.screen);
-                                            }
-                                        }
-                                    }}
-                                    style={({ pressed }) => [
-                                        styles.menuTab,
-                                        {
-                                            backgroundColor: pressed
-                                                ? themeColors.tabIconDefault + '10'
-                                                : isActive
-                                                    ? themeColors.tabIconDefault + '20'
-                                                    : 'transparent',
-                                        },
-                                    ]}
-                                >
-                                    {isActive && (
-                                        <View
-                                            style={[styles.menuActiveLine, { backgroundColor: themeColors.tint }]}
-                                        />
-                                    )}
-                                    <MaterialCommunityIcons
-                                        name={item.icon}
-                                        size={24}
-                                        color={isActive ? themeColors.tabIconSelected : themeColors.tabIconDefault}
-                                        style={{ marginRight: 12 }}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.menuText,
-                                            {
-                                                color: isActive ? themeColors.tabIconSelected : themeColors.tabIconDefault,
-                                            },
-                                        ]}
-                                    >
-                                        {item.label}
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
                     </Animated.View>
                 </>
             )}
@@ -282,7 +196,7 @@ const ManualTabNavigator: React.FC<ManualTabNavigatorProps> = ({
 const styles = StyleSheet.create({
     container: { flex: 1 },
     screenContainer: { flex: 1 },
-    
+
     // Tab Bar Styles
     tabBarContainer: {
         paddingBottom: Platform.OS === 'ios' ? 20 : 10,
@@ -294,40 +208,59 @@ const styles = StyleSheet.create({
     tabBar: {
         flexDirection: 'row',
         height: 70,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#ffffffff',
         alignItems: 'center',
-        justifyContent: 'space-around',
-        paddingHorizontal: 10,
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
         position: 'relative',
     },
     tab: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: 8,
+        paddingHorizontal: 12,
         zIndex: 2,
     },
     tabContent: {
         alignItems: 'center',
         justifyContent: 'center',
+        
     },
     tabLabel: {
         fontSize: 12,
         marginTop: 4,
         fontFamily: getFontFamily(),
     },
-    
-    // Center Scan Button
+    leftTabs: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        flex: 1,
+        marginLeft: -5
+    },
+    rightTabs: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        flex: 1,
+        marginRight: -5
+    },
+    storeOffset: {
+        marginRight: 32,
+    },
+    ordersOffset: {
+        marginLeft: 32,
+    },
     centerButton: {
         position: 'absolute',
-        top: -25,
+        top: -35,
         left: '50%',
-        marginLeft: -40,
+        marginLeft: -20,
         justifyContent: 'center',
         alignItems: 'center',
         width: 80,
         height: 80,
-        zIndex: 1,
+        zIndex: 3,
     },
     centerButtonInner: {
         width: 80,
@@ -347,9 +280,15 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    
-    // Removed unused iconWrapper and activeLine styles
-    
+    centerIconWrapper: {
+        backgroundColor: '#0066CC',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
     // Drawer Styles
     overlay: {
         position: 'absolute',
