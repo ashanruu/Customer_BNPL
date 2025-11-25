@@ -186,7 +186,7 @@ const MyAccountScreen: React.FC = () => {
         {/* User Profile Header Component */}
         <View style={styles.profileHeaderContainer}>
           <UserProfileHeader
-            userName={route.params?.username ?? ""}
+            userName={response?.data?.firstName + " " + response?.data?.lastName || ""}
             avatarSource={{ uri: 'https://via.placeholder.com/40' }}
             greeting="Member Since 12.10.2023"
             onEditPress={() => setShowProfileView(true)}

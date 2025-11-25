@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,87 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import StoreCard from '../../components/StoreCard';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { callMobileApi } from '../../scripts/api';
 
 // Stores content component
 export const StoresContent: React.FC = () => {
   const navigation = useNavigation();
-  const [activeCategory, setActiveCategory] = useState('Health & Beauty');
+  const [stores, setStores] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchFeaturedStores = async () => {
+    setLoading(true);
+    const response = await callMobileApi(
+      'GetFeaturedStores',
+      {},
+      'store-management',
+      '',
+      'customer'
+    );
+    // Log full response object so nested objects don't appear as [Object]
+    try {
+      console.log('Featured Stores response:', JSON.stringify(response.data, null, 2));
+    } catch (err) {
+      console.log('Featured Stores response', response.data);
+    }
+
+
+    try {
+      if (response && response.data) {
+        const data = response.data;
+        // If API returns an array of merchants each with stores, keep that shape
+        if (Array.isArray(data)) {
+          const merchants = data.map((item: any) => ({
+            merchantId: item.merchantId,
+            stores: Array.isArray(item.stores) ? item.stores : [],
+          }));
+          if (merchants.length > 0) {
+            setStores(merchants);
+          }
+        } else if (data.stores && Array.isArray(data.stores)) {
+          // single merchant object
+          setStores([{ merchantId: data.merchantId, stores: data.stores }]);
+        }
+      }
+    } catch (err) {
+      console.error('Error parsing featured stores response:', err);
+    }
+    setLoading(false);
+  }
+
+  
+
+  useEffect(() => {
+    fetchFeaturedStores();
+  }, []);
+
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchFeaturedStores();
+    }, [])
+  );
+
+  // Comprehensive refresh function for pull-to-refresh
+        const handleRefresh = async () => {
+          try {
+            setRefreshing(true);
+            console.log('Refreshing home screen data...');
+            // Fetch all data simultaneously for better performance
+            await Promise.all([
+              fetchFeaturedStores()
+            ]);
+            console.log('Home screen refresh completed successfully');
+          } catch (error) {
+            console.error('Error refreshing home screen:', error);
+          } finally {
+            setRefreshing(false);
+          }
+        };
+  
 
   const categories = [
     { id: '1', name: 'Health & Beauty' },
@@ -26,53 +101,7 @@ export const StoresContent: React.FC = () => {
     { id: '4', name: 'Electronic' },
   ];
 
-  const featuredStores = [
-    {
-      id: '1',
-      name: 'Adidas',
-      type: 'Fashion & Accessories',
-      discount: 'Upto 50% off',
-      storepType: 'Website | Instore',       
-      image: require('../../assets/images/temp/adidas.jpg'),
-      websiteUrl: 'https://www.adidas.com/us',
-      socialMediaUrl: 'https://www.facebook.com/adidasSL',
-      locations: [
-        '50 Galle Rd, Colombo 00600',
-        '40 D. S. Senanayake MW, Colombo 00800',
-        'No. 152 High Level Rd, Nugegoda 10250',
-      ],
-    },
-    {
-      id: '2',
-      name: 'Baylee',
-      type: 'Fashion & Accessories',
-      discount: 'Upto 50% off',
-      storepType: 'Website | Instore',    
-      image: require('../../assets/images/temp/baylee.jpg'),
-      websiteUrl: 'https://bayleee.com/shop/dresses/?utm_source=google&utm_medium=cpc&utm_campaign=Sales-PMAX&utm_content=&utm_term=&utm_adgroup=&device=c&placement=&gad_source=1&gad_campaignid=23008147634&gbraid=0AAAAABL2e6bdcIz8VRojTk9sDCJ9Wj87O&gclid=Cj0KCQiA5uDIBhDAARIsAOxj0CHA1rAbz51eyjTtr27kZHrImI7tamSa_53rE3axDxIawPb6fqffuh8aAsgtEALw_wcB',
-      socialMediaUrl: 'https://www.instagram.com/bayleee/',
-      locations: [
-        'No. 152 High Level Rd, Nugegoda 10250',
-        '25 Main Street, Colombo 00700',
-        '15 Kandy Road, Kadawatha',
-      ],
-    },
-    {
-      id: '3',
-      name: 'KFC',
-      type: 'Foods',
-      discount: 'Upto 50% off',
-      storepType: 'Website | Instore',    
-      image: require('../../assets/images/temp/xxx.jpg'),
-      websiteUrl: 'https://kfc.lk',
-      socialMediaUrl: 'https://www.facebook.com/KFCSriLanka',
-      locations: [
-        '100 Galle Road, Colombo 00300',
-        '15 Kandy Road, Kadawatha',
-        '200 Main Street, Dehiwala 10350',
-      ],
-    },
-  ];
+  
 
   const allStores = [
     {
@@ -80,7 +109,7 @@ export const StoresContent: React.FC = () => {
       name: 'Keels',
       type: null,
       discount: null,
-      storepType: 'Website | Instore',    
+      storepType: 'Website | Instore',
       image: require('../../assets/images/temp/keels.jpg'),
       websiteUrl: 'https://keells.com',
       socialMediaUrl: 'https://www.facebook.com/Keells',
@@ -95,7 +124,7 @@ export const StoresContent: React.FC = () => {
       name: 'Nolimit',
       type: null,
       discount: null,
-      storepType: null,    
+      storepType: null,
       image: require('../../assets/images/temp/keels.jpg'),
       websiteUrl: 'https://www.nolimit.lk/?gad_source=1&gad_campaignid=21398852630&gbraid=0AAAAADGmAxqigwp0_fS_7vIBKh7dal6AR&gclid=Cj0KCQiA5uDIBhDAARIsAOxj0CFCBFNGmMJDX4rKFd_AH194J8-XIGtG9OUzdjmtMEhxctkm5dC1xD8aAn9-EALw_wcB',
       socialMediaUrl: 'https://www.instagram.com/nolimit.official/',
@@ -110,7 +139,7 @@ export const StoresContent: React.FC = () => {
       name: 'Adidas',
       type: null,
       discount: null,
-      storepType: null,    
+      storepType: null,
       image: require('../../assets/images/temp/keels.jpg'),
       websiteUrl: 'https://adidas.com',
       socialMediaUrl: 'https://www.facebook.com/adidasSL',
@@ -157,10 +186,10 @@ export const StoresContent: React.FC = () => {
               ]}
               onPress={() => {
                 setActiveCategory(category.name);
-                (navigation.navigate as any)('SelectedStoreScreen');
+                (navigation.navigate as any)('SelectedStoreScreen', { category: category.name });
               }}
             >
-            
+
               <Text
                 style={[
                   styles.categoryText,
@@ -183,19 +212,27 @@ export const StoresContent: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.featuredStoresRow}
         >
-          {featuredStores.map((store) => (
-            <StoreCard
-              key={store.id}
-              image={store.image}
-              storeName={store.name}
-              storeType={store.type}
-              discount={store.discount}
-              storepType={store.storepType || undefined}
-              width={(Platform.OS === 'web' ? 160 : require('react-native').Dimensions.get('window').width - 52) / 2}
-              height={240}
-              onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { store })}
-            />
-          ))}
+          {stores && stores.length > 0 && stores.map((merchant: any, idx: number) => {
+            const key = `merchant-${merchant.merchantId}-${idx}`;
+            const firstStore = merchant.stores && merchant.stores.length > 0 ? merchant.stores[0] : null;
+            const imageSource = firstStore && firstStore.storeProfileImageUrl
+              ? { uri: firstStore.storeProfileImageUrl }
+              : require('../../assets/images/temp/keels.jpg');
+            const storeName = firstStore?.storeName ?? `Merchant ${merchant.merchantId}`;
+            const storeType = firstStore?.storeType ?? undefined;
+
+            return (
+              <StoreCard
+                key={key}
+                image={imageSource}
+                storeName={storeName}
+                storeType={storeType}
+                width={(Platform.OS === 'web' ? 160 : require('react-native').Dimensions.get('window').width - 52) / 2}
+                height={240}
+                onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { merchantId: merchant.merchantId, stores: merchant.stores })}
+              />
+            );
+          })}
         </ScrollView>
 
         {/* All Stores Section */}
@@ -209,23 +246,23 @@ export const StoresContent: React.FC = () => {
           contentContainerStyle={styles.featuredStoresRow}
         >
 
-        <View style={styles.allStoresGrid}>
-          {allStores.map((store, index) => (
-            <View key={store.id + index} style={styles.gridItem}>
-              <StoreCard
-                image={store.image}
-                storeName={store.name}
-                //storeType={store.type}
-                discount={store.discount || undefined}
-                //storepType={store.storepType || undefined}
-                width={(styles.gridItem.width as number)}
-                height={240}
-                showDiscount={!!store.discount}
-                onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { store })}
-              />
-            </View>
-          ))}
-        </View>
+          <View style={styles.allStoresGrid}>
+            {allStores.map((store, index) => (
+              <View key={store.id + index} style={styles.gridItem}>
+                <StoreCard
+                  image={store.image}
+                  storeName={store.name}
+                  //storeType={store.type}
+                  discount={store.discount || undefined}
+                  //storepType={store.storepType || undefined}
+                  width={(styles.gridItem.width as number)}
+                  height={240}
+                  showDiscount={!!store.discount}
+                  onPress={() => (navigation.navigate as any)('ShoppingSelectedScreen', { store })}
+                />
+              </View>
+            ))}
+          </View>
         </ScrollView>
       </ScrollView>
     </SafeAreaView>
@@ -340,7 +377,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    
+
     color: '#1F2937',
     ...Platform.select({
       ios: {

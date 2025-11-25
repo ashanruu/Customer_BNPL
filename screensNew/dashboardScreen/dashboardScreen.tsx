@@ -125,7 +125,7 @@ const DashboardContent: React.FC = () => {
           'payment'
         );
   
-        console.log("GetCrediLimits response:", response);
+        console.log("GetCrediLimits response:");
   
         if (response.statusCode === 200) {
           setCreditLimits(response.data || response.payload);
@@ -152,9 +152,9 @@ const DashboardContent: React.FC = () => {
           "",
           "customer"
         );
-        console.log("plan details", planName);
+        console.log("plan details", planName.data.customer.customerPlan.planName);
       }catch{
-
+        console.error("Error fetching plan details")
       }
     }
 
