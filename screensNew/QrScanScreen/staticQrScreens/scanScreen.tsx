@@ -32,7 +32,9 @@ type RootStackParamList = {
     qrData?: string;
     merchant?: string;
   };
+  WebViewScreen: { url?: string; jobId?: number };
 };
+
 
 type ResponseStatus = 'processing' | 'success' | 'error';
 
@@ -54,11 +56,16 @@ const ScanScreen: React.FC = () => {
   // Payment data
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('3months');
+  const [paymentPlansList, setPaymentPlansList] = useState<any[]>([]);
   const [qrData, setQrData] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card_1');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
 
   // new: order id for success modal
   const [orderId, setOrderId] = useState('');
+  // sale id from dynamic QR / sales detail
+  const [saleId, setSaleId] = useState<number | null>(null);
 
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [responseStatus, setResponseStatus] = useState<ResponseStatus>('processing');
@@ -153,9 +160,35 @@ const ScanScreen: React.FC = () => {
 
     // call 1: user must enter amount manually
     if (parsed.type === "static") {
+       setLoading(true);
+
+        const response = await callMobileApi(
+          "ValaidateSale",
+          { saleCode: parsed.orderId,
+            IsStatic : true,
+           },
+          "qr-scan-static",
+          '',
+          'customer'
+        );
+        console.log("QR validation response:", response);
+        if (response?.statusCode === 200) {
       console.log("Merchant QR detected → Open enter amount modal");
       setModalStep("enter");
       return;
+    } else {
+      Alert.alert(
+        "QR Error",
+        response?.message || "Please try again.",
+        [
+          {
+            text: "OK",
+            onPress: () => setScanned(false)
+          }
+        ]
+      );
+    }
+    setLoading(false);
     }
 
     // call 2: QR contains encoded amount (call API to get real amount)
@@ -165,8 +198,10 @@ const ScanScreen: React.FC = () => {
 
         const response = await callMobileApi(
           "ValaidateSale",
-          { saleCode: parsed.orderId },
-          "qr-scan",
+          { saleCode: parsed.orderId,
+            IsStatic : false
+          },
+          "qr-scan-dynamic",
           '',
           'customer'
         );
@@ -190,13 +225,15 @@ const ScanScreen: React.FC = () => {
         try {
           const getSalesDetails = await callMobileApi(
             "GetCusSaleDetailId",
-            {saleCode: parsed.orderId},
+            { saleCode: parsed.orderId },
             "sale-details",
             "",
             "customer"
           );
           console.log("GetCusSaleDetailId response:", getSalesDetails);
           const amount = getSalesDetails?.data?.salesAmount?.toString() || '0';
+          const foundSaleId = getSalesDetails?.data?.saleId ?? null;
+          if (foundSaleId) setSaleId(Number(foundSaleId));
           setPaymentAmount(amount);
           setModalStep("confirm");
         } catch (error) {
@@ -220,6 +257,17 @@ const ScanScreen: React.FC = () => {
     }
   };
 
+
+  // const getPaymentCardDetails = async() => {
+  //   // Delegate to fetchCustomerCards which normalizes and sets `paymentMethods`.
+  //   try {
+  //     await fetchCustomerCards();
+  //   } catch (error) {
+  //     console.error("Error fetching payment card details:", error);
+  //   }
+  // };
+
+  
   // Modal navigation helpers (now use modalStep)
   const handleEnterAmountContinue = () => {
     if (!paymentAmount.trim() || parseFloat(paymentAmount) <= 0) {
@@ -229,12 +277,55 @@ const ScanScreen: React.FC = () => {
     setModalStep('confirm');
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
+    // Fetch plans for the entered amount, then open schedule modal
+    await getPaymentPlanDetails();
     setModalStep('schedule');
   };
 
-  const handlePaymentScheduleContinue = () => {
+  const handlePaymentScheduleContinue = async() => {
+    // Fetch saved customer cards, then open the payment method modal
+    await fetchCustomerCards();
     setModalStep('method');
+  };
+
+  const fetchCustomerCards = async () => {
+    try {
+      const resp = await callMobileApi(
+        'GetCusCard',
+        {},
+        'customer-cards',
+        '',
+        'customer'
+      );
+      console.log('GetCusCard response:', resp);
+      const data = resp?.data;
+      let cards: any[] = [];
+      if (!data) {
+        cards = [];
+      } else if (Array.isArray(data)) {
+        cards = data;
+      } else if (typeof data === 'object') {
+        // single card object
+        cards = [data];
+      }
+
+      const mapped = cards.map((c: any) => ({
+        id: `card_${c.jobId ?? Math.random().toString(36).slice(2, 8)}`,
+        label: c.cardNumber ?? c.maskedNumber ?? '•••• •••• ••••',
+        brand: c.cardType ?? 'Card',
+        expiry: c.cardDate ?? '',
+        isActive: c.isActive ?? true,
+      }));
+
+      setPaymentMethods(mapped);
+      if (!selectedPaymentMethod && mapped.length > 0) {
+        setSelectedPaymentMethod(mapped[0].id);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch customer cards:', e);
+      setPaymentMethods([]);
+    }
   };
 
   const handleSelectPaymentMethod = (id: string) => {
@@ -276,16 +367,230 @@ const ScanScreen: React.FC = () => {
     return isNaN(num) ? '0.00' : num.toFixed(2);
   };
 
-  const getPaymentPlanDetails = () => {
-    const amount = parseFloat(paymentAmount) || 0;
-    const plans = {
-      '3months': { installments: 3, monthly: amount / 3 },
-      '4months': { installments: 4, monthly: amount / 4 },
-      '6months': { installments: 6, monthly: amount / 6 },
-      '12months': { installments: 12, monthly: amount / 12 },
-    };
-    return plans[selectedPlan as keyof typeof plans] || plans['3months'];
+  const getPaymentPlanDetails = async() => {
+    setLoading(true);
+    try {
+      const response = await callMobileApi(
+        "GetCustomerPlanWInstallments",
+        {},
+        "payment-plans",
+        "",
+        'customer'
+      );
+      console.log("GetCustomerPlanWInstallments response:", response);
+
+      const amount = parseFloat(paymentAmount) || 0;
+
+      // Try to parse server-provided plans if available, otherwise build a sensible fallback
+      let plansArray: any[] = [];
+      const serverData = response?.data;
+      if (serverData) {
+        // Case: server returns available_Installmetns as a string like "{3:300,6:600,9:900}"
+        const avail = serverData.available_Installmetns ?? serverData.available_installments ?? serverData.availableInstallments;
+        if (typeof avail === 'string' && avail.trim().length > 0) {
+          try {
+            // Normalize to valid JSON: "{3:300,6:600}" -> {"3":300,"6":600}
+            const normalized = avail.replace(/(['\"])?([0-9a-zA-Z_]+)\s*:/g, '"$2":');
+            const parsed = JSON.parse(normalized);
+            console.log('Parsed available installments:', parsed);
+            plansArray = Object.entries(parsed).map(([k, v]) => {
+              const months = parseInt(k, 10) || 3;
+              const extra = parseFloat(String(v)) || 0;
+              const total = amount + extra; // total payable for this plan
+              const monthly = months > 0 ? total / months : total;
+              return {
+                key: `${months}months`,
+                months,
+                label: `${months} months`,
+                extra,
+                total,
+                monthly,
+              };
+            });
+          } catch (e) {
+            console.warn('Failed to parse available_Installmetns:', e);
+          }
+        }
+
+        // Common shapes: server may return array or object with plans; attempt to normalize if we don't have plans yet
+        if (plansArray.length === 0) {
+          if (Array.isArray(serverData)) {
+            plansArray = serverData.map((p: any) => {
+              const months = p.installments ?? p.months ?? 1;
+              const extra = p.extra ?? 0;
+              const total = amount + (parseFloat(String(extra)) || 0);
+              return {
+                key: p.key ?? p.name ?? `p-${months}`,
+                months,
+                label: p.label ?? p.name ?? `${months} months`,
+                discount: p.discount ?? 0,
+                monthly: p.monthly ?? (total / months),
+                extra,
+                total,
+              };
+            });
+          } else if (serverData.plans && Array.isArray(serverData.plans)) {
+            plansArray = serverData.plans.map((p: any) => {
+              const months = p.installments ?? p.months ?? 1;
+              const extra = p.extra ?? 0;
+              const total = amount + (parseFloat(String(extra)) || 0);
+              return {
+                key: p.key ?? p.name ?? `p-${months}`,
+                months,
+                label: p.label ?? p.name ?? `${months} months`,
+                discount: p.discount ?? 0,
+                monthly: p.monthly ?? (total / months),
+                extra,
+                total,
+              };
+            });
+          }
+        }
+      }
+      // Always include defaults (pay-at-once and 3 months), then append server plans (skip duplicates)
+      const defaults = [
+        { key: 'once', months: 1, label: 'Pay at once', discount: 0.05, monthly: amount },
+        { key: '3months', months: 3, label: '3 months', monthly: amount / 3 },
+      ];
+
+      let mergedPlans = defaults.slice();
+      if (plansArray.length > 0) {
+        plansArray.forEach((p) => {
+          if (!mergedPlans.some((d) => d.key === p.key)) {
+            mergedPlans.push(p);
+          }
+        });
+      }
+
+      setPaymentPlansList(mergedPlans);
+      return mergedPlans.find((p) => p.key === selectedPlan) || mergedPlans[0];
+    } catch (err) {
+      console.error('Error fetching payment plans:', err);
+      const fallback = [
+        { key: 'once', months: 1, label: 'Pay at once', discount: 0.05, monthly: (parseFloat(paymentAmount) || 0) },
+        { key: '3months', months: 3, label: '3 months', monthly: (parseFloat(paymentAmount) || 0) / 3 },
+      ];
+      setPaymentPlansList(fallback);
+      return fallback.find((p) => p.key === selectedPlan) || fallback[1];
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const confirmPayment = async() => {
+    try {
+      // saleId must be available (from dynamic QR flow)
+      if (!saleId) throw new Error('Missing saleId for creating loan');
+
+      // Determine number of installments from selected plan or fallback
+      const selectedPlanObj = paymentPlansList.find((p) => p.key === selectedPlan) || null;
+      const months = typeof (selectedPlanObj as any)?.months === 'number' ? (selectedPlanObj as any).months : (selectedPlan === 'once' ? 1 : 1);
+
+      // Determine pay-at-once flag
+      const payAtOnce = selectedPlan === 'once' || months === 1 ? 1 : 0;
+
+      console.log("Creating loan for sale ID:", saleId, "with installments:", months, "payAtOnce:", payAtOnce);
+
+      const response = await callMobileApi(
+        'CreateLoan',
+        {
+          saleId: saleId,
+          noOfinstllment: months,
+          isPayAtOnce: payAtOnce,
+        },
+        'mobile-app-create-loan',
+        '',
+        'payment'
+      );
+
+    console.log("createLoan response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error creating loan:", error);
+    throw error;
+  }
+  };
+
+
+
+
+
+  const handleAddPaymentMethod = async () => {
+    try {
+      setOnboardingLoading(true);
+      console.log("Creating onboard job...");
+
+      const response = await callMobileApi(
+        'CreateOnBoardJob',
+        {},
+        'mobile-app-onboard-job',
+        '',
+        'payment'
+      );
+
+
+      // (computedTotal moved to component scope so UI can access it)
+
+      const selectedCard = paymentMethods.find((c) => c.id === selectedPaymentMethod) || null;
+      if (response.statusCode === 200) {
+        const jobId = response.data; // Extract job ID from response
+        console.log("Onboard job created successfully with ID:", jobId);
+
+        // Construct the URL with job ID
+        const paymentUrl = `https://hexdive.com/dpay.php?jobid=${jobId}`;
+        console.log("Payment URL:", paymentUrl);
+
+        // Close modal and navigate directly to the WebViewScreen so the flow continues
+        setModalStep(null);
+        setScanned(false);
+        navigation.navigate('WebViewScreen', {
+          url: paymentUrl,
+          jobId: jobId,
+        });
+      } else {
+        console.error("Failed to create onboard job:", response.message);
+        Alert.alert("Error", response.message || 'Failed to initiate payment setup. Please try again.');
+      }
+    } catch (error: any) {
+      console.error("CreateOnBoardJob error:", error);
+      const errorMessage = error.response?.data?.message || 'Failed to initiate payment setup. Please try again.';
+      Alert.alert("Error", errorMessage);
+    } finally {
+        setOnboardingLoading(false);
+      }
+    };
+
+    // Compute selected plan object and the single-installment amount for display (component scope)
+    const selectedPlanObj = paymentPlansList.find((p) => p.key === selectedPlan) || null;
+    const computedInstallment: number = (() => {
+      const amount = parseFloat(paymentAmount) || 0;
+      if (!selectedPlanObj) return amount;
+
+      // If pay-at-once, show discounted single installment (full payment)
+      if (selectedPlanObj.key === 'once') {
+        const discount = (selectedPlanObj as any).discount ?? 0;
+        return amount * (1 - (discount || 0));
+      }
+
+      // If plan provides a monthly value, prefer that
+      if (typeof (selectedPlanObj as any).monthly === 'number') {
+        return (selectedPlanObj as any).monthly;
+      }
+
+      // If server provided a total and months, compute per-installment
+      if (typeof (selectedPlanObj as any).total === 'number' && typeof (selectedPlanObj as any).months === 'number' && (selectedPlanObj as any).months > 0) {
+        return (selectedPlanObj as any).total / (selectedPlanObj as any).months;
+      }
+
+      // Fallback: divide entered amount by months if available, otherwise return amount
+      if (typeof (selectedPlanObj as any).months === 'number' && (selectedPlanObj as any).months > 0) {
+        return amount / (selectedPlanObj as any).months;
+      }
+
+      return amount;
+    })();
+
+    const selectedCard = paymentMethods.find((c) => c.id === selectedPaymentMethod) || null;
 
   if (hasPermission === null) {
     return (
@@ -492,13 +797,10 @@ const ScanScreen: React.FC = () => {
               </View>
 
               <View style={styles.planContainer}>
-                {[
+                {(paymentPlansList && paymentPlansList.length > 0 ? paymentPlansList : [
                   { key: 'once', months: 1, label: 'Pay at once', discount: 0.05 },
                   { key: '3months', months: 3, label: '3 months' },
-                  { key: '4months', months: 4, label: '4 months' },
-                  { key: '6months', months: 6, label: '6 months' },
-                  { key: '12months', months: 12, label: '12 months' },
-                ].map((plan, index) => {
+                ]).map((plan, index) => {
                   const isSelected = selectedPlan === plan.key;
 
                   // Pay-at-once shows discounted total + strike-through original
@@ -537,7 +839,7 @@ const ScanScreen: React.FC = () => {
                   }
 
                   // Regular installment options
-                  const monthly = (parseFloat(paymentAmount) || 0) / plan.months;
+                  const monthly = plan.monthly ?? ((parseFloat(paymentAmount) || 0) / (plan.months || 1));
 
                   return (
                     <TouchableOpacity
@@ -579,34 +881,37 @@ const ScanScreen: React.FC = () => {
                 <Text style={[styles.modalTitle, styles.modalTitleCentered]}>Payment Method</Text>
               </View>
 
-              {[
-                { id: 'card_1', label: 'VISA •••• 3816', brand: 'VISA' },
-                { id: 'card_2', label: '•••• 2399', brand: 'Other' },
-              ].map((m) => {
-                const selected = selectedPaymentMethod === m.id;
-                return (
-                  <TouchableOpacity
-                    key={m.id}
-                    activeOpacity={0.8}
-                    style={[
-                      styles.planOption,
-                      selected && styles.planOptionSelected,
-                      { flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' },
-                    ]}
-                    onPress={() => handleSelectPaymentMethod(m.id)}
-                  >
-                    <View style={{ marginRight: 12 }}>
-                      <View style={[styles.radioOuter, selected && styles.radioSelected]}>
-                        {selected && <View style={styles.radioInner} />}
+              {paymentMethods && paymentMethods.length > 0 ? (
+                paymentMethods.map((m) => {
+                  const selected = selectedPaymentMethod === m.id;
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.planOption,
+                        selected && styles.planOptionSelected,
+                        { flexDirection: 'row', alignItems: 'center', marginBottom: 12, width: '100%' },
+                      ]}
+                      onPress={() => handleSelectPaymentMethod(m.id)}
+                    >
+                      <View style={{ marginRight: 12 }}>
+                        <View style={[styles.radioOuter, selected && styles.radioSelected]}>
+                          {selected && <View style={styles.radioInner} />}
+                        </View>
                       </View>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{m.brand}</Text>
-                      <Text style={styles.planAmount}>{m.label}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.planLabel, selected && styles.planLabelSelected]}>{m.brand}</Text>
+                        <Text style={styles.planAmount}>{m.label}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={{ alignItems: 'center', width: '100%', paddingVertical: 16 }}>
+                  <Text style={{ color: '#6B7280' }}>No saved payment methods</Text>
+                </View>
+              )}
 
               <TouchableOpacity
                 style={{
@@ -617,9 +922,7 @@ const ScanScreen: React.FC = () => {
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                 }}
-                onPress={() => {
-                  Alert.alert('Add Payment Method', 'Open Add Payment Method flow.');
-                }}
+                onPress={handleAddPaymentMethod}
               >
                 <Text style={{ color: '#0F172A', fontWeight: '600' }}>Add New Payment Method</Text>
                 <View style={{
@@ -636,7 +939,7 @@ const ScanScreen: React.FC = () => {
               </TouchableOpacity>
 
               <CustomButton
-                title={`Pay Rs. ${formatAmount(paymentAmount)}`}
+                title={`Pay Rs. ${formatAmount(String(computedInstallment))}`}
                 onPress={handlePayNow}
                 variant="primary"
                 style={{ marginTop: 20 }}
@@ -657,23 +960,29 @@ const ScanScreen: React.FC = () => {
               </View>
 
               <CustomButton
-                title={`Try Again`}
-                onPress={() => {
-                  // generate order id
-                  const id = 'OE#' + Math.floor(100000 + Math.random() * 900000).toString();
-                  setOrderId(id);
+                title="Confirm"
+                onPress={async () => {
+                  try {
+                    const resp = await confirmPayment();
 
-                  // If user chose "Pay at once" (key 'once') show the in-modal success screen.
-                  // Otherwise navigate to the existing PaymentSuccessScreen .
-                  if (selectedPlan === 'once') {
-                    setModalStep('success');
-                  } else {
-                    navigation.navigate('PaymentSuccessScreen', {
-                      amount: paymentAmount,
-                      qrData,
-                      merchant: merchantName,
-                    });
-                    closeAllModals();
+                    // Try to extract an order/loan id from the response, fallback to generated id
+                    const idFromResp = resp?.data?.loanId ?? resp?.data?.orderId ?? resp?.data ?? null;
+                    const id = idFromResp ? String(idFromResp) : 'OE#' + Math.floor(100000 + Math.random() * 900000).toString();
+                    setOrderId(id);
+
+                    if (selectedPlan === 'once') {
+                      setModalStep('success');
+                    } else {
+                      navigation.navigate('PaymentSuccessScreen', {
+                        amount: paymentAmount,
+                        qrData,
+                        merchant: merchantName,
+                      });
+                      closeAllModals();
+                    }
+                  } catch (err: any) {
+                    console.error('confirmPayment failed', err);
+                    Alert.alert('Payment failed', err?.message || 'Unable to process payment. Please try again.');
                   }
                 }}
                 variant="outline"

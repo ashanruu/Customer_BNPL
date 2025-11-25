@@ -21,6 +21,7 @@ import TermsAndConditionsScreen from "../screens/SignUp/TermsAndConditionsScreen
 
 // Legal
 import LegalTermsAndConditionsScreen from "../screens/Legal/LegalTermsAndConditionsScreen";
+import WebViewScreen from "../screensNew/QrScanScreen/staticQrScreens/WebViewScreen";
 
 // Other Screens
 // import PlansScreen from "../screens/PlansScreen";
@@ -38,7 +39,7 @@ import LegalTermsAndConditionsScreen from "../screens/Legal/LegalTermsAndConditi
 // import CardAddedSuccessScreen from "../screens/Cards/CardAddedSuccessScreen";
 
 //Web View Screen
-import WebViewScreen from "../screens/Profile/WebViewScreen";
+
 import OrderDetailsScreen from "../screens/Orders/OrderDetailsScreen";
 import ChangePasswordScreen from "../screens/Settings/ChangePasswordScreen";
 import ShopDetailsScreen from "../screens/Shop/ShopDetailsScreen";
@@ -184,6 +185,7 @@ const AppNavigator = () => {
 
       {/* Orders screen (new) */}
       <Stack.Screen name="OrderScreen" component={OrderScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
 
       {/* Other Screens */}
       {/* <Stack.Screen name="PlansScreen" component={PlansScreen} options={{ gestureEnabled: false }} />
